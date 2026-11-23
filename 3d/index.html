@@ -1306,6 +1306,7 @@ body.vz-rec .vzbtn,body.vz-rec #mpForm .vzf{background:#ff2d55;transform:scale(1
         <div class="aerr" id="lErr"></div>
         <button class="btn btn-pri big abtn" type="submit"><svg><use href="#icPlay"/></svg>Entrar no jogo</button>
         <div class="aalt">Ainda não tens conta? <a onclick="authTab('reg')">Cria uma grátis</a></div>
+        <div class="aalt" style="opacity:.5;font-size:11px;margin-top:6px"><a onclick="admAbrir()">🔐 acesso de administrador</a></div>
       </form>
       <form id="fReg" class="hidden" onsubmit="regNext(event)">
         <div class="fld"><label for="rNome">Nome ou nickname</label><div class="inp"><svg><use href="#icUser"/></svg><input id="rNome" maxlength="24" autocomplete="nickname" placeholder="Ex.: Kiluanje, Djodjo, MC Kota…" required></div></div>
@@ -1390,6 +1391,7 @@ body.vz-rec .vzbtn,body.vz-rec #mpForm .vzf{background:#ff2d55;transform:scale(1
 <script src="world.js"></script>
 <script src="city.js"></script>
 <script src="ui.js"></script>
+<script src="admin.js"></script>
 <script src="phone.js"></script>
 <script src="empire.js"></script>
 <script src="interiors.js"></script>

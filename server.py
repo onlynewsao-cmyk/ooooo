@@ -126,6 +126,7 @@ SOC_ACOES = ('acenar', 'abracar', 'dancar', 'respeito', 'bebida', 'elogio', 'vis
 KZ_MAX, KZ_DIA = 5_000_000, 20_000_000
 IPSALT = os.environ.get('IP_SALT', 'pe3d-kianda-ao')   # sal para não guardar IPs em claro
 ADMIN_KEY = os.environ.get('ADMIN_KEY', '')            # chave do painel de auditoria (definir no Northflank)
+ADMIN_EMAILS = set(e.strip().lower() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip())  # estas contas entram sempre como admin
 IDENTC = {}   # uid -> (dev, iph) em cache; a gravação na base só acontece quando muda
 KZIP = {}     # (uid, fid) -> (dia, total) transferências entre contas no mesmo IP
 KZIP_DIA = 2_000_000   # teto diário entre contas que partilham IP
@@ -419,6 +420,15 @@ def _batota(uid, nick, kz, now):
     return kz
 
 
+def _aud(u, txt):
+    """registo de auditoria das ações de administração (admin.log)"""
+    try:
+        with open(os.path.join(DATA, 'admin.log'), 'a', encoding='utf-8') as f:
+            f.write(f'{time.strftime("%Y-%m-%d %H:%M:%S")}\t{u["id"]}\t{u["nome"]}\t{txt}\n')
+    except Exception:
+        pass
+
+
 def _iph(h):
     """hash do IP (X-Forwarded-For atrás de proxy) — privacidade: nunca guardamos o IP em claro"""
     ip = (h.headers.get('X-Forwarded-For') or '').split(',')[0].strip() or (h.client_address[0] if h.client_address else '?')
@@ -605,8 +615,12 @@ def hash_pw(senha, salt):
 
 
 def public(u):
+    try:
+        adm = bool(u['adm'])
+    except Exception:
+        adm = False
     return {'id': u['id'], 'nome': u['nome'], 'email': u['email'], 'adulto': bool(u['adulto']),
-            'avatar': json.loads(u['avatar'] or '{}')}
+            'adm': adm, 'avatar': json.loads(u['avatar'] or '{}')}
 
 
 GZ = {}   # cache de ficheiros comprimidos: caminho -> (mtime, bytes)
@@ -1483,9 +1497,36 @@ class H(SimpleHTTPRequestHandler):
                     return self.send_json(401, {'erro': 'Sessão inválida. Entra outra vez.'})
                 return self.send_json(200, {'user': public(u), 'save': json.loads(u['save']) if u['save'] else None,
                                             'meta': json.loads(u['meta']) if u['meta'] else None})
+        if self.path == '/api/admin/painel':
+            with db() as c:
+                u = self.user(c, 'u.id, u.nome, u.adm')
+                if not u or not u['adm']:
+                    return self.send_json(404, {'erro': 'Não encontrado'})
+                contas = c.execute('SELECT COUNT(*) AS n FROM users').fetchone()['n']
+                ultimos = [{'id': r['id'], 'nome': r['nome'], 'email': r['email'], 'criado': r['criado']} for r in c.execute('SELECT id, nome, email, criado FROM users ORDER BY id DESC LIMIT 12').fetchall()]
+                bans = []
+                for r in c.execute("SELECT k FROM kv WHERE k LIKE 'ban:%'").fetchall():
+                    try:
+                        bans.append(int(r[0][4:]))
+                    except Exception:
+                        pass
+                ids = set(SUS.keys()) | set(bans) | {s2.get('id') for s2 in PLAYERS.values()}
+                nomes = {}
+                if ids:
+                    q = ','.join('?' * len(ids))
+                    for r in c.execute('SELECT id, nome FROM users WHERE id IN (' + q + ')', list(ids)).fetchall():
+                        nomes[r['id']] = r['nome']
+            sus = [{'id': i, 'nome': nomes.get(i, '?'), 'motivo': m} for i, m in SUS.items()]
+            online = [{'id': s2.get('id'), 'nome': nomes.get(s2.get('id'), '?'), 'kz': int(_num(s2.get('kz'), 0, 1e15)), 'sala': str(s2.get('room') or ''), 'sus': s2.get('id') in SUS} for s2 in list(PLAYERS.values())[:80]]
+            return self.send_json(200, {'ok': True, 'contas': contas, 'online': online, 'sus': sus,
+                                        'banidos': [{'id': b, 'nome': nomes.get(b, '?')} for b in bans],
+                                        'ultimos': ultimos, 'no': NODE})
         if self.path == '/api/admin/contas':
-            if not ADMIN_KEY or self.headers.get('X-Admin-Key', '') != ADMIN_KEY:
-                return self.send_json(404, {'erro': 'Não encontrado'})
+            if not (ADMIN_KEY and self.headers.get('X-Admin-Key', '') == ADMIN_KEY):
+                with db() as c:
+                    _a = self.user(c, 'u.adm')
+                if not _a or not _a['adm']:
+                    return self.send_json(404, {'erro': 'Não encontrado'})
             grupos = {}
             with db() as c:
                 for k, v in c.execute("SELECT k, v FROM kv WHERE k LIKE 'ident:%'").fetchall():
@@ -1576,6 +1617,8 @@ class H(SimpleHTTPRequestHandler):
                 tok = secrets.token_urlsafe(32)
                 c.execute('INSERT INTO sessions VALUES(?,?,?)', (tok, cur.lastrowid, time.time()))
                 _ident_note(self, c, cur.lastrowid, str(d.get('dv') or '')[:32], time.time())
+                if email in ADMIN_EMAILS:
+                    c.execute('UPDATE users SET adm=1 WHERE id=?', (cur.lastrowid,))
                 u = c.execute('SELECT * FROM users WHERE id=?', (cur.lastrowid,)).fetchone()
                 return self.send_json(200, {'token': tok, 'user': public(u), 'save': None, 'meta': None})
             if p == '/api/login':
@@ -1583,15 +1626,52 @@ class H(SimpleHTTPRequestHandler):
                 u = c.execute('SELECT * FROM users WHERE email=?', (email,)).fetchone()
                 if not u or not hmac.compare_digest(u['hash'], hash_pw(str(d.get('senha', '')), u['salt'])):
                     return self.send_json(401, {'erro': 'E-mail ou senha incorretos.'})
+                if c.execute('SELECT v FROM kv WHERE k=?', ('ban:' + str(u['id']),)).fetchone():
+                    return self.send_json(403, {'erro': '🚫 Esta conta foi suspensa pela administração do jogo.'})
+                if email in ADMIN_EMAILS and not u['adm']:
+                    c.execute('UPDATE users SET adm=1 WHERE id=?', (u['id'],))
+                    u = c.execute('SELECT * FROM users WHERE id=?', (u['id'],)).fetchone()
                 tok = secrets.token_urlsafe(32)
                 c.execute('INSERT INTO sessions VALUES(?,?,?)', (tok, u['id'], time.time()))
                 _ident_note(self, c, u['id'], str(d.get('dv') or '')[:32], time.time())
                 return self.send_json(200, {'token': tok, 'user': public(u),
                                             'save': json.loads(u['save']) if u['save'] else None,
                                             'meta': json.loads(u['meta']) if u['meta'] else None})
-            u = self.user(c, 'u.id, u.nome, u.email, u.adulto, u.avatar')
+            u = self.user(c, 'u.id, u.nome, u.email, u.adulto, u.avatar, u.adm')
             if not u:
                 return self.send_json(401, {'erro': 'Sessão inválida. Entra outra vez.'})
+            if p == '/api/admin/entrar':
+                if not ADMIN_KEY or str(d.get('chave', '')) != ADMIN_KEY:
+                    return self.send_json(403, {'erro': 'Chave de administrador errada.'})
+                c.execute('UPDATE users SET adm=1 WHERE id=?', (u['id'],))
+                _aud(u, 'ativou o modo administrador')
+                return self.send_json(200, {'ok': True, 'adm': True})
+            if p == '/api/admin/acao':
+                if not u['adm']:
+                    return self.send_json(404, {'erro': 'Não encontrado'})
+                op = str(d.get('op', ''))
+                uid = int(_num(d.get('uid'), 0, 1e12))
+                alvo = c.execute('SELECT id, nome FROM users WHERE id=?', (uid,)).fetchone()
+                if not alvo:
+                    return self.send_json(400, {'erro': 'Conta não encontrada.'})
+                if alvo['id'] == u['id'] and op in ('banir', 'zerar'):
+                    return self.send_json(400, {'erro': 'Não podes fazer isso à tua própria conta.'})
+                if op == 'banir':
+                    c.execute('INSERT OR REPLACE INTO kv VALUES(?, ?)', ('ban:' + str(uid), str(time.time())))
+                    c.execute('DELETE FROM sessions WHERE user_id=?', (uid,))
+                    PLAYERS.pop(uid, None)
+                elif op == 'desbanir':
+                    c.execute('DELETE FROM kv WHERE k=?', ('ban:' + str(uid),))
+                elif op == 'perdoar':
+                    SUS.pop(uid, None)
+                elif op == 'zerar':
+                    c.execute('UPDATE users SET save=NULL, meta=NULL WHERE id=?', (uid,))
+                    c.execute('DELETE FROM sessions WHERE user_id=?', (uid,))
+                    PLAYERS.pop(uid, None)
+                else:
+                    return self.send_json(400, {'erro': 'Ação desconhecida.'})
+                _aud(u, op + ' -> ' + alvo['nome'] + ' (#' + str(uid) + ')')
+                return self.send_json(200, {'ok': True})
             if p == '/api/profile':
                 if d.get('nome'):
                     c.execute('UPDATE users SET nome=? WHERE id=?', (str(d['nome']).strip()[:40], u['id']))

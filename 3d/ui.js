@@ -720,6 +720,7 @@ function gameMenu() {
   openModal(`<div class="mico">☰</div><h3>Menu</h3><div class="choices">
     <button class="btn btn-ghost" onclick="closeModal();showHelp()">❓ Como Jogar</button>
     <button class="btn btn-ghost" onclick="closeModal();showCredits()">★ Créditos</button>
+    <button class="btn btn-ghost" onclick="closeModal();admAbrir()">🛡️ Administração</button>
     <button class="btn btn-ghost" onclick="save();closeModal();goTitle()">🏠 Menu Principal (vida guardada)</button>
     <button class="btn btn-pri" onclick="if(confirm('Terminar esta vida agora?')){closeModal();die('decidiu partir para a próxima encarnação')}">☠ Terminar esta vida</button>
     <button class="btn btn-ghost" onclick="closeModal()">Voltar ao jogo</button></div>`);

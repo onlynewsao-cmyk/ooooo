@@ -247,3 +247,21 @@ Para descer, o script avisa que serviços sobram, e apagas esses no painel.
   3. liga o domínio;
   4. migra as contas;
   5. guarda o `NF_TOKEN` num sítio seguro.
+
+---
+
+## Login de administrador (dono do jogo)
+
+O jogo tem um **painel de administração** dentro do próprio jogo (Menu → 🛡️ Administração):
+contas criadas, quem está online, contas suspeitas de batota/funil de dinheiro, grupos de
+multicontas (mesmo aparelho / mesmo IP) e ações de moderação — **banir, readmitir, perdoar
+suspeita e zerar vida**. Todas as ações ficam registadas em `data/admin.log`.
+
+Para ativar o teu acesso de administrador há duas maneiras (configura uma delas nos segredos do Northflank):
+
+| Variável | Para quê |
+|---|---|
+| `ADMIN_EMAILS` | e-mails (separados por vírgula) que entram **sempre** como admin — recomendado: `tu@email.com` |
+| `ADMIN_KEY` | chave secreta; qualquer conta pode ativar o admin com ela em Menu → Administração |
+
+Contas banidas não conseguem entrar ("Conta suspensa") e são desligadas na hora.

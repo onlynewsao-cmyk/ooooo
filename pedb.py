@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS users(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   nome TEXT NOT NULL, email TEXT UNIQUE NOT NULL,
   salt TEXT NOT NULL, hash TEXT NOT NULL,
-  adulto INTEGER DEFAULT 0, avatar TEXT DEFAULT '{}',
+  adulto INTEGER DEFAULT 0, adm INTEGER DEFAULT 0, avatar TEXT DEFAULT '{}',
   save TEXT, meta TEXT, criado REAL);
 CREATE TABLE IF NOT EXISTS sessions(
   token TEXT PRIMARY KEY, user_id INTEGER, criado REAL);
@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS users(
   id BIGSERIAL PRIMARY KEY,
   nome TEXT NOT NULL, email TEXT UNIQUE NOT NULL,
   salt TEXT NOT NULL, hash TEXT NOT NULL,
-  adulto INTEGER DEFAULT 0, avatar TEXT DEFAULT '{}',
+  adulto INTEGER DEFAULT 0, adm INTEGER DEFAULT 0, avatar TEXT DEFAULT '{}',
   save TEXT, meta TEXT, criado DOUBLE PRECISION);
 CREATE TABLE IF NOT EXISTS sessions(
   token TEXT PRIMARY KEY, user_id BIGINT, criado DOUBLE PRECISION);
@@ -271,10 +271,18 @@ def init_schema(sqlite_path):
         with _PgConn() as c:
             c.execute('SELECT pg_advisory_xact_lock(4242)')   # vários nós a arrancar ao mesmo tempo: um de cada vez
             c.executescript(SCHEMA_PG)
+            try:
+                c.execute('ALTER TABLE users ADD COLUMN IF NOT EXISTS adm INTEGER DEFAULT 0')
+            except Exception:
+                pass
         return
     with connect(sqlite_path) as c:
         c.executescript(SCHEMA_SQLITE)
         c.execute('PRAGMA journal_mode=WAL')
+        try:
+            c.execute('ALTER TABLE users ADD COLUMN adm INTEGER DEFAULT 0')
+        except Exception:
+            pass
 
 
 def descr():
