@@ -1283,7 +1283,6 @@ body.vz-rec .vzbtn,body.vz-rec #mpForm .vzf{background:#ff2d55;transform:scale(1
   <div class="tvig"></div>
   <header class="ttop">
     <div class="tbrand"><svg class="emb"><use href="#embS"/></svg><span>Próxima <b>Encarnação</b></span></div>
-    <div class="tstat"><i></i><span id="tStat">Servidor online</span></div>
   </header>
   <section class="thero">
     <svg class="emb big"><use href="#embS"/></svg>
@@ -4687,6 +4686,14 @@ function setupInput() {
 
 /* ---------- Loop ---------- */
 let hitCool = 0, mmFrame = 0;
+// 2.º plano: o rAF pára quando a aba está escondida — o mundo continua a viver via temporizador
+setInterval(() => {
+  if (!document.hidden) return;
+  try {
+    if ((mode === 'title' || mode === 'select') && typeof updateShowroom === 'function') updateShowroom(1);
+    else if (worldScene && typeof updateWorld === 'function') updateWorld(1);
+  } catch (e) { }
+}, 1000);
 function loop() {
   requestAnimationFrame(loop);
   const dt = Math.min(clock.getDelta(), .1); // até 10 fps o boneco anda à velocidade normal
@@ -5538,17 +5545,7 @@ function buildWorld() {
     vans.push({ g: v, segs, total, d: (i * .37 % 1) * total, speed: 10 + Math.random() * 5, wait: 0 });
   }
 
-  /* ----- peões ----- */
-  for (let i = 0; i < (LITE ? 6 : IS_MOBILE ? 10 : 18); i++) {
-    const h = makeHuman(randomNPCcfg()); h.g.scale.multiplyScalar(BODY_S); worldScene.add(h.g);
-    const nx = pick(X), nz = pick(Z);
-    const n = { h, from: [nx, nz], to: null, side: pick([-SIDE + .4, SIDE - .4]), t: 0, speed: 1.3 + Math.random() * .8 };
-    npcs.push(n); npcNext(n, X, Z);
-  }
-  let nEx = 0; const extra = (x, z, ry, dance) => { if (LITE && nEx++ % 2) return; const h = makeHuman(randomNPCcfg()); h.g.scale.multiplyScalar(BODY_S); h.g.position.set(x, 0, z); h.g.rotation.y = ry; h.idleDance = dance; worldScene.add(h.g); dancers.push(h); };
-  extra(-59, -121, 0, true); extra(-51, -121.5, .4, true); extra(-62, -120.5, -.4, true); extra(-100, -138, 2, true);
-  extra(-36, 21, Math.PI, false); extra(-24, 22, Math.PI, false); extra(-45, 31, Math.PI / 2, false);
-  extra(84, -30, Math.PI, false); extra(146, 20, 0, false); extra(26, 20.5, 0, false);
+  /* ----- peões: cidade só de jogadores reais (sem NPCs falsos na rua) ----- */
 
   minimapCtx = document.getElementById('minimap').getContext('2d');
   casaZ = null;
@@ -5625,7 +5622,6 @@ function goTitle() {
   $('#authBox').classList.toggle('hidden', logged); $('#menuBox').classList.toggle('hidden', !logged);
   $('#ovTitle').classList.toggle('auth', !logged);
   $('#aMode').innerHTML = Acc.online ? '<svg style="width:14px;height:14px;color:#2ecc71"><use href="#icShield"/></svg> A tua conta e as tuas vidas ficam guardadas na nuvem.' : 'Modo local — a conta fica guardada neste navegador.';
-  const ts = $('#tStat'); if (ts) { ts.textContent = Acc.online ? 'Servidor online' : 'Modo local'; ts.parentNode.classList.toggle('off', !Acc.online); }
   if (logged) {
     let im = ''; try { if (USER.avatar && USER.avatar.genero) im = avatarShot(avatarCfg(USER.avatar, 'casual', G ? Math.max(16, G.idade) : 25), '#1c1a22', true); } catch (e) { }
     $('#hello').innerHTML = `<div class="hav">${im ? `<img src="${im}" alt="">` : ''}<div><big>Olá, ${esc(USER.nome)}</big>${G ? `A viver como <b>${esc(G.nome)}</b> · ${G.idade} anos` : 'Pronto(a) para começar uma nova vida?'}</div></div>`;
@@ -6518,7 +6514,7 @@ function renderPhone(keep) {
   b.style.background = m === 1 ? '' : appView ? '#0b0b10' : wall.css;
   b.classList.toggle('appv', appView);
   const bat = 35 + phHash(G.ano + 'b') % 64;
-  $('#phBar').innerHTML = m === 1 ? `<span>▂▄▆ MBOTE</span><span>${nowTxt()}</span><span>▮▮▮▯</span>`
+  $('#phBar').innerHTML = m === 1 ? `<span>▂▄▆ DARKCELL</span><span>${nowTxt()}</span><span>▮▮▮▯</span>`
     : `<span>${nowTxt()}</span><span>${!m ? 'Sem SIM' : m >= 3 ? '5G' : '4G'} <b style="letter-spacing:-2px">▂▄▆█</b> <span class="batt"><i style="width:${bat}%"></i></span> ${bat}%</span>`;
   $('#phNav').classList.toggle('hidden', m === 1);
   $('#phKeys').classList.toggle('hidden', m !== 1);
@@ -6559,6 +6555,17 @@ const PHONE_VIEWS = {
       <div class="cbtns">${c.call ? `<button onclick="callPerson('${c.key}')" title="Ligar">📞</button>` : ''}<button onclick="phoneApp='mensagens';chatKey='${c.key}';renderPhone()" title="Mensagem">💬</button></div></div>`).join('')}
       <div class="crow"><div class="cav" style="background:#c8102e">🚑</div><div class="cinfo"><b>Emergência 112</b><span>Consulta médica urgente</span></div><div class="cbtns"><button onclick="runAtiv('medico')">📞</button></div></div></div>`
     + `<p class="apnote">Ligar gasta 1 energia e fortalece muito a relação. Mensagens são grátis (1 por pessoa por ano).</p>`,
+
+  smsnovo: () => {
+    const b = window.SMS_BUSCA;
+    return apHead('Novo contacto', 'DarkCell · SMS entre jogadores') + `<div style="padding:14px">
+      <p class="apnote">O teu número: <b>${fmtTel(telNum())}</b> — partilha-o com os amigos!</p>
+      <div style="display:flex;gap:8px"><input id="smsNum" inputmode="numeric" maxlength="9" placeholder="Número (ex: 951 234 567)" style="flex:1;padding:12px;border-radius:14px;border:1px solid #333;background:#1a1a24;color:#fff;font-size:16px" onkeydown="if(event.key==='Enter')smsProcurar()"><button class="pbtn" style="width:auto;margin:0;padding:0 18px" onclick="smsProcurar()">🔍</button></div>
+      ${b && b.erro ? `<div class="apwarn" style="margin-top:12px">📵 ${esc(b.erro)}</div>` : ''}
+      ${b && b.nome ? `<div class="card" style="margin-top:14px;text-align:center"><div style="font-size:38px">📶</div><b>${esc(b.nome)}</b><div class="dim">${fmtTel(b.num)}</div><button class="pbtn" style="margin-top:10px" onclick="smsAddFalar()">💬 Guardar e conversar</button></div>` : ''}
+      <p class="apnote" style="margin-top:12px">Pede o número a outro jogador no chat da cidade e adiciona-o aqui. As mensagens chegam mesmo ao telemóvel dele(a)!</p>
+    </div>`;
+  },
 
   mensagens: () => {
     if (chatKey) return chatView(chatKey);
@@ -6712,6 +6719,18 @@ function nokiaScreen() {
   if (phoneApp === 'home') return hd('Menu') + it('📇 Contactos', "phoneApp='telefone';renderPhone()") + it(`✉ Mensagens${unread() ? ' (' + unread() + ')' : ''}`, "phoneApp='mensagens';renderPhone()") + it('💰 DarkCell Money', "phoneApp='nkmoney';renderPhone()") + it('📻 Rádio FM', 'listenMusic()') + it('🐍 Cobrinha', "playGame('cobra')") + it('📊 A minha vida', "phoneApp='nkvida';renderPhone()") + it('⚙ Definições', "phoneApp='definicoes';renderPhone()");
   if (phoneApp === 'telefone') { const jogs = smsThreads(); return hd('Contactos') + contacts().map(c => `<div class="nkr"><span>${esc(c.nome.split(' ')[0])}</span>${c.call ? `<button onclick="callPerson('${c.key}')">Ligar</button>` : ''}<button onclick="sendMsg('${c.key}')">SMS</button></div>`).join('') + (jogs.length ? hd('Jogadores (DarkCell)') : '') + jogs.map(j => `<div class="nkr"><span>${esc(j.nome.split(' ')[0])}</span><button onclick="smsNovoPara('${j.num}')">SMS</button></div>`).join('') + it('＋ SMS a número novo', 'smsNovo()'); }
   if (phoneApp === 'mensagens') { (G.inbox || []).forEach(m => m.lida = true); return hd('Mensagens') + ((G.inbox || []).slice(0, 12).map(m => `<div class="nkmsg"><b>${esc(m.de)}:</b> ${esc(m.txt)}</div>`).join('') || '<div class="nkmsg">Sem mensagens.</div>'); }
+  if (phoneApp === 'nknovo') {
+    const b = window.SMS_BUSCA;
+    return hd('Número novo') + `<div style="padding:8px"><input id="smsNum" inputmode="numeric" maxlength="9" placeholder="Número: 9XXXXXXXX" style="width:100%;padding:9px;border-radius:8px;border:1px solid #555;background:#111;color:#fff;box-sizing:border-box"></div>`
+      + it('🔍 Procurar na rede DarkCell', 'smsProcurar()')
+      + (b && b.erro ? `<div class="nkmsg">📵 ${esc(b.erro)}</div>` : '')
+      + (b && b.nome ? `<div class="nkmsg">📶 <b>${esc(b.nome)}</b> · ${fmtTel(b.num)}</div>` + it('💬 Guardar e enviar SMS', 'smsAddFalar()') : '');
+  }
+  if (phoneApp === 'nksms') {
+    const num = window.SMS_PARA || '', nome = (G.telNomes || {})[num] || fmtTel(num);
+    return hd('SMS para ' + esc(nome)) + `<div style="padding:8px"><input id="nkSmsIn" maxlength="140" placeholder="Escreve o SMS…" style="width:100%;padding:9px;border-radius:8px;border:1px solid #555;background:#111;color:#fff;box-sizing:border-box"></div>`
+      + it('📤 Enviar SMS', 'smsSendNokia()') + it('‹ Voltar', "phoneApp='telefone';renderPhone()");
+  }
   if (phoneApp === 'nkmoney') return hd('DarkCell Money') + `<div class="nkmsg">Saldo: <b>${kz(G.dinheiro)}</b></div>` + (G.mae.vivo ? it('Enviar dinheiro à mãe', "helpParent('mae')") : '') + (G.pai.vivo ? it('Enviar dinheiro ao pai', "helpParent('pai')") : '');
   if (phoneApp === 'nkvida') return hd(esc(G.nome)) + Object.keys(LABEL).map(k => `<div class="nkr"><span>${LABEL[k]}</span><b>${G.stats[k]}</b></div>`).join('');
   if (phoneApp === 'definicoes') return hd('Definições') + it(plus18() ? '+18: Ligado' : '+18: Desligado', 'toggle18()') + it('Créditos', 'closePhone();showCredits()') + it('Terminar sessão', 'closePhone();doLogout()');
@@ -6758,24 +6777,42 @@ function smsThreads() {   // conversas com jogadores reais (chave 'p'+número no
   });
   return Object.values(th).sort((a, b) => (b.un - a.un) || ((b.last ? 1 : 0) - (a.last ? 1 : 0)));
 }
-async function smsNovo() {
+function smsNovo() {
   if (G.tel < 1) return toast('📵 Não tens telemóvel.');
   if (typeof Acc === 'undefined' || !Acc.online) return toast('📶 SMS entre jogadores precisa de internet (modo online).');
-  const num = (prompt(`📶 DarkCell — número do jogador (o teu é ${fmtTel(telNum())}):`) || '').replace(/\D/g, '');
-  if (!num) return;
+  window.SMS_BUSCA = null;
+  phoneApp = G.tel === 1 ? 'nknovo' : 'smsnovo'; renderPhone();
+  setTimeout(() => { const i = document.getElementById('smsNum'); if (i) i.focus(); }, 80);
+}
+async function smsProcurar() {
+  const inp = document.getElementById('smsNum');
+  const num = ((inp && inp.value) || '').replace(/\D/g, '');
+  if (num.length !== 9 || num[0] !== '9') { window.SMS_BUSCA = { erro: 'Escreve os 9 dígitos, a começar por 9 (ex: 951234567).' }; return renderPhone(true); }
   try {
     const r = await fetch('/api/tel/quem', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + Acc.token }, body: JSON.stringify({ num }) });
     const d = await r.json();
-    if (!r.ok) return toast('📵 ' + (d.erro || 'Número não encontrado.'));
-    if (d.eu) return toast('😄 Esse é o teu próprio número!');
+    if (!r.ok) { window.SMS_BUSCA = { erro: d.erro || 'Número não encontrado na rede DarkCell.' }; return renderPhone(true); }
+    if (d.eu) { window.SMS_BUSCA = { erro: 'Esse é o teu próprio número! 😄' }; return renderPhone(true); }
     G.telNomes = G.telNomes || {}; G.telNomes[num] = d.nome; save();
-    chatKey = 'p' + num; renderPhone();
-  } catch (e) { toast('📶 Sem rede DarkCell. Tenta outra vez.'); }
+    window.SMS_BUSCA = { num, nome: d.nome }; renderPhone(true);
+  } catch (e) { window.SMS_BUSCA = { erro: 'Sem rede DarkCell. Tenta outra vez.' }; renderPhone(true); }
 }
-function smsNovoPara(num) {   // fluxo simples (tijolinho)
-  const nome = (G.telNomes || {})[num] || num;
-  const txt = (prompt(`💬 SMS para ${nome} (${fmtTel(num)}):`) || '').trim();
-  if (txt) smsSendTxt(num, txt).then(ok => { if (ok) toast(`💬 SMS enviado a ${nome}.`); });
+function smsAddFalar() {
+  const b = window.SMS_BUSCA; if (!b || !b.num) return;
+  window.SMS_BUSCA = null;
+  if (G.tel === 1) { window.SMS_PARA = b.num; phoneApp = 'nksms'; }
+  else { phoneApp = 'mensagens'; chatKey = 'p' + b.num; }
+  renderPhone();
+}
+function smsNovoPara(num) {   // abrir conversa com um jogador (sem prompt)
+  if (G.tel === 1) { window.SMS_PARA = num; phoneApp = 'nksms'; renderPhone(); return; }
+  phoneApp = 'mensagens'; chatKey = 'p' + num; renderPhone();
+}
+function smsSendNokia() {
+  const inp = document.getElementById('nkSmsIn'); const num = window.SMS_PARA;
+  const txt = (inp && inp.value || '').trim(); if (!txt || !num) return;
+  const nome = (G.telNomes || {})[num] || fmtTel(num);
+  smsSendTxt(num, txt).then(ok => { if (ok) { toast(`💬 SMS enviado a ${nome}.`); phoneApp = 'mensagens'; renderPhone(); } });
 }
 async function smsSendTxt(num, txt) {
   if (G.tel < 1) { toast('📵 Não tens telemóvel.'); return false; }
@@ -9616,6 +9653,29 @@ const SND = (() => {
     whistle: () => { tone(2900, .35, { vol: .05, type: 'sine', to: 2700 }); tone(2900, .7, { vol: .05, type: 'sine', delay: .45, to: 2600 }); },
     goal: () => { noise(1.9, { f: 900, q: .7, vol: .16, a: .5 }); noise(1.6, { f: 2200, q: 1, vol: .08, delay: .3, a: .4 }); FX.whistle(); },
     tvon: () => { noise(.12, { f: 6000, q: .5, vol: .06, ft: 'highpass' }); tone(15000, .3, { vol: .01 }); },
+    /* --- vida quotidiana --- */
+    eat: () => { for (let i = 0; i < 3; i++) noise(.09, { f: 900 + Math.random() * 600, q: 1.6, vol: .1, delay: i * .22 }); },
+    drink: () => { tone(300, .09, { vol: .06, to: 500 }); tone(280, .1, { vol: .06, to: 520, delay: .16 }); tone(340, .12, { vol: .05, to: 560, delay: .32 }); },
+    sleep: () => { [392, 330, 262].forEach((f, i) => tone(f, .7, { vol: .05, type: 'sine', delay: i * .55 })); },
+    shower: () => { noise(1.4, { f: 3200, q: .4, vol: .06, a: .25 }); noise(1.2, { f: 5200, q: .6, vol: .04, delay: .2, a: .3 }); },
+    kiss: () => { tone(1200, .07, { vol: .08, to: 700 }); noise(.05, { f: 2600, q: 2, vol: .07, delay: .06 }); },
+    gym: () => { for (let i = 0; i < 2; i++) { noise(.1, { f: 500, q: 1, vol: .1, delay: i * .4 }); tone(160, .14, { vol: .08, type: 'triangle', delay: i * .4, to: 110 }); } },
+    dance2: () => { for (let i = 0; i < 4; i++) tone(120, .11, { type: 'sine', vol: .12, delay: i * .18, to: 60 }); noise(.05, { f: 6000, q: 1, vol: .05, delay: .09 }); noise(.05, { f: 6000, q: 1, vol: .05, delay: .27 }); },
+    clap: () => { for (let i = 0; i < 5; i++) noise(.05, { f: 1800 + Math.random() * 800, q: 1.2, vol: .07, delay: i * .11 + Math.random() * .05 }); },
+    prayS: () => { tone(784, 1.2, { vol: .04 }); tone(1047, 1.6, { vol: .035, delay: .5 }); },
+    siren: () => { for (let i = 0; i < 3; i++) { tone(660, .3, { type: 'square', vol: .04, lp: 2200, delay: i * .6 }); tone(550, .3, { type: 'square', vol: .04, lp: 2200, delay: i * .6 + .3 }); } },
+    punch: () => { noise(.09, { f: 300, q: .8, vol: .2, ft: 'lowpass' }); tone(90, .12, { type: 'triangle', vol: .14, to: 50 }); },
+    heal: () => { arp([523, 659, 784, 1047], .1, { vol: .05, type: 'sine', dur: .4 }); },
+    page: () => { noise(.12, { f: 4200, q: .6, vol: .06, ft: 'highpass' }); noise(.09, { f: 3000, q: .8, vol: .05, delay: .1 }); },
+    levelup: () => { arp([440, 554, 659, 880], .09, { vol: .08, type: 'square', lp: 3200, dur: .22 }); tone(1175, .4, { vol: .06, delay: .38 }); },
+    sms: () => { tone(1568, .1, { vol: .08, type: 'sine' }); tone(2093, .24, { vol: .08, type: 'sine', delay: .11 }); vib([50, 60, 50]); },
+    splash: () => { noise(.5, { f: 1400, fto: 500, q: .8, vol: .12, a: .02 }); noise(.3, { f: 3400, q: 1, vol: .05, delay: .08 }); },
+    laugh: () => { [500, 620, 560, 700].forEach((f, i) => tone(f, .09, { vol: .06, type: 'triangle', delay: i * .12, to: f * .8 })); },
+    cry: () => { tone(620, .3, { vol: .05, type: 'sine', to: 500 }); tone(560, .3, { vol: .05, type: 'sine', delay: .32, to: 430 }); },
+    wedding: () => { [523, 659, 784, 659, 523, 659, 784, 1047].forEach((f, i) => tone(f, .5, { vol: .055, delay: i * .3 })); },
+    thunder: () => { noise(1.6, { f: 120, q: .5, vol: .18, ft: 'lowpass', a: .02 }); noise(2, { f: 90, q: .4, vol: .1, delay: .25, ft: 'lowpass' }); },
+    rain: () => { noise(2.2, { f: 4000, q: .3, vol: .035, a: .5 }); },
+    buy: () => { noise(.05, { f: 5200, q: 2, vol: .07 }); arp([1047, 1568], .07, { vol: .07, type: 'square', lp: 4000, dur: .18, delay: .05 }); },
   };
   function vib(p) { if (cfg.vib && navigator.vibrate) try { navigator.vibrate(p); } catch (e) { } }
   function play(name, ...a) { if (!cfg.sfx || !ready() || !FX[name]) return; try { FX[name](...a); } catch (e) { } }
@@ -9793,10 +9853,15 @@ const RADIO = SND.RADIO;
 
 /* ---------------- ligar os sons ao jogo ---------------- */
 (function sndHooks() {
+  const pending = [];
   const wrap = (name, before, after_) => {
-    const f = window[name]; if (typeof f !== 'function') return;
-    window[name] = function () { if (before) try { before.apply(this, arguments); } catch (e) { } const r = f.apply(this, arguments); if (after_) try { after_.apply(this, arguments); } catch (e) { } return r; };
+    const f = window[name];
+    if (typeof f !== 'function') { pending.push([name, before, after_]); return; }
+    if (f.__snd) return;
+    const w = function () { if (before) try { before.apply(this, arguments); } catch (e) { } const r = f.apply(this, arguments); if (after_) try { after_.apply(this, arguments); } catch (e) { } return r; };
+    w.__snd = 1; window[name] = w;
   };
+  addEventListener('load', () => { while (pending.length) { const a = pending.shift(); wrap(a[0], a[1], a[2]); } });
   // cliques em botões (UI, painéis, telemóvel)
   document.addEventListener('click', e => {
     const b = e.target.closest && e.target.closest('button,.app,.tab,[onclick]'); if (!b || b.disabled) return;
@@ -9838,6 +9903,21 @@ const RADIO = SND.RADIO;
   wrap('callPerson', () => { SND.play('ring'); setTimeout(() => SND.play('pickup'), 1900); });
   wrap('sendMsg', () => SND.play('send'));
   wrap('postSocial', () => SND.play('shutter'));
+  // doAct: cada animação tem o seu som
+  wrap('doAct', (cost, fn, anim) => SND.play({ train: 'gym', love: 'kiss', dance: 'dance2', pray: 'prayS', cheer: 'clap', think: 'pop' }[anim] || 'pop'));
+  // vida quotidiana e compras
+  wrap('vrComer', () => SND.play('eat'));
+  wrap('vrDormir', () => SND.play('sleep'));
+  wrap('marry', () => SND.play('wedding'));
+  wrap('haveKid', () => SND.play('babyCry'));
+  wrap('breakUp', () => SND.play('cry'));
+  wrap('v6Culto', () => SND.play('prayS'));
+  wrap('buyBem', () => SND.play('buy'));
+  wrap('buyMovel', () => SND.play('buy'));
+  wrap('buyHouse', () => SND.play('gold'));
+  wrap('rentHouse', () => SND.play('buy'));
+  wrap('divorcioCobrar', () => SND.play('cash'));
+  wrap('smsSendTxt', () => SND.play('send'));
   // passos no mundo
   if (typeof updateWorld === 'function') { const _u = updateWorld; updateWorld = function (dt) { const r = _u.apply(this, arguments); try { if (mode === 'game' && !dying) SND.stepTick(dt); } catch (e) { } return r; }; }
 })();
@@ -12403,7 +12483,7 @@ function vrEvent(e) {
     (G.inbox = G.inbox || []).unshift({ key: 'p' + (e.num || '?'), de: e.de || 'DarkCell', txt: String(e.txt || '').slice(0, 140), ano: G.ano, lida: false });
     G.inbox = G.inbox.slice(0, 80);
     flash(`💬 SMS de <b>${esc(e.de || '?')}</b>: ${esc(String(e.txt || '').slice(0, 50))}`);
-    if (typeof SND !== 'undefined') SND.play('notif');
+    if (typeof SND !== 'undefined') SND.play('sms');
     save(); if (typeof updateBadge === 'function') updateBadge();
     if (typeof phoneApp !== 'undefined' && phoneApp && typeof renderPhone === 'function') renderPhone(true);
   }
@@ -19784,7 +19864,7 @@ function a9Modal() {
     try {
       if (!G || !G.vivo) return;
       a9Install();
-      if (mode !== 'game' || document.hidden || (typeof dying !== 'undefined' && dying)) return;
+      if (mode !== 'game' || (typeof dying !== 'undefined' && dying)) return;
       const ativo = Date.now() - A9.lastIn < A9.IDLE_MS || (typeof autoGo !== 'undefined' && !!autoGo);
       if (ativo || G.preso > 0) {
         const a = a9G(); a.ms += 1000;

@@ -697,17 +697,7 @@ function buildWorld() {
     vans.push({ g: v, segs, total, d: (i * .37 % 1) * total, speed: 10 + Math.random() * 5, wait: 0 });
   }
 
-  /* ----- peões ----- */
-  for (let i = 0; i < (LITE ? 6 : IS_MOBILE ? 10 : 18); i++) {
-    const h = makeHuman(randomNPCcfg()); h.g.scale.multiplyScalar(BODY_S); worldScene.add(h.g);
-    const nx = pick(X), nz = pick(Z);
-    const n = { h, from: [nx, nz], to: null, side: pick([-SIDE + .4, SIDE - .4]), t: 0, speed: 1.3 + Math.random() * .8 };
-    npcs.push(n); npcNext(n, X, Z);
-  }
-  let nEx = 0; const extra = (x, z, ry, dance) => { if (LITE && nEx++ % 2) return; const h = makeHuman(randomNPCcfg()); h.g.scale.multiplyScalar(BODY_S); h.g.position.set(x, 0, z); h.g.rotation.y = ry; h.idleDance = dance; worldScene.add(h.g); dancers.push(h); };
-  extra(-59, -121, 0, true); extra(-51, -121.5, .4, true); extra(-62, -120.5, -.4, true); extra(-100, -138, 2, true);
-  extra(-36, 21, Math.PI, false); extra(-24, 22, Math.PI, false); extra(-45, 31, Math.PI / 2, false);
-  extra(84, -30, Math.PI, false); extra(146, 20, 0, false); extra(26, 20.5, 0, false);
+  /* ----- peões: cidade só de jogadores reais (sem NPCs falsos na rua) ----- */
 
   minimapCtx = document.getElementById('minimap').getContext('2d');
   casaZ = null;

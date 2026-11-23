@@ -95,7 +95,7 @@ function vrEvent(e) {
     (G.inbox = G.inbox || []).unshift({ key: 'p' + (e.num || '?'), de: e.de || 'DarkCell', txt: String(e.txt || '').slice(0, 140), ano: G.ano, lida: false });
     G.inbox = G.inbox.slice(0, 80);
     flash(`💬 SMS de <b>${esc(e.de || '?')}</b>: ${esc(String(e.txt || '').slice(0, 50))}`);
-    if (typeof SND !== 'undefined') SND.play('notif');
+    if (typeof SND !== 'undefined') SND.play('sms');
     save(); if (typeof updateBadge === 'function') updateBadge();
     if (typeof phoneApp !== 'undefined' && phoneApp && typeof renderPhone === 'function') renderPhone(true);
   }

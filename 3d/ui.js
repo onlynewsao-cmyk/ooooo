@@ -47,7 +47,6 @@ function goTitle() {
   $('#authBox').classList.toggle('hidden', logged); $('#menuBox').classList.toggle('hidden', !logged);
   $('#ovTitle').classList.toggle('auth', !logged);
   $('#aMode').innerHTML = Acc.online ? '<svg style="width:14px;height:14px;color:#2ecc71"><use href="#icShield"/></svg> A tua conta e as tuas vidas ficam guardadas na nuvem.' : 'Modo local — a conta fica guardada neste navegador.';
-  const ts = $('#tStat'); if (ts) { ts.textContent = Acc.online ? 'Servidor online' : 'Modo local'; ts.parentNode.classList.toggle('off', !Acc.online); }
   if (logged) {
     let im = ''; try { if (USER.avatar && USER.avatar.genero) im = avatarShot(avatarCfg(USER.avatar, 'casual', G ? Math.max(16, G.idade) : 25), '#1c1a22', true); } catch (e) { }
     $('#hello').innerHTML = `<div class="hav">${im ? `<img src="${im}" alt="">` : ''}<div><big>Olá, ${esc(USER.nome)}</big>${G ? `A viver como <b>${esc(G.nome)}</b> · ${G.idade} anos` : 'Pronto(a) para começar uma nova vida?'}</div></div>`;

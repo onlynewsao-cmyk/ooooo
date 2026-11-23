@@ -88,7 +88,7 @@ function renderPhone(keep) {
   b.style.background = m === 1 ? '' : appView ? '#0b0b10' : wall.css;
   b.classList.toggle('appv', appView);
   const bat = 35 + phHash(G.ano + 'b') % 64;
-  $('#phBar').innerHTML = m === 1 ? `<span>▂▄▆ MBOTE</span><span>${nowTxt()}</span><span>▮▮▮▯</span>`
+  $('#phBar').innerHTML = m === 1 ? `<span>▂▄▆ DARKCELL</span><span>${nowTxt()}</span><span>▮▮▮▯</span>`
     : `<span>${nowTxt()}</span><span>${!m ? 'Sem SIM' : m >= 3 ? '5G' : '4G'} <b style="letter-spacing:-2px">▂▄▆█</b> <span class="batt"><i style="width:${bat}%"></i></span> ${bat}%</span>`;
   $('#phNav').classList.toggle('hidden', m === 1);
   $('#phKeys').classList.toggle('hidden', m !== 1);
@@ -129,6 +129,17 @@ const PHONE_VIEWS = {
       <div class="cbtns">${c.call ? `<button onclick="callPerson('${c.key}')" title="Ligar">📞</button>` : ''}<button onclick="phoneApp='mensagens';chatKey='${c.key}';renderPhone()" title="Mensagem">💬</button></div></div>`).join('')}
       <div class="crow"><div class="cav" style="background:#c8102e">🚑</div><div class="cinfo"><b>Emergência 112</b><span>Consulta médica urgente</span></div><div class="cbtns"><button onclick="runAtiv('medico')">📞</button></div></div></div>`
     + `<p class="apnote">Ligar gasta 1 energia e fortalece muito a relação. Mensagens são grátis (1 por pessoa por ano).</p>`,
+
+  smsnovo: () => {
+    const b = window.SMS_BUSCA;
+    return apHead('Novo contacto', 'DarkCell · SMS entre jogadores') + `<div style="padding:14px">
+      <p class="apnote">O teu número: <b>${fmtTel(telNum())}</b> — partilha-o com os amigos!</p>
+      <div style="display:flex;gap:8px"><input id="smsNum" inputmode="numeric" maxlength="9" placeholder="Número (ex: 951 234 567)" style="flex:1;padding:12px;border-radius:14px;border:1px solid #333;background:#1a1a24;color:#fff;font-size:16px" onkeydown="if(event.key==='Enter')smsProcurar()"><button class="pbtn" style="width:auto;margin:0;padding:0 18px" onclick="smsProcurar()">🔍</button></div>
+      ${b && b.erro ? `<div class="apwarn" style="margin-top:12px">📵 ${esc(b.erro)}</div>` : ''}
+      ${b && b.nome ? `<div class="card" style="margin-top:14px;text-align:center"><div style="font-size:38px">📶</div><b>${esc(b.nome)}</b><div class="dim">${fmtTel(b.num)}</div><button class="pbtn" style="margin-top:10px" onclick="smsAddFalar()">💬 Guardar e conversar</button></div>` : ''}
+      <p class="apnote" style="margin-top:12px">Pede o número a outro jogador no chat da cidade e adiciona-o aqui. As mensagens chegam mesmo ao telemóvel dele(a)!</p>
+    </div>`;
+  },
 
   mensagens: () => {
     if (chatKey) return chatView(chatKey);
@@ -282,6 +293,18 @@ function nokiaScreen() {
   if (phoneApp === 'home') return hd('Menu') + it('📇 Contactos', "phoneApp='telefone';renderPhone()") + it(`✉ Mensagens${unread() ? ' (' + unread() + ')' : ''}`, "phoneApp='mensagens';renderPhone()") + it('💰 DarkCell Money', "phoneApp='nkmoney';renderPhone()") + it('📻 Rádio FM', 'listenMusic()') + it('🐍 Cobrinha', "playGame('cobra')") + it('📊 A minha vida', "phoneApp='nkvida';renderPhone()") + it('⚙ Definições', "phoneApp='definicoes';renderPhone()");
   if (phoneApp === 'telefone') { const jogs = smsThreads(); return hd('Contactos') + contacts().map(c => `<div class="nkr"><span>${esc(c.nome.split(' ')[0])}</span>${c.call ? `<button onclick="callPerson('${c.key}')">Ligar</button>` : ''}<button onclick="sendMsg('${c.key}')">SMS</button></div>`).join('') + (jogs.length ? hd('Jogadores (DarkCell)') : '') + jogs.map(j => `<div class="nkr"><span>${esc(j.nome.split(' ')[0])}</span><button onclick="smsNovoPara('${j.num}')">SMS</button></div>`).join('') + it('＋ SMS a número novo', 'smsNovo()'); }
   if (phoneApp === 'mensagens') { (G.inbox || []).forEach(m => m.lida = true); return hd('Mensagens') + ((G.inbox || []).slice(0, 12).map(m => `<div class="nkmsg"><b>${esc(m.de)}:</b> ${esc(m.txt)}</div>`).join('') || '<div class="nkmsg">Sem mensagens.</div>'); }
+  if (phoneApp === 'nknovo') {
+    const b = window.SMS_BUSCA;
+    return hd('Número novo') + `<div style="padding:8px"><input id="smsNum" inputmode="numeric" maxlength="9" placeholder="Número: 9XXXXXXXX" style="width:100%;padding:9px;border-radius:8px;border:1px solid #555;background:#111;color:#fff;box-sizing:border-box"></div>`
+      + it('🔍 Procurar na rede DarkCell', 'smsProcurar()')
+      + (b && b.erro ? `<div class="nkmsg">📵 ${esc(b.erro)}</div>` : '')
+      + (b && b.nome ? `<div class="nkmsg">📶 <b>${esc(b.nome)}</b> · ${fmtTel(b.num)}</div>` + it('💬 Guardar e enviar SMS', 'smsAddFalar()') : '');
+  }
+  if (phoneApp === 'nksms') {
+    const num = window.SMS_PARA || '', nome = (G.telNomes || {})[num] || fmtTel(num);
+    return hd('SMS para ' + esc(nome)) + `<div style="padding:8px"><input id="nkSmsIn" maxlength="140" placeholder="Escreve o SMS…" style="width:100%;padding:9px;border-radius:8px;border:1px solid #555;background:#111;color:#fff;box-sizing:border-box"></div>`
+      + it('📤 Enviar SMS', 'smsSendNokia()') + it('‹ Voltar', "phoneApp='telefone';renderPhone()");
+  }
   if (phoneApp === 'nkmoney') return hd('DarkCell Money') + `<div class="nkmsg">Saldo: <b>${kz(G.dinheiro)}</b></div>` + (G.mae.vivo ? it('Enviar dinheiro à mãe', "helpParent('mae')") : '') + (G.pai.vivo ? it('Enviar dinheiro ao pai', "helpParent('pai')") : '');
   if (phoneApp === 'nkvida') return hd(esc(G.nome)) + Object.keys(LABEL).map(k => `<div class="nkr"><span>${LABEL[k]}</span><b>${G.stats[k]}</b></div>`).join('');
   if (phoneApp === 'definicoes') return hd('Definições') + it(plus18() ? '+18: Ligado' : '+18: Desligado', 'toggle18()') + it('Créditos', 'closePhone();showCredits()') + it('Terminar sessão', 'closePhone();doLogout()');
@@ -328,24 +351,42 @@ function smsThreads() {   // conversas com jogadores reais (chave 'p'+número no
   });
   return Object.values(th).sort((a, b) => (b.un - a.un) || ((b.last ? 1 : 0) - (a.last ? 1 : 0)));
 }
-async function smsNovo() {
+function smsNovo() {
   if (G.tel < 1) return toast('📵 Não tens telemóvel.');
   if (typeof Acc === 'undefined' || !Acc.online) return toast('📶 SMS entre jogadores precisa de internet (modo online).');
-  const num = (prompt(`📶 DarkCell — número do jogador (o teu é ${fmtTel(telNum())}):`) || '').replace(/\D/g, '');
-  if (!num) return;
+  window.SMS_BUSCA = null;
+  phoneApp = G.tel === 1 ? 'nknovo' : 'smsnovo'; renderPhone();
+  setTimeout(() => { const i = document.getElementById('smsNum'); if (i) i.focus(); }, 80);
+}
+async function smsProcurar() {
+  const inp = document.getElementById('smsNum');
+  const num = ((inp && inp.value) || '').replace(/\D/g, '');
+  if (num.length !== 9 || num[0] !== '9') { window.SMS_BUSCA = { erro: 'Escreve os 9 dígitos, a começar por 9 (ex: 951234567).' }; return renderPhone(true); }
   try {
     const r = await fetch('/api/tel/quem', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + Acc.token }, body: JSON.stringify({ num }) });
     const d = await r.json();
-    if (!r.ok) return toast('📵 ' + (d.erro || 'Número não encontrado.'));
-    if (d.eu) return toast('😄 Esse é o teu próprio número!');
+    if (!r.ok) { window.SMS_BUSCA = { erro: d.erro || 'Número não encontrado na rede DarkCell.' }; return renderPhone(true); }
+    if (d.eu) { window.SMS_BUSCA = { erro: 'Esse é o teu próprio número! 😄' }; return renderPhone(true); }
     G.telNomes = G.telNomes || {}; G.telNomes[num] = d.nome; save();
-    chatKey = 'p' + num; renderPhone();
-  } catch (e) { toast('📶 Sem rede DarkCell. Tenta outra vez.'); }
+    window.SMS_BUSCA = { num, nome: d.nome }; renderPhone(true);
+  } catch (e) { window.SMS_BUSCA = { erro: 'Sem rede DarkCell. Tenta outra vez.' }; renderPhone(true); }
 }
-function smsNovoPara(num) {   // fluxo simples (tijolinho)
-  const nome = (G.telNomes || {})[num] || num;
-  const txt = (prompt(`💬 SMS para ${nome} (${fmtTel(num)}):`) || '').trim();
-  if (txt) smsSendTxt(num, txt).then(ok => { if (ok) toast(`💬 SMS enviado a ${nome}.`); });
+function smsAddFalar() {
+  const b = window.SMS_BUSCA; if (!b || !b.num) return;
+  window.SMS_BUSCA = null;
+  if (G.tel === 1) { window.SMS_PARA = b.num; phoneApp = 'nksms'; }
+  else { phoneApp = 'mensagens'; chatKey = 'p' + b.num; }
+  renderPhone();
+}
+function smsNovoPara(num) {   // abrir conversa com um jogador (sem prompt)
+  if (G.tel === 1) { window.SMS_PARA = num; phoneApp = 'nksms'; renderPhone(); return; }
+  phoneApp = 'mensagens'; chatKey = 'p' + num; renderPhone();
+}
+function smsSendNokia() {
+  const inp = document.getElementById('nkSmsIn'); const num = window.SMS_PARA;
+  const txt = (inp && inp.value || '').trim(); if (!txt || !num) return;
+  const nome = (G.telNomes || {})[num] || fmtTel(num);
+  smsSendTxt(num, txt).then(ok => { if (ok) { toast(`💬 SMS enviado a ${nome}.`); phoneApp = 'mensagens'; renderPhone(); } });
 }
 async function smsSendTxt(num, txt) {
   if (G.tel < 1) { toast('📵 Não tens telemóvel.'); return false; }

@@ -1323,6 +1323,14 @@ function setupInput() {
 
 /* ---------- Loop ---------- */
 let hitCool = 0, mmFrame = 0;
+// 2.º plano: o rAF pára quando a aba está escondida — o mundo continua a viver via temporizador
+setInterval(() => {
+  if (!document.hidden) return;
+  try {
+    if ((mode === 'title' || mode === 'select') && typeof updateShowroom === 'function') updateShowroom(1);
+    else if (worldScene && typeof updateWorld === 'function') updateWorld(1);
+  } catch (e) { }
+}, 1000);
 function loop() {
   requestAnimationFrame(loop);
   const dt = Math.min(clock.getDelta(), .1); // até 10 fps o boneco anda à velocidade normal

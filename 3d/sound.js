@@ -96,6 +96,29 @@ const SND = (() => {
     whistle: () => { tone(2900, .35, { vol: .05, type: 'sine', to: 2700 }); tone(2900, .7, { vol: .05, type: 'sine', delay: .45, to: 2600 }); },
     goal: () => { noise(1.9, { f: 900, q: .7, vol: .16, a: .5 }); noise(1.6, { f: 2200, q: 1, vol: .08, delay: .3, a: .4 }); FX.whistle(); },
     tvon: () => { noise(.12, { f: 6000, q: .5, vol: .06, ft: 'highpass' }); tone(15000, .3, { vol: .01 }); },
+    /* --- vida quotidiana --- */
+    eat: () => { for (let i = 0; i < 3; i++) noise(.09, { f: 900 + Math.random() * 600, q: 1.6, vol: .1, delay: i * .22 }); },
+    drink: () => { tone(300, .09, { vol: .06, to: 500 }); tone(280, .1, { vol: .06, to: 520, delay: .16 }); tone(340, .12, { vol: .05, to: 560, delay: .32 }); },
+    sleep: () => { [392, 330, 262].forEach((f, i) => tone(f, .7, { vol: .05, type: 'sine', delay: i * .55 })); },
+    shower: () => { noise(1.4, { f: 3200, q: .4, vol: .06, a: .25 }); noise(1.2, { f: 5200, q: .6, vol: .04, delay: .2, a: .3 }); },
+    kiss: () => { tone(1200, .07, { vol: .08, to: 700 }); noise(.05, { f: 2600, q: 2, vol: .07, delay: .06 }); },
+    gym: () => { for (let i = 0; i < 2; i++) { noise(.1, { f: 500, q: 1, vol: .1, delay: i * .4 }); tone(160, .14, { vol: .08, type: 'triangle', delay: i * .4, to: 110 }); } },
+    dance2: () => { for (let i = 0; i < 4; i++) tone(120, .11, { type: 'sine', vol: .12, delay: i * .18, to: 60 }); noise(.05, { f: 6000, q: 1, vol: .05, delay: .09 }); noise(.05, { f: 6000, q: 1, vol: .05, delay: .27 }); },
+    clap: () => { for (let i = 0; i < 5; i++) noise(.05, { f: 1800 + Math.random() * 800, q: 1.2, vol: .07, delay: i * .11 + Math.random() * .05 }); },
+    prayS: () => { tone(784, 1.2, { vol: .04 }); tone(1047, 1.6, { vol: .035, delay: .5 }); },
+    siren: () => { for (let i = 0; i < 3; i++) { tone(660, .3, { type: 'square', vol: .04, lp: 2200, delay: i * .6 }); tone(550, .3, { type: 'square', vol: .04, lp: 2200, delay: i * .6 + .3 }); } },
+    punch: () => { noise(.09, { f: 300, q: .8, vol: .2, ft: 'lowpass' }); tone(90, .12, { type: 'triangle', vol: .14, to: 50 }); },
+    heal: () => { arp([523, 659, 784, 1047], .1, { vol: .05, type: 'sine', dur: .4 }); },
+    page: () => { noise(.12, { f: 4200, q: .6, vol: .06, ft: 'highpass' }); noise(.09, { f: 3000, q: .8, vol: .05, delay: .1 }); },
+    levelup: () => { arp([440, 554, 659, 880], .09, { vol: .08, type: 'square', lp: 3200, dur: .22 }); tone(1175, .4, { vol: .06, delay: .38 }); },
+    sms: () => { tone(1568, .1, { vol: .08, type: 'sine' }); tone(2093, .24, { vol: .08, type: 'sine', delay: .11 }); vib([50, 60, 50]); },
+    splash: () => { noise(.5, { f: 1400, fto: 500, q: .8, vol: .12, a: .02 }); noise(.3, { f: 3400, q: 1, vol: .05, delay: .08 }); },
+    laugh: () => { [500, 620, 560, 700].forEach((f, i) => tone(f, .09, { vol: .06, type: 'triangle', delay: i * .12, to: f * .8 })); },
+    cry: () => { tone(620, .3, { vol: .05, type: 'sine', to: 500 }); tone(560, .3, { vol: .05, type: 'sine', delay: .32, to: 430 }); },
+    wedding: () => { [523, 659, 784, 659, 523, 659, 784, 1047].forEach((f, i) => tone(f, .5, { vol: .055, delay: i * .3 })); },
+    thunder: () => { noise(1.6, { f: 120, q: .5, vol: .18, ft: 'lowpass', a: .02 }); noise(2, { f: 90, q: .4, vol: .1, delay: .25, ft: 'lowpass' }); },
+    rain: () => { noise(2.2, { f: 4000, q: .3, vol: .035, a: .5 }); },
+    buy: () => { noise(.05, { f: 5200, q: 2, vol: .07 }); arp([1047, 1568], .07, { vol: .07, type: 'square', lp: 4000, dur: .18, delay: .05 }); },
   };
   function vib(p) { if (cfg.vib && navigator.vibrate) try { navigator.vibrate(p); } catch (e) { } }
   function play(name, ...a) { if (!cfg.sfx || !ready() || !FX[name]) return; try { FX[name](...a); } catch (e) { } }
@@ -273,10 +296,15 @@ const RADIO = SND.RADIO;
 
 /* ---------------- ligar os sons ao jogo ---------------- */
 (function sndHooks() {
+  const pending = [];
   const wrap = (name, before, after_) => {
-    const f = window[name]; if (typeof f !== 'function') return;
-    window[name] = function () { if (before) try { before.apply(this, arguments); } catch (e) { } const r = f.apply(this, arguments); if (after_) try { after_.apply(this, arguments); } catch (e) { } return r; };
+    const f = window[name];
+    if (typeof f !== 'function') { pending.push([name, before, after_]); return; }
+    if (f.__snd) return;
+    const w = function () { if (before) try { before.apply(this, arguments); } catch (e) { } const r = f.apply(this, arguments); if (after_) try { after_.apply(this, arguments); } catch (e) { } return r; };
+    w.__snd = 1; window[name] = w;
   };
+  addEventListener('load', () => { while (pending.length) { const a = pending.shift(); wrap(a[0], a[1], a[2]); } });
   // cliques em botões (UI, painéis, telemóvel)
   document.addEventListener('click', e => {
     const b = e.target.closest && e.target.closest('button,.app,.tab,[onclick]'); if (!b || b.disabled) return;
@@ -318,6 +346,21 @@ const RADIO = SND.RADIO;
   wrap('callPerson', () => { SND.play('ring'); setTimeout(() => SND.play('pickup'), 1900); });
   wrap('sendMsg', () => SND.play('send'));
   wrap('postSocial', () => SND.play('shutter'));
+  // doAct: cada animação tem o seu som
+  wrap('doAct', (cost, fn, anim) => SND.play({ train: 'gym', love: 'kiss', dance: 'dance2', pray: 'prayS', cheer: 'clap', think: 'pop' }[anim] || 'pop'));
+  // vida quotidiana e compras
+  wrap('vrComer', () => SND.play('eat'));
+  wrap('vrDormir', () => SND.play('sleep'));
+  wrap('marry', () => SND.play('wedding'));
+  wrap('haveKid', () => SND.play('babyCry'));
+  wrap('breakUp', () => SND.play('cry'));
+  wrap('v6Culto', () => SND.play('prayS'));
+  wrap('buyBem', () => SND.play('buy'));
+  wrap('buyMovel', () => SND.play('buy'));
+  wrap('buyHouse', () => SND.play('gold'));
+  wrap('rentHouse', () => SND.play('buy'));
+  wrap('divorcioCobrar', () => SND.play('cash'));
+  wrap('smsSendTxt', () => SND.play('send'));
   // passos no mundo
   if (typeof updateWorld === 'function') { const _u = updateWorld; updateWorld = function (dt) { const r = _u.apply(this, arguments); try { if (mode === 'game' && !dying) SND.stepTick(dt); } catch (e) { } return r; }; }
 })();

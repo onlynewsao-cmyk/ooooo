@@ -165,7 +165,7 @@ function a9Modal() {
     try {
       if (!G || !G.vivo) return;
       a9Install();
-      if (mode !== 'game' || document.hidden || (typeof dying !== 'undefined' && dying)) return;
+      if (mode !== 'game' || (typeof dying !== 'undefined' && dying)) return;
       const ativo = Date.now() - A9.lastIn < A9.IDLE_MS || (typeof autoGo !== 'undefined' && !!autoGo);
       if (ativo || G.preso > 0) {
         const a = a9G(); a.ms += 1000;
