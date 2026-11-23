@@ -1309,7 +1309,7 @@ body.vz-rec .vzbtn,body.vz-rec #mpForm .vzf{background:#ff2d55;transform:scale(1
         <div class="aalt" style="opacity:.5;font-size:11px;margin-top:6px"><a onclick="admAbrir()">🔐 acesso de administrador</a></div>
       </form>
       <form id="fReg" class="hidden" onsubmit="regNext(event)">
-        <div class="fld"><label for="rNome">Nome ou nickname</label><div class="inp"><svg><use href="#icUser"/></svg><input id="rNome" maxlength="24" autocomplete="nickname" placeholder="Ex.: Kiluanje, Djodjo, MC Kota…" required></div></div>
+        <div class="fld"><label for="rNome">Nome ou nickname</label><div class="inp"><svg><use href="#icUser"/></svg><input id="rNome" maxlength="24" autocomplete="nickname" placeholder="Ex.: draka, _draka_, draka_4…" required></div><div style="font-size:11px;opacity:.6;margin-top:4px">Só letras, números e _. Sem nomes de políticos ou figuras públicas. O nome tem de ser único.</div></div>
         <div class="fld"><label for="rEmail">E-mail</label><div class="inp"><svg><use href="#icMail"/></svg><input id="rEmail" type="email" autocomplete="email" placeholder="o.teu@email.com" required></div></div>
         <div class="frow">
           <div class="fld"><label for="rPass">Senha</label><div class="inp"><svg><use href="#icLock"/></svg><input id="rPass" type="password" autocomplete="new-password" placeholder="mín. 6" required></div></div>
@@ -1485,8 +1485,16 @@ const Acc = (() => {
   }
   const rnd = () => [...crypto.getRandomValues(new Uint8Array(12))].map(b => b.toString(16).padStart(2, '0')).join('');
   const localKey = (id, t) => `pe3d_${t}_${id}`;
+  const NOME_RE = /^[\wÀ-ÖØ-öø-ÿ]+(?: [\wÀ-ÖØ-öø-ÿ]+)*$/;
+  const checkNome = (nome) => {   // regras de formato; figuras públicas e unicidade são confirmadas no servidor
+    const nm = (nome || '').trim().replace(/\s+/g, ' ');
+    if (nm.length < 2) throw new Error('O nome precisa de pelo menos 2 letras.');
+    if (nm.length > 24) throw new Error('O nome pode ter no máximo 24 caracteres.');
+    if (!NOME_RE.test(nm) || !/[A-Za-zÀ-ÖØ-öø-ÿ]/.test(nm)) throw new Error('O nome só pode ter letras, números e _ (sem emojis nem símbolos). Ex.: draka, _draka_, draka_4.');
+    return nm;
+  };
   const check = (d) => {
-    if (!d.nome || d.nome.trim().length < 2) throw new Error('O nome precisa de pelo menos 2 letras.');
+    d.nome = checkNome(d.nome);
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email || '')) throw new Error('E-mail inválido.');
     if (!d.senha || d.senha.length < 6) throw new Error('A senha precisa de pelo menos 6 caracteres.');
   };
@@ -1524,6 +1532,7 @@ const Acc = (() => {
       if (online) { const r = await api('register', Object.assign({}, d, { dv: DEV_ID })); sess = { mode: 'online', token: r.token, user: r.user }; ls.set(SK, sess); return result(r.user, null, null); }
       const users = ls.get(UK) || {}; const email = d.email.trim().toLowerCase();
       if (users[email]) throw new Error('Já existe uma conta com este e-mail neste dispositivo.');
+      if (Object.values(users).some(x => (x.nome || '').toLowerCase() === d.nome.toLowerCase())) throw new Error('Este nome já está a ser usado neste dispositivo.');
       const salt = rnd();
       const u = { id: 'L' + Date.now().toString(36), nome: d.nome.trim().slice(0, 40), email, salt, hash: await hash(d.senha, salt), adulto: !!d.adulto, avatar: d.avatar || {} };
       users[email] = u; ls.set(UK, users); sess = { mode: 'local', user: pub(u) }; ls.set(SK, sess);
@@ -5548,8 +5557,9 @@ async function doLogin(e) {
 }
 function regNext(e) {
   e.preventDefault(); const err = $('#rErr'); err.textContent = '';
-  const d = { nome: $('#rNome').value.trim(), email: $('#rEmail').value.trim().toLowerCase(), senha: $('#rPass').value, adulto: $('#r18').checked };
+  const d = { nome: $('#rNome').value.trim().replace(/\s+/g, ' '), email: $('#rEmail').value.trim().toLowerCase(), senha: $('#rPass').value, adulto: $('#r18').checked };
   if (d.nome.length < 2) return err.textContent = 'O nome precisa de pelo menos 2 letras.';
+  if (!/^[\wÀ-ÖØ-öø-ÿ]+(?: [\wÀ-ÖØ-öø-ÿ]+)*$/.test(d.nome) || !/[A-Za-zÀ-ÖØ-öø-ÿ]/.test(d.nome)) return err.textContent = 'O nome só pode ter letras, números e _ (sem emojis nem símbolos). Ex.: draka, _draka_, draka_4.';
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email)) return err.textContent = 'E-mail inválido.';
   if (d.senha.length < 6) return err.textContent = 'A senha precisa de pelo menos 6 caracteres.';
   if (d.senha !== $('#rPass2').value) return err.textContent = 'As senhas não coincidem.';

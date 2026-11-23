@@ -42,6 +42,7 @@ MAX_BODY = 2_000_000
 # ---------- multijogador (memória) ----------
 from collections import deque
 from chatfilter import filtrar
+from nomefilter import validar_nome, limpar as limpar_nome
 MP_LOCK = threading.Lock()
 PLAYERS = {}          # uid -> estado do jogador
 CHAT = deque(maxlen=200)
@@ -769,8 +770,12 @@ class H(SimpleHTTPRequestHandler):
             if p == '/api/mp':
                 raw = str(d.get('nick') or nome_conta)[:24]
                 if NICKC.get(uid, (None,))[0] != raw:
-                    limpo, hits, bloq, _ = filtrar(raw)
-                    NICKC[uid] = (raw, limpo if limpo and not hits else f'Jogador{uid}')
+                    ok_n, _ = validar_nome(raw)
+                    if ok_n:
+                        NICKC[uid] = (raw, limpar_nome(raw))
+                    else:
+                        ok_c, _ = validar_nome(nome_conta)
+                        NICKC[uid] = (raw, limpar_nome(nome_conta) if ok_c else f'Jogador{uid}')
                 nick = NICKC[uid][1]
                 st = PLAYERS.get(uid)
                 if not st:
@@ -1595,17 +1600,20 @@ class H(SimpleHTTPRequestHandler):
             return self.send_json(200, {'ok': 1, 'n': n + 1})
         with db() as c:
             if p == '/api/register':
-                nome = str(d.get('nome', '')).strip()[:40]
+                nome = limpar_nome(d.get('nome', ''))
                 email = str(d.get('email', '')).strip().lower()[:120]
                 senha = str(d.get('senha', ''))
-                if len(nome) < 2:
-                    return self.send_json(400, {'erro': 'O nome precisa de pelo menos 2 letras.'})
+                ok_n, erro_n = validar_nome(nome)
+                if not ok_n:
+                    return self.send_json(400, {'erro': erro_n})
                 if not EMAIL_RE.match(email):
                     return self.send_json(400, {'erro': 'E-mail inválido.'})
                 if len(senha) < 6:
                     return self.send_json(400, {'erro': 'A senha precisa de pelo menos 6 caracteres.'})
                 if c.execute('SELECT 1 FROM users WHERE email=?', (email,)).fetchone():
                     return self.send_json(409, {'erro': 'Já existe uma conta com este e-mail.'})
+                if c.execute('SELECT 1 FROM users WHERE nome=? COLLATE NOCASE', (nome,)).fetchone():
+                    return self.send_json(409, {'erro': 'Este nome já está a ser usado por outro jogador. Tenta %s_2 ou %s_7.' % (nome, nome)})
                 salt = secrets.token_hex(16)
                 hp = hash_pw(senha, salt)
                 try:
@@ -1674,7 +1682,13 @@ class H(SimpleHTTPRequestHandler):
                 return self.send_json(200, {'ok': True})
             if p == '/api/profile':
                 if d.get('nome'):
-                    c.execute('UPDATE users SET nome=? WHERE id=?', (str(d['nome']).strip()[:40], u['id']))
+                    nn = limpar_nome(d.get('nome'))
+                    ok_n, erro_n = validar_nome(nn)
+                    if not ok_n:
+                        return self.send_json(400, {'erro': erro_n})
+                    if nn.lower() != (u['nome'] or '').lower() and c.execute('SELECT 1 FROM users WHERE nome=? COLLATE NOCASE AND id<>?', (nn, u['id'])).fetchone():
+                        return self.send_json(409, {'erro': 'Este nome já está a ser usado por outro jogador.'})
+                    c.execute('UPDATE users SET nome=? WHERE id=?', (nn, u['id']))
                 if 'avatar' in d:
                     c.execute('UPDATE users SET avatar=? WHERE id=?', (json.dumps(d['avatar']), u['id']))
                 if 'adulto' in d:

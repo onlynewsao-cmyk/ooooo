@@ -34,8 +34,16 @@ const Acc = (() => {
   }
   const rnd = () => [...crypto.getRandomValues(new Uint8Array(12))].map(b => b.toString(16).padStart(2, '0')).join('');
   const localKey = (id, t) => `pe3d_${t}_${id}`;
+  const NOME_RE = /^[\wÀ-ÖØ-öø-ÿ]+(?: [\wÀ-ÖØ-öø-ÿ]+)*$/;
+  const checkNome = (nome) => {   // regras de formato; figuras públicas e unicidade são confirmadas no servidor
+    const nm = (nome || '').trim().replace(/\s+/g, ' ');
+    if (nm.length < 2) throw new Error('O nome precisa de pelo menos 2 letras.');
+    if (nm.length > 24) throw new Error('O nome pode ter no máximo 24 caracteres.');
+    if (!NOME_RE.test(nm) || !/[A-Za-zÀ-ÖØ-öø-ÿ]/.test(nm)) throw new Error('O nome só pode ter letras, números e _ (sem emojis nem símbolos). Ex.: draka, _draka_, draka_4.');
+    return nm;
+  };
   const check = (d) => {
-    if (!d.nome || d.nome.trim().length < 2) throw new Error('O nome precisa de pelo menos 2 letras.');
+    d.nome = checkNome(d.nome);
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email || '')) throw new Error('E-mail inválido.');
     if (!d.senha || d.senha.length < 6) throw new Error('A senha precisa de pelo menos 6 caracteres.');
   };
@@ -73,6 +81,7 @@ const Acc = (() => {
       if (online) { const r = await api('register', Object.assign({}, d, { dv: DEV_ID })); sess = { mode: 'online', token: r.token, user: r.user }; ls.set(SK, sess); return result(r.user, null, null); }
       const users = ls.get(UK) || {}; const email = d.email.trim().toLowerCase();
       if (users[email]) throw new Error('Já existe uma conta com este e-mail neste dispositivo.');
+      if (Object.values(users).some(x => (x.nome || '').toLowerCase() === d.nome.toLowerCase())) throw new Error('Este nome já está a ser usado neste dispositivo.');
       const salt = rnd();
       const u = { id: 'L' + Date.now().toString(36), nome: d.nome.trim().slice(0, 40), email, salt, hash: await hash(d.senha, salt), adulto: !!d.adulto, avatar: d.avatar || {} };
       users[email] = u; ls.set(UK, users); sess = { mode: 'local', user: pub(u) }; ls.set(SK, sess);

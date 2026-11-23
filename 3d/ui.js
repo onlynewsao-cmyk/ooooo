@@ -71,8 +71,9 @@ async function doLogin(e) {
 }
 function regNext(e) {
   e.preventDefault(); const err = $('#rErr'); err.textContent = '';
-  const d = { nome: $('#rNome').value.trim(), email: $('#rEmail').value.trim().toLowerCase(), senha: $('#rPass').value, adulto: $('#r18').checked };
+  const d = { nome: $('#rNome').value.trim().replace(/\s+/g, ' '), email: $('#rEmail').value.trim().toLowerCase(), senha: $('#rPass').value, adulto: $('#r18').checked };
   if (d.nome.length < 2) return err.textContent = 'O nome precisa de pelo menos 2 letras.';
+  if (!/^[\wÀ-ÖØ-öø-ÿ]+(?: [\wÀ-ÖØ-öø-ÿ]+)*$/.test(d.nome) || !/[A-Za-zÀ-ÖØ-öø-ÿ]/.test(d.nome)) return err.textContent = 'O nome só pode ter letras, números e _ (sem emojis nem símbolos). Ex.: draka, _draka_, draka_4.';
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email)) return err.textContent = 'E-mail inválido.';
   if (d.senha.length < 6) return err.textContent = 'A senha precisa de pelo menos 6 caracteres.';
   if (d.senha !== $('#rPass2').value) return err.textContent = 'As senhas não coincidem.';
