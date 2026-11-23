@@ -112,7 +112,7 @@ button{font:inherit;color:inherit;border:none;cursor:pointer;background:none}
 #hEnergy i.off,.energy i.off{background:#333;box-shadow:none}
 #ageBtn{padding:14px 30px;border-radius:16px;font-size:17px;font-weight:900;letter-spacing:1px;text-transform:uppercase;background:linear-gradient(135deg,var(--red),var(--red2));border:2px solid #ff4d6a;box-shadow:0 8px 30px rgba(210,18,46,.5)}
 #ageBtn:active{transform:scale(.96)}
-#prompt{position:absolute;bottom:118px;left:50%;transform:translateX(-50%);padding:12px 18px;border-radius:14px;background:rgba(20,16,4,.92);border:2px solid var(--yel);font-size:15px;white-space:nowrap;animation:pulse 1.2s infinite;box-shadow:0 0 30px rgba(255,203,0,.3)}
+#prompt{position:absolute;bottom:118px;left:50%;transform:translateX(-50%);padding:12px 18px;border-radius:14px;background:rgba(20,16,4,.92);border:2px solid var(--yel);font-size:15px;white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.35);border-width:1.5px;cursor:pointer}
 #prompt .k{display:inline-block;margin-left:10px;background:var(--yel);color:#111;font-weight:900;padding:3px 10px;border-radius:8px;font-size:13px}
 .hint{position:absolute;bottom:14px;left:14px;font-size:11px;color:rgba(255,255,255,.6);background:rgba(0,0,0,.35);padding:6px 10px;border-radius:8px;line-height:1.5}
 .hint kbd,kbd{background:#333;border:1px solid #555;border-radius:4px;padding:0 5px;font-size:10px;font-family:inherit}
@@ -4623,7 +4623,14 @@ function updateWorld(dt) {
   for (let i = 0; i < fa.length; i += 3) { const x = flagBase[i]; fa[i + 2] = Math.sin(x * 1.6 - wTime * 5) * .18 * (x / 4.5); }
   flagGeo.attributes.position.needsUpdate = true;
   // marcadores
-  Object.values(markers).forEach(m => { m.label.visible = Math.hypot(m.L.x - playerPos.x, m.L.z - playerPos.z) > 9 && Math.hypot(m.L.x - camera.position.x, m.L.z - camera.position.z) > 8; m.ring.rotation.z += dt; m.ring.scale.setScalar(1 + Math.sin(wTime * 3) * .05); m.label.position.y = 4.6 + Math.sin(wTime * 2) * .15; });
+  Object.values(markers).forEach(m => {
+    if (!m.g.visible) return;
+    const d = Math.hypot(m.L.x - playerPos.x, m.L.z - playerPos.z), dc = Math.hypot(m.L.x - camera.position.x, m.L.z - camera.position.z);
+    const mid = d > 5 && d < 30 && dc > 7, lo = mid ? Math.min(1, (d - 5) / 3, (30 - d) / 6) : 0;
+    m.label.visible = lo > .02; m.label.material.opacity = lo; m.label.position.y = 3.3 + Math.sin(wTime * 2) * .08;
+    m.badge.visible = d >= 26 && d < 110; m.badge.material.opacity = Math.min(.9, (d - 26) / 6);
+    const near = d < 5; m.dm.opacity = near ? .85 + Math.sin(wTime * 4 + m.t0) * .12 : .55; const sc = 1 + Math.sin(wTime * 2.5 + m.t0) * .03 + (near ? .04 : 0); m.decal.scale.set(sc, sc, 1);
+  });
   // vans
   vans.forEach(v => {
     const dP = Math.hypot(v.g.position.x - playerPos.x, v.g.position.z - playerPos.z);
@@ -4997,9 +5004,9 @@ function wallRect(x0, z0, x1, z1, h, m, gap, gateN) { // muro com portão (+z, o
   mesh(bx(side, h, .3), m, x1 - side / 2, h / 2, z1, decor); addCol(x1 - side / 2, z1, side, .3);
 }
 function villa(cx, cz, c, big, gateN) { // vivenda moderna com muro e piscina
-  const s = big ? 1.4 : 1, f = gateN ? -1 : 1;
+  const s = typeof big === 'number' ? big : big ? 1.4 : 1, f = gateN ? -1 : 1;
   wallRect(cx - 9 * s, cz - 8 * s, cx + 9 * s, cz + 8 * s, 2.2, mat('#efe9dc'), 4, gateN);
-  bldg(cx - 2 * s, cz - 2.5 * s * f, 10 * s, 7 * s, big ? 11 : 8, { face: c || '#f4f1ea', glass: '#2a4a66', kind: 'res', noTop: true, base: '#d8d1c2' });
+  bldg(cx - 2 * s, cz - 2.5 * s * f, 10 * s, 7 * s, big === true ? 11 : 8, { face: c || '#f4f1ea', glass: '#2a4a66', kind: 'res', noTop: true, base: '#d8d1c2' });
   const pool = new T.Mesh(new T.PlaneGeometry(4 * s, 3 * s), new T.MeshStandardMaterial({ color: '#2ab0d8', roughness: .1, metalness: .2, emissive: '#0a4a66', emissiveIntensity: .2 }));
   pool.rotation.x = -Math.PI / 2; pool.position.set(cx + 5 * s, .08, cz + 2 * s * f); worldScene.add(pool);
   palm(cx + 7.5 * s, cz - 6 * s * f, .8);
@@ -5264,26 +5271,99 @@ function buildWorld() {
   for (let i = 0; i < 9; i++) { if (Math.abs(i - 4) < 2) continue; mesh(bx(.25, 10, .25), nightBand(['#ff2fa0', '#39e6d0', '#ffcb00'][i % 3], .3, 1.8), 131.5 + i * 4.6, 7, 22.85, decor, false); }
   palm(130, 19, 1); palm(170, 19, 1);
 
-  /* ===== CENTRO HABITACIONAL (linha 4) — do bairro pobre (oeste) ao bairro rico (este) ===== */
-  const zSign = (zid, x) => { const Z = zonaCasa(zid); sign(Z.nivel.toUpperCase(), 9, Z.cor, '#ffffff', Z.t.toUpperCase(), x, 3.1, 68.6, Math.PI); [-4, 4].forEach(o => mesh(bx(.18, 2.2, .18), mat('#555'), x + o, 1.1, 68.75, decor)); };
-  // 1 · Musseque — bairro pobre
-  for (let i = 0; i < 6; i++) for (let j = 0; j < 4; j++) { const x = -170 + i * 8 + R(-1, 1), z = 80 + j * 7 + R(-1, 1); if (Math.abs(x + 150) < 6 && j === 0) continue; shack(x, z, Math.PI + R(-2, 2) * .1); }
-  shack(-150, 75, Math.PI, '#e8d27a'); baobab(-136, 71, .7); zSign('musseque', -166);
-  // 2 · Zango — cidade barata (prédios sociais baixos)
-  [[-108, 80], [-90, 80], [-72, 80], [-108, 97], [-90, 97], [-72, 97]].forEach(([x, z], i) => bldg(x, z, 12, 9, i === 1 ? 11 : 10, { face: ['#efe4cc', '#f2d9c4', '#d9e6ee', '#e6efd9', '#f4f1ea', '#eadcf0'][i], glass: '#3b5a7a', kind: 'res', noShops: true, base: '#bdb4a2' }));
-  zSign('zango', -106);
-  // 3 · Bairro Popular — bairro médio (casas de blocos)
-  [[-46, 76], [-30, 76], [-14, 76], [-46, 94], [-30, 94], [-14, 94]].forEach(([x, z], i) => blockHouse(x, z, ['#f0d9a8', '#e8b9a0', '#cfe0c3', '#f4f1ea', '#d9c9e8', '#f2c48a'][i]));
-  zSign('bairro', -50);
-  // 4 · Kilamba — cidade média (torres coloridas)
-  [[14, 80], [30, 80], [46, 80], [14, 98], [46, 98]].forEach(([x, z], i) => kilamba(x, z, kc[(i + 2) % kc.length], i === 1 ? 22 : R(16, 26)));
-  zSign('kilamba', 10);
-  // 5 · Talatona — cidade cara (condomínio de vivendas)
-  villa(90, 78, '#f4f1ea', false, true); villa(79, 96, '#efe6d6', false, true); villa(101, 96, '#f7f2e8', false, true);
-  zSign('talatona', 72);
-  // 6 · Miramar — bairro rico (mansão com piscina)
-  villa(150, 81, '#f7f4ee', true, true); [[130, 72], [170, 72], [130, 101], [170, 101], [150, 103]].forEach(([x, z]) => palm(x, z, 1));
-  zSign('miramar', 134);
+  /* ===== CENTRO HABITACIONAL (linha 4) — do bairro pobre (oeste) ao bairro rico (este) =====
+     Cada quarteirão: chão próprio, ruelas em grelha, lotes alinhados, árvores e candeeiros.
+     Colunas dos lotes: cx-15.5 · cx · cx+15.5 | ruelas em cx±7.75 | ruela transversal z≈85 */
+  const HZ0 = 68, HZ1 = 102;
+  const lane = (x0, z0, x1, z1, col) => mesh(bx(x1 - x0, .04, z1 - z0), mat(col, { roughness: .95 }), (x0 + x1) / 2, .02, (z0 + z1) / 2, decor, false);
+  const lanes = (cx, col, zc = 85, zw = 7) => { [-7.75, 7.75].forEach(o => lane(cx + o - 2.25, HZ0, cx + o + 2.25, HZ1, col)); lane(cx - 22, zc - zw / 2, cx + 22, zc + zw / 2, col); };
+  const hedge = (x, z, w, d, h = .9) => { mesh(bx(w, h, d), mat('#3f7d2c', { roughness: .95 }), x, h / 2, z, decor); addCol(x, z, w, d); };
+  const bench = (x, z, ry = 0) => { const g = new T.Group(); g.position.set(x, 0, z); g.rotation.y = ry; decor.add(g); mesh(bx(1.8, .12, .5), mat('#8a5a3a'), 0, .5, 0, g); mesh(bx(1.8, .45, .1), mat('#8a5a3a'), 0, .8, -.22, g); [-.75, .75].forEach(o => mesh(bx(.1, .5, .45), mat('#444'), o, .25, 0, g)); };
+  const zMon = (zid, x, z = 69.4) => { // placa-monumento do bairro (muro baixo pintado)
+    const Z = zonaCasa(zid);
+    mesh(bx(7.4, 1.6, .6), mat('#efe9dc'), x, .8, z, decor); addCol(x, z, 7.4, .6);
+    mesh(bx(7.8, .2, .8), mat(shade(Z.cor, .8)), x, 1.7, z, decor);
+    [-4.3, 4.3].forEach(o => { mesh(bx(1, .45, .8), mat('#b5793f'), x + o, .22, z, decor); mesh(sph(.42, 8, 6), mat(pick(['#e0457b', '#ffcb00', '#ff7a1a'])), x + o, .6, z, decor); });
+    sign(Z.t.toUpperCase(), 6.8, Z.cor, '#ffffff', Z.nivel.toUpperCase(), x, .85, z - .32, Math.PI);
+  };
+  const flat = (x0, z0, x1, z1, base, spots, rep) => groundPatch(x0, z0, x1, z1, null, .02, noiseTex(base, spots, rep, 900));
+  // 1 · Musseque — bairro pobre (barracas alinhadas, ruelas de terra batida)
+  { const cx = -150;
+    flat(cx - 22, HZ0, cx + 22, HZ1, '#b07a50', ['#8a5a3a', '#c48b5f', '#7a4e30'], [4, 3]);
+    lanes(cx, '#94603e', 87, 4.5);
+    const cols = ['#c96f4a', '#d9b38c', '#8fa3b8', '#e0d4b0', '#a35c3c', '#b5c99a', '#d98c6a', '#e8d27a'];
+    let k = 0;
+    [-18.5, -13.5, 0, 13.5, 18.5].forEach(ox => [75, 81, 93, 99].forEach(z => {
+      if (ox === 0 && z === 75) { shack(cx, 75, Math.PI, '#e8d27a'); return; }
+      shack(cx + ox, z, Math.PI + (k % 3 - 1) * .04, cols[k++ % cols.length]);
+    }));
+    const zinc = mat('#8d9499', { metalness: .5, roughness: .5 });
+    [[-16, 72.2, 8.6], [16, 72.2, 8.6], [-16, 90.2, 8.6], [16, 90.2, 8.6]].forEach(([ox, z, w]) => { mesh(bx(w, 1.3, .08), zinc, cx + ox, .65, z, decor); addCol(cx + ox, z, w, .2); });
+    [[-3.6, 78], [3.6, 96], [-3.6, 96]].forEach(([ox, z]) => mesh(cyl(.45, .45, 1.1, 10), mat('#1f63c9'), cx + ox, .55, z, decor));
+    { const g = new T.Group(); g.position.set(cx + 3.4, 0, 78); decor.add(g); [-1.2, 1.2].forEach(o => mesh(cyl(.04, .04, 1.9, 5), mat('#6b4a2e'), 0, .95, o, g)); mesh(bx(.02, .02, 2.4), mat('#ddd'), 0, 1.85, 0, g, false); [['#c8102e', -.7], ['#ffcb00', 0], ['#1f63c9', .7]].forEach(([c, o]) => mesh(bx(.04, .55, .5), mat(c), 0, 1.55, o, g, false)); }
+    baobab(cx + 19.5, 87, .6); treeA(cx - 19.5, 87, .7);
+    zMon('musseque', cx - 16.5);
+  }
+  // 2 · Zango — cidade barata (prédios sociais em grelha, pátio com árvores)
+  { const cx = -90;
+    flat(cx - 22, HZ0, cx + 22, HZ1, '#d2c7b0', ['#bfb39a', '#e0d6c2', '#a99d86'], [4, 3]);
+    lanes(cx, '#bdb6a8');
+    const fc = ['#efe4cc', '#f2d9c4', '#d9e6ee', '#e6efd9', '#f4f1ea', '#eadcf0'];
+    [[-15.5, 77], [0, 77], [15.5, 77], [-15.5, 94], [0, 94], [15.5, 94]].forEach(([ox, z], i) => bldg(cx + ox, z, 11, 9, i === 1 ? 11 : 10, { face: fc[i], glass: '#3b5a7a', kind: 'kil', noShops: true, base: '#bdb4a2' }));
+    [-15.5, 0, 15.5].forEach(ox => { treeA(cx + ox - 3.5, 85, .7); treeA(cx + ox + 3.5, 85, .7); bench(cx + ox, 83.4, 0); });
+    lamp(cx - 7.75, 82.4, 0); lamp(cx + 7.75, 82.4, 0);
+    zMon('zango', cx - 16.5);
+  }
+  // 3 · Bairro Popular — casas de blocos com muro, ruelas calcetadas
+  { const cx = -30;
+    flat(cx - 22, HZ0, cx + 22, HZ1, '#c9a27a', ['#b08a62', '#d9b48c', '#9c7550'], [4, 3]);
+    lanes(cx, '#cfc6b4', 85, 8);
+    const hc = ['#f0d9a8', '#e8b9a0', '#cfe0c3', '#f4f1ea', '#d9c9e8', '#f2c48a'];
+    [[-15.5, 76], [0, 76], [15.5, 76], [-15.5, 94], [0, 94], [15.5, 94]].forEach(([ox, z], i) => blockHouse(cx + ox, z, hc[i]));
+    [-15.5, 15.5].forEach(ox => treeA(cx + ox, 85, .8)); treeA(cx - 20.5, 85, .7); treeA(cx + 20.5, 85, .7);
+    lamp(cx - 7.75, 82, 0); lamp(cx + 7.75, 82, 0);
+    zMon('bairro', cx - 16.5);
+  }
+  // 4 · Kilamba — cidade média (torres coloridas em relvado, parque infantil)
+  { const cx = 30;
+    flat(cx - 22, HZ0, cx + 22, HZ1, '#6f9a3e', ['#5b8530', '#88b04f', '#4e7428'], [4, 3]);
+    lanes(cx, '#e6dfd0');
+    [[-16, 78, 20], [0, 78, 22], [16, 78, 18], [-16, 95, 24], [16, 95, 16]].forEach(([ox, z, h], i) => bldg(cx + ox, z, 12, 11, h, { face: kc[(i + 2) % kc.length], glass: '#3b5a7a', kind: 'kil', base: shade(kc[(i + 2) % kc.length], .7) }));
+    // parque infantil (traseiras do centro)
+    mesh(bx(9, .05, 8), mat('#c8553d', { roughness: .9 }), cx, .03, 95, decor, false);
+    { const sw = mat('#ffcb00', { metalness: .3 }); [-1.5, 1.5].forEach(o => mesh(cyl(.06, .06, 2.4, 6), sw, cx - 2 + o, 1.2, 94, decor)); mesh(cyl(.06, .06, 3.2, 6), sw, cx - 2, 2.4, 94, decor).rotation.z = Math.PI / 2; mesh(bx(.6, .06, .3), mat('#1f63c9'), cx - 2, .6, 94, decor); }
+    { const sl = mesh(bx(.9, .08, 3.4), mat('#c8102e'), cx + 2.2, 1, 95, decor); sl.rotation.x = .5; mesh(bx(.9, 1.6, .9), mat('#1f63c9'), cx + 2.2, .8, 93.4, decor); }
+    bench(cx - 3, 99.5, Math.PI); bench(cx + 3, 99.5, Math.PI);
+    [-15.5, 15.5].forEach(ox => treeA(cx + ox, 86.5, .8)); treeA(cx - 4.6, 90.2, .7); treeA(cx + 4.6, 90.2, .7);
+    lamp(cx - 7.75, 87, 0); lamp(cx + 7.75, 87, 0);
+    zMon('kilamba', cx - 16.5);
+  }
+  // 5 · Talatona — cidade cara (condomínio de vivendas, guarita e jardim)
+  { const cx = 90;
+    flat(cx - 22, HZ0, cx + 22, HZ1, '#6f9a3e', ['#5b8530', '#88b04f', '#4e7428'], [4, 3]);
+    lane(cx - 2.5, HZ0, cx + 2.5, 70, '#e6dfd0'); lane(cx - 22, 84.4, cx + 22, 87.2, '#e6dfd0');
+    villa(cx, 77, '#f4f1ea', .9, true); villa(cx - 11, 94.4, '#efe6d6', .85, true); villa(cx + 11, 94.4, '#f7f2e8', .85, true);
+    // guarita
+    mesh(bx(3, 2.6, 3), mat('#f4f1ea'), cx + 15, 1.3, 75, decor); addCol(cx + 15, 75, 3, 3); mesh(bx(3.6, .25, 3.6), mat('#2a4a66'), cx + 15, 2.75, 75, decor);
+    mesh(bx(2, .9, .06), mat('#1a2633'), cx + 15, 1.7, 73.47, decor, false);
+    mesh(bx(4, .1, .1), mat('#c8102e'), cx + 15, 1, 72.4, decor, false);
+    hedge(cx + 15, 70.5, 12, .7); hedge(cx - 15, 79.5, 12, .7, .7);
+    palm(cx + 19.5, 80, .8); palm(cx - 19.5, 74, .8); palm(cx - 11, 74, .7);
+    bench(cx - 15, 77, Math.PI);
+    lamp(cx - 9.5, 85.8, 0); lamp(cx + 9.5, 85.8, 0);
+    zMon('talatona', cx - 16.5);
+  }
+  // 6 · Miramar — bairro rico (mansão com piscina, palmeiras alinhadas, sebes)
+  { const cx = 150;
+    flat(cx - 22, HZ0, cx + 22, HZ1, '#6f9a3e', ['#5b8530', '#88b04f', '#4e7428'], [4, 3]);
+    lane(cx - 2.5, HZ0, cx + 2.5, 70, '#e6dfd0');
+    villa(cx, 81, '#f7f4ee', true, true);
+    [74, 83, 92, 100].forEach(z => { palm(cx - 17.5, z, .9); palm(cx + 17.5, z, .9); });
+    hedge(cx, 98.5, 26, .8, 1.1);
+    { mesh(cyl(1.6, 1.8, .6, 16), mat('#e8e2d4'), cx, .3, 95.3, decor); addCol(cx, 95.3, 3.4, 3.4); const w = new T.Mesh(new T.CircleGeometry(1.4, 16), new T.MeshStandardMaterial({ color: '#2ab0d8', roughness: .1, emissive: '#0a4a66', emissiveIntensity: .2 })); w.rotation.x = -Math.PI / 2; w.position.set(cx, .62, 95.3); worldScene.add(w); mesh(cyl(.15, .2, 1.4, 8), mat('#e8e2d4'), cx, 1, 95.3, decor); }
+    lamp(cx - 21, 86, Math.PI / 2); lamp(cx + 21, 86, -Math.PI / 2);
+    zMon('miramar', cx - 17);
+  }
 
   /* ===== VIANA (linha 5) ===== */
   // Terrenos & Obras (estaleiro)
@@ -5313,15 +5393,20 @@ function buildWorld() {
   // juntar geometria estática
   worldScene.remove(decor); worldScene.add(mergeStatic(decor)); decor = null;
 
-  /* ----- marcadores ----- */
+  /* ----- marcadores de entrada: tapete com seta no chão (aponta para a porta) + nome que só aparece a meia distância ----- */
+  const mkTex = ctex(256, 256, x => {
+    x.fillStyle = 'rgba(16,14,10,.55)'; rrect(x, 14, 30, 228, 196, 40); x.fill();
+    x.strokeStyle = '#ffcb00'; x.lineWidth = 10; rrect(x, 14, 30, 228, 196, 40); x.stroke();
+    x.lineCap = 'round'; x.lineJoin = 'round'; x.lineWidth = 22;
+    [[78, 1], [134, .55]].forEach(([y, a]) => { x.strokeStyle = `rgba(255,203,0,${a})`; x.beginPath(); x.moveTo(76, y); x.lineTo(128, y + 44); x.lineTo(180, y); x.stroke(); });
+  });
   Object.entries(LOC_POS).forEach(([id, L]) => {
-    const g = new T.Group(); g.position.set(L.x, 0, L.z); worldScene.add(g);
-    const ringM = new T.MeshStandardMaterial({ color: '#ffcb00', emissive: '#ffcb00', emissiveIntensity: 1.6 });
-    const ring = new T.Mesh(new T.TorusGeometry(1.5, .09, 8, 40), ringM); ring.rotation.x = Math.PI / 2; ring.position.y = .12; g.add(ring);
-    const disc = new T.Mesh(new T.CircleGeometry(1.45, 32), new T.MeshBasicMaterial({ color: '#ffcb00', transparent: true, opacity: .18, depthWrite: false })); disc.rotation.x = -Math.PI / 2; disc.position.y = .1; g.add(disc);
-    const beam = new T.Mesh(new T.CylinderGeometry(1.4, 1.4, 6, 24, 1, true), new T.MeshBasicMaterial({ color: '#ffcb00', transparent: true, opacity: .07, side: T.DoubleSide, depthWrite: false, blending: T.AdditiveBlending })); beam.position.y = 3; g.add(beam);
-    const label = textSprite(`${L.ico} ${L.n}`, { scale: 4.6, size: 52 }); label.position.y = 4.6; g.add(label);
-    markers[id] = { g, ring, label, L };
+    const g = new T.Group(); g.position.set(L.x, 0, L.z); g.rotation.y = locFace(id); worldScene.add(g);
+    const dm = new T.MeshBasicMaterial({ map: mkTex, transparent: true, opacity: .75, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+    const decal = new T.Mesh(new T.PlaneGeometry(2.2, 2.2), dm); decal.rotation.x = -Math.PI / 2; decal.position.set(0, .085, .3); g.add(decal);
+    const label = textSprite(`${L.ico} ${L.n}`, { scale: 3.4, size: 50, bg: 'rgba(10,10,12,.72)', border: 'rgba(255,203,0,.85)' }); label.position.y = 3.3; label.material.opacity = 0; g.add(label);
+    const badge = textSprite(L.ico, { w: 128, h: 128, scale: 1.5 }); badge.position.y = 3.6; badge.material.opacity = .9; g.add(badge);
+    markers[id] = { g, label, badge, decal, dm, L, t0: Math.random() * 7 };
     if (id === 'cela') g.visible = false;
   });
   buildHits();
