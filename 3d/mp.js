@@ -115,7 +115,7 @@ function mpAddLine(m) {
   if (!m.sys && m.uid !== MP.me && document.getElementById('mpBar').classList.contains('hidden')) { mpUnread++; mpBadge(); }
 }
 function mpSys(t) { mpAddLine({ sys: 1, txt: t }); }
-function mpRoomName(r) { if (r === 'rua') return 'na rua'; if (r.startsWith('casa#')) return 'em casa'; const L = LOC_POS[r.replace('iv:', '')]; return L ? L.n : ''; }
+function mpRoomName(r) { const b = r.split('@')[0], pv = r.split('@')[1], suf = pv && pv !== 'Luanda' ? ' · ' + pv : ''; if (b === 'rua') return 'na rua' + suf; if (b.startsWith('casa#')) return 'em casa' + suf; const L = LOC_POS[b.replace('iv:', '')]; return (L ? L.n : '') + suf; }
 
 /* ---------------- enviar ---------------- */
 async function mpSend(txt) {
@@ -179,7 +179,7 @@ function mpPlace(tag, g, h, show) {
 
 /* ---------------- jogadores remotos ---------------- */
 function mpScene() { return (typeof inInt !== 'undefined' && inInt) ? inInt.sc : worldScene; }
-function mpRoom() { if (typeof inInt !== 'undefined' && inInt) return inInt.loc === 'casa' ? 'casa#' + (MP.me || 'eu') : 'iv:' + inInt.loc; return 'rua'; }
+function mpRoom() { const pv = (typeof G !== 'undefined' && G && G.cidade) ? '@' + G.cidade.prov : ''; if (typeof inInt !== 'undefined' && inInt) return (inInt.loc === 'casa' ? 'casa#' + (MP.me || 'eu') : 'iv:' + inInt.loc) + pv; return 'rua' + pv; }
 function mpRemove(id) { const o = MP.others.get(id); if (!o) return; if (o.h && o.h.g.parent) o.h.g.parent.remove(o.h.g); o.tag.remove(); MP.others.delete(id); }
 function mpApply(ps) {
   const sc = mpScene(), ids = new Set(); MP.need = [];
@@ -292,7 +292,7 @@ async function mpTick() {
     const on = document.getElementById('mpOn'); if (on) on.textContent = d.online;
     if (MP.room === room) mpApply(d.players || []);
     {   // salas: ao entrar num prédio diz quantas pessoas lá estão; avisa quando entra alguém
-      const nn = (d.players || []).length, iv = room !== 'rua' && !room.startsWith('casa#');
+      const nn = (d.players || []).length, iv = room.split('@')[0] !== 'rua' && !room.startsWith('casa#');
       if (MP.roomN === -1) { if (iv) toast(nn ? `👥 ${nn === 1 ? '1 pessoa está' : nn + ' pessoas estão'} aqui em ${mpRoomName(room)} — falem no chat ou por voz.` : `🚪 ${mpRoomName(room)}: és o(a) único(a) aqui dentro por agora.`); }
       else if (iv && nn > MP.roomN) mpSys(nn - MP.roomN === 1 ? 'Alguém entrou na sala.' : `${nn - MP.roomN} pessoas entraram na sala.`);
       MP.roomN = nn;
@@ -339,7 +339,7 @@ function mpRenderPl(online) {
   const os = [...MP.others.entries()].map(([id, o]) => ({ id, o, d: o.d != null ? o.d : Math.hypot(o.x - playerPos.x, o.z - playerPos.z) })).sort((a, b) => a.d - b.d);
   const fora = Math.max(0, (online || 1) - 1 - os.length);
   const zona = d => d < MP_PERTO ? '<em class="z1">perto</em>' : d < 80 ? '<em class="z2">médio</em>' : '<em class="z3">longe</em>';
-  el.innerHTML = `<div class="plh">${MP.room === 'rua' ? 'Na rua contigo' : 'Aqui em ' + esc(mpRoomName(MP.room))}</div>` + (os.length ? os.map(({ id, o, d }) => `<button class="plr" onclick="mpOpen('@${esc(o.nick).replace(/'/g, '')} ')"><i style="background:${mpColor(o.nick)}"></i><b>${esc(o.nick)}</b>${o.mu ? '<span class="plm">🎵</span>' : ''}${o.vh ? `<span class="plm">${o.vh.startsWith('plane') ? '✈️' : o.vh.startsWith('train') ? '🚆' : o.vh.startsWith('bike') ? '🚲' : o.vh.startsWith('moto') ? '🏍️' : '🚗'}</span>` : ''}${zona(d)}<small>${Math.round(d)} m</small></button>`).join('') : '<div class="ple">Ninguém por perto.</div>')
+  el.innerHTML = `<div class="plh">${MP.room.split('@')[0] === 'rua' ? 'Na rua contigo' : 'Aqui em ' + esc(mpRoomName(MP.room))}</div>` + (os.length ? os.map(({ id, o, d }) => `<button class="plr" onclick="mpOpen('@${esc(o.nick).replace(/'/g, '')} ')"><i style="background:${mpColor(o.nick)}"></i><b>${esc(o.nick)}</b>${o.mu ? '<span class="plm">🎵</span>' : ''}${o.vh ? `<span class="plm">${o.vh.startsWith('plane') ? '✈️' : o.vh.startsWith('train') ? '🚆' : o.vh.startsWith('bike') ? '🚲' : o.vh.startsWith('moto') ? '🏍️' : '🚗'}</span>` : ''}${zona(d)}<small>${Math.round(d)} m</small></button>`).join('') : '<div class="ple">Ninguém por perto.</div>')
     + (fora ? `<div class="plf">+${fora} noutros sítios da cidade</div>` : '') + `<div class="plf">📍 Perto = até ${MP_PERTO} m · 🎵 ouves a música a até ${MP_OUVIR} m</div>`;
 }
 /* minimapa: pontos dos outros jogadores */

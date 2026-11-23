@@ -212,11 +212,11 @@ const PROVINCIAS = [
   { n: 'Cuando', cap: 'Mavinga', m: ['Mavinga', 'Rivungo'], w: 1, custo: .55, sal: .6, eco: 'Parques naturais e fauna' },
 ];
 const CLASSES = [
-  { id: 'pobre', t: 'Família muito pobre', ico: '🏚️', w: 28, casa: 'Casa de chapa no musseque', mesada: [0, 15000], heranca: [0, 300000], profs: ['Zungueira', 'Desempregado', 'Lavador de carros', 'Camponês', 'Pedreiro'], stat: { saude: -6, aparencia: -4 } },
-  { id: 'humilde', t: 'Família humilde', ico: '🏠', w: 36, casa: 'Casa de blocos no bairro', mesada: [10000, 40000], heranca: [200000, 1500000], profs: ['Taxista', 'Segurança', 'Vendedora no mercado', 'Mecânico', 'Cabeleireira'], stat: {} },
-  { id: 'media', t: 'Família de classe média', ico: '🏢', w: 23, casa: 'Apartamento na cidade', mesada: [40000, 120000], heranca: [1500000, 12000000], profs: ['Professora', 'Enfermeiro', 'Funcionária pública', 'Polícia', 'Bancário'], stat: { inteligencia: 4 } },
-  { id: 'rica', t: 'Família rica', ico: '🏡', w: 10, casa: 'Vivenda com quintal e gerador', mesada: [250000, 900000], heranca: [30000000, 150000000], profs: ['Médica', 'Engenheiro petrolífero', 'Empresário', 'Advogada', 'Diretor de banco'], stat: { saude: 5, aparencia: 5, inteligencia: 5, karma: -4 } },
-  { id: 'elite', t: 'Família da elite', ico: '🏰', w: 3, casa: 'Mansão com piscina em Talatona', mesada: [1500000, 5000000], heranca: [300000000, 1500000000], profs: ['General', 'Ministra', 'Magnata do petróleo', 'Deputado', 'Empresária de diamantes'], stat: { saude: 8, aparencia: 8, inteligencia: 6, fama: 10, karma: -8 } },
+  { id: 'pobre', t: 'Família muito pobre', ico: '🏚️', w: 30, casa: 'Casa de chapa no musseque', mesada: [0, 15000], heranca: [0, 300000], profs: ['Zungueira', 'Desempregado', 'Lavador de carros', 'Camponês', 'Pedreiro'], stat: { saude: -6, aparencia: -4 } },
+  { id: 'humilde', t: 'Família humilde', ico: '🏠', w: 38, casa: 'Casa de blocos no bairro', mesada: [10000, 40000], heranca: [200000, 1500000], profs: ['Taxista', 'Segurança', 'Vendedora no mercado', 'Mecânico', 'Cabeleireira'], stat: {} },
+  { id: 'media', t: 'Família de classe média', ico: '🏢', w: 22, casa: 'Apartamento na cidade', mesada: [40000, 120000], heranca: [1500000, 12000000], profs: ['Professora', 'Enfermeiro', 'Funcionária pública', 'Polícia', 'Bancário'], stat: { inteligencia: 4 } },
+  { id: 'rica', t: 'Família rica', ico: '🏡', w: 8, casa: 'Vivenda com quintal e gerador', mesada: [250000, 900000], heranca: [30000000, 150000000], profs: ['Médica', 'Engenheiro petrolífero', 'Empresário', 'Advogada', 'Diretor de banco'], stat: { saude: 5, aparencia: 5, inteligencia: 5, karma: -4 } },
+  { id: 'elite', t: 'Família da elite', ico: '🏰', w: 2, casa: 'Mansão com piscina em Talatona', mesada: [1500000, 5000000], heranca: [300000000, 1500000000], profs: ['General', 'Ministra', 'Magnata do petróleo', 'Deputado', 'Empresária de diamantes'], stat: { saude: 8, aparencia: 8, inteligencia: 6, fama: 10, karma: -8 } },
 ];
 const TALENTOS = [
   { id: 'estudo', t: 'Cabeça boa', ico: '🧠', d: 'Aprende depressa: estudar rende mais.' },
@@ -451,6 +451,7 @@ function newLife() {
     addLog(`👶 Nasceste em <b>${G.cidade.mun}, ${prov.n}</b>, numa <b>${cls.t.toLowerCase()}</b>. Chamam-te <b>${nome}</b>.`, 'gold');
     addLog(`O teu pai é ${pai.vivo ? pai.prof.toLowerCase() : 'ausente'} e a tua mãe é ${mae.prof.toLowerCase()}. És filho(a) único(a).`);
   }
+  if (ci >= 3) addLog(`🍀 <b>Sorte rara!</b> Só ${cls.w} em cada 100 pessoas nascem numa ${cls.t.toLowerCase()} — e o fundo acaba: trabalhar continua a ser o caminho.`, 'gold');
   if (fundo) addLog(`💳 A tua família abriu-te uma conta com <b>${kzShort(fundo.total)}</b>. Recebes até ${kzShort(fundo.anual)} por ano enquanto durar — quando acabar, é contigo. Trabalhar continua a ser o caminho.`, 'gold');
   addLog(`${tal.ico} Talento natural: <b>${tal.t}</b> — ${tal.d}`);
   inf.log.forEach(t => addLog(t));
@@ -989,6 +990,7 @@ function moveCity(prov) {
   const P = PROVINCIAS.find(p => p.n === prov); if (!P || P.n === G.cidade.prov) return;
   doAct(150000, () => {
     G.cidade = { prov: P.n, mun: pick(P.m) };
+    setTimeout(() => { if (typeof provSync === 'function') provSync('aeroporto'); }, 700);
     if (G.casa.tipo === 'arrendada' || G.casa.tipo === 'pais') G.casa = { tipo: 'arrendada', id: 'quarto' };
     if (G.emprego && !job(G.emprego.id).informal && chance(.6)) { addLog(`Perdeste o emprego de ${job(G.emprego.id).t} com a mudança.`, 'bad'); G.emprego = null; }
     return `🚌 Mudaste-te para <b>${G.cidade.mun}, ${P.n}</b>! Nova vida, novas oportunidades. ` + fx({ felicidade: 5 });

@@ -209,7 +209,7 @@ function birthReveal(b) {
   openModal(`<div class="mico">🎓</div><h3>A tua vida começa aos 16</h3><p class="center">Olá, <b>${esc(G.nome)}</b>. Ninguém escolhe onde nasce… e a escola acabou. Agora a vida é tua.</p>
     <div class="list" style="margin-top:14px">
       ${row('📍', 'Local de nascimento', `${b.prov.n} · ${G.cidade.mun}`, 0)}
-      ${b.rua ? row('🌧️', 'Origem', 'Nasceste na rua<br><span class="fxs">Sem casa e sem família · trabalha para arrendar ou comprar casa</span>', 1) : row(b.cls.ico, 'Classe social', `${b.cls.t}<br><span class="fxs">${b.cls.casa}</span>`, 1)}
+      ${b.rua ? row('🌧️', 'Origem', 'Nasceste na rua<br><span class="fxs">Sem casa e sem família · trabalha para arrendar ou comprar casa</span>', 1) : row(b.cls.ico, 'Classe social', `${b.cls.t} <span class="fxs" style="color:${CLASSES.indexOf(b.cls) >= 3 ? '#ffd76a' : '#8fa3b8'}">· 🎲 ${b.cls.w}%${CLASSES.indexOf(b.cls) === 4 ? ' · 💎 muito rara!' : CLASSES.indexOf(b.cls) === 3 ? ' · ✨ rara!' : ''}</span><br><span class="fxs">${b.cls.casa}</span>`, 1)}
       ${b.rua ? row('👥', 'Pais', 'Desconhecidos · cresceste sozinho(a)', 2) : row('👨🏿', 'Pai', b.pai.vivo ? `${esc(b.pai.nome)} · ${b.pai.prof}` : 'Ausente', 2)}
       ${b.rua ? row('⛪', 'Apoio', 'Abrigo da Missão · sopa e colchão', 3) : row('👩🏿', 'Mãe', `${esc(b.mae.nome)} · ${b.mae.prof}`, 3)}
       ${b.fundo ? row('💳', 'Fundo da família', `${kzShort(b.fundo.total)}<br><span class="fxs">até ${kzShort(b.fundo.anual)}/ano · quando acabar, acabou</span>`, 4) : row('🌐', 'Amigos', 'Nenhum ainda · conhece pessoas online, na cidade', 4)}
@@ -237,6 +237,7 @@ function enterWorld(isNew, cb) {
   setTimeout(() => {
     spawnPlayer(G.preso > 0 ? 'cela' : 'casa');
     mode = 'game'; curScene = worldScene; uiBlocked = false; busy = false;
+    if (typeof provSync === 'function') provSync(G.preso > 0 ? 'cela' : 'casa');
     showOv('hud'); $('#joy').classList.toggle('hidden', !IS_MOBILE);
     $('#loading').classList.add('hidden');
     refresh();
@@ -256,7 +257,7 @@ function showHelp() {
   <p><b>🧭 O teu caminho</b><br>Aos 16 escolhes: <b>universidade</b> (exame de acesso na pública ou propinas na privada), <b>curso técnico</b> ou <b>ir trabalhar</b>. A média e a área do médio contam!</p>
   <p><b>💼 Profissões</b><br>Cada emprego tem requisitos reais: idade, escolaridade, curso, carta, cadastro limpo… Trabalha bem para seres promovido(a) — nas grandes empresas (Kitanda Super, Mbote Telecom, Banco Palanca, Mulemba Petróleos) podes chegar a <b>CEO</b>.</p>
   <p><b>👑 Império</b><br>Na <b>Torre Empresarial</b> abres empresas, contratas funcionários, abres filiais e fundas o teu <b>Grupo Empresarial</b>. Em <b>Terrenos & Obras</b> compras terrenos, constróis prédios e vives das rendas.</p>
-  <p><b>🗺️ Luanda</b><br>Marginal, Baixa, Mutamba, Ilha, Kilamba, Talatona, musseques e Viana. O telemóvel (app Kandonga) leva-te a qualquer lado.</p>
+  <p><b>🗺️ Angola inteira</b><br>Nasces numa província aleatória — cada uma das 21 tem a sua própria cidade com hospital, banco, mercado, universidade, esquadra e porto/aeroporto. Luanda é a maior de todas: Marginal, Baixa, Mutamba, Ilha, Kilamba, Talatona, musseques e Viana. Aos 18 podes mudar-te de província (mapa no telemóvel).</p>
   <p><b>🏠 Vida adulta</b><br>Arrenda ou compra casa (crédito habitação), faz o alembamento, tem filhos, abre negócios, investe e cuida da saúde. Tudo tem consequências.</p>
   <p><b>☯️ Nova vida</b><br>Quando a vida acaba, começas uma <b>nova vida</b>: outra pessoa, outra família, outro lugar. O <b>karma</b> que juntaste ajuda (ou complica) esse novo começo.</p>
   <p><b>🔞 Conteúdo +18</b><br>Toda a gente pode estudar, trabalhar e viver no jogo. A opção +18 só liga namoros, casino, apostas e bebidas.</p></div>
