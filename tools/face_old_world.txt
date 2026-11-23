@@ -1,0 +1,38 @@
+  if (fem) [-1, 1].forEach(s => mesh(sph(.032, 10, 8), mat(ex0.includes('lipstick') ? '#e0507a' : '#e0707a', { roughness: .8, transparent: true, opacity: ex0.includes('lipstick') ? .45 : .32 }), s * .108, -.045, .152, head, false).scale.set(1.3, .7, .4));
+  const ER = fem ? .055 : .05;
+  [-1, 1].forEach(s => {
+    mesh(sph(ER, 16, 12), white, s * .072, .008, .162, head, false).scale.set(.95, 1.08, .5);
+    mesh(sph(ER * .64, 14, 10), iris, s * .071, .004, .182, head, false).scale.set(1, 1.08, .45);
+    mesh(sph(ER * .34, 10, 8), blk, s * .071, .004, .193, head, false).scale.set(1, 1.1, .4);
+    mesh(sph(.009, 8, 6), white, s * .071 + .012, .019, .199, head, false);
+    mesh(sph(.0045, 6, 4), white, s * .071 - .01, -.01, .198, head, false);
+    { const lid = mesh(sph(ER * 1.06, 14, 8), skin, s * .072, .008, .164, head, false); lid.scale.set(1, 1.12, .95); lid.visible = false; (P.lids = P.lids || []).push(lid); }
+    if (cfg.shadowColor && fem) { const sh2 = mesh(sph(.03, 10, 8), mat(cfg.shadowColor, { transparent: true, opacity: .6 }), s * .072, .05, .17, head, false); sh2.scale.set(1.45, .45, .3); }
+    if (cfg.eyeliner && fem) { const el = mesh(bx(.03, .006, .006), blk, s * (.072 + ER * 1.05), .03, .172, head, false); el.rotation.z = s * .6; }
+    if (fem) {
+      /* pestanas: linha superior grossa com "asa" + pestanas soltas */
+      const lash = new T.Mesh(new T.TorusGeometry(ER * .98, .0085, 5, 14, Math.PI * .8), blk); lash.position.set(s * .072, .01, .182); lash.rotation.z = Math.PI * .1; lash.scale.set(1, 1.08, .6); head.add(lash);
+      const wing = mesh(bx(.032, .009, .008), blk, s * (.072 + ER * .98), .03, .17, head, false); wing.rotation.z = s * .55;
+      for (let k = 0; k < 3; k++) { const l = mesh(bx(.022, .005, .005), blk, s * (.085 + k * .014), .064 + k * .002 - (k === 2 ? .006 : 0), .172, head, false); l.rotation.z = s * (.5 + k * .4); }
+      const br = new T.Mesh(new T.TorusGeometry(.05, .007, 4, 12, Math.PI * .7), hairM); br.position.set(s * .074, .072, .176); br.rotation.z = Math.PI * .15 - s * .12; br.scale.set(1, .55, .5); head.add(br); (P.brows = P.brows || []).push({ m: br, r: br.rotation.z, y: br.position.y, s });
+      if (ex0.includes('lipstick')) { const sh = mesh(sph(.03, 10, 8), mat('#8a3a6a', { transparent: true, opacity: .45 }), s * .072, .045, .166, head, false); sh.scale.set(1.3, .5, .3); }
+    } else {
+      const lid = mesh(bx(.095, .012, .022), blk, s * .072, .058, .168, head, false); lid.rotation.z = s * -.08;
+      const br = mesh(bx(.092, .026, .02), hairM, s * .074, .092, .172, head, false); br.rotation.z = s * -.06; (P.brows = P.brows || []).push({ m: br, r: br.rotation.z, y: br.position.y, s });
+    }
+    mesh(sph(.042, 8, 6), skin, s * .19, 0, 0, head, false).scale.set(.55, 1, .8);
+  });
+  mesh(sph(fem ? .024 : .03, 12, 10), skinD, 0, -.04, .19, head, false).scale.set(fem ? 1.2 : 1.3, .8, .85);
+  const lipC = ex0.includes('lipstick') ? '#c2183a' : fem ? shade(cfg.skin, .62) : '#4e2420';
+  const lipM = cmat(lipC);
+  if (fem) {
+    /* lábios cheios: superior com "arco de cupido" + inferior volumoso */
+    const mg = new T.Group(); mg.position.set(0, -.098, .177); head.add(mg); P.mouth = mg;
+    [-1, 1].forEach(s => mesh(sph(.024, 12, 8), lipM, s * .019, .01, 0, mg, false).scale.set(1.25, .52, .55));
+    mesh(sph(.03, 14, 10), lipM, 0, -.01, -.005, mg, false).scale.set(1.35, .55, .6);
+    mesh(bx(.05, .004, .01), mat('#3a1416'), 0, 0, .009, mg, false);
+    if (ex0.includes('lipstick')) mesh(sph(.006, 6, 4), white, .012, -.004, .013, mg, false);
+  } else {
+    const mouth = new T.Mesh(new T.TorusGeometry(.046, .011, 8, 20, Math.PI), lipM); mouth.position.set(0, -.082, .176); mouth.rotation.z = Math.PI; mouth.scale.set(1, .55, 1); head.add(mouth); P.mouth = mouth; P.mouthM = 1;
+  }
+  { const mo = mesh(sph(.024, 10, 8), mat('#3a1014'), 0, -.1, .178, head, false); mo.scale.set(1.2, .8, .4); mo.visible = false; P.mouthO = mo; }

@@ -1,0 +1,14 @@
+# não vai para a imagem
+data/
+logs/
+__pycache__/
+*.pyc
+*.db
+*.db-wal
+*.db-shm
+*.log
+.git/
+.arena/
+capturas/
+uploads/
+proxima-encarnacao-standalone.html

@@ -1,0 +1,2 @@
+# Só é preciso para o modo PostgreSQL (Northflank / produção). Em modo local (SQLite) não há dependências.
+psycopg2-binary==2.9.10

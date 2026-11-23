@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Próxima Encarnação</title>
+<meta name="description" content="Próxima Encarnação: uma vida completa, online, no navegador.">
+<style>
+:root{
+  --red:#d2122e; --red2:#8e0b1f; --yel:#ffcb00; --yel2:#ffa600;
+  --bg:#0b0b0d; --bg2:#141418; --card:#1b1b21; --line:#2a2a33; --txt:#f2f2f2; --mut:#9a9aa8;
+  --green:#2ecc71;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;overflow-x:hidden}
+button{font:inherit;cursor:pointer;border:none;color:inherit}
+.screen{display:none;min-height:100vh}
+.screen.active{display:block}
+.hidden{display:none!important}
+
+/* ---------- TITLE ---------- */
+#scr-title{position:relative;overflow:hidden}
+.title-bg{position:absolute;inset:0;display:flex;filter:grayscale(.3) brightness(.35);}
+.title-bg img{flex:1;min-width:0;height:100%;object-fit:cover;object-position:center 20%}
+.title-bg::after{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(11,11,13,.35),rgba(11,11,13,.97) 75%)}
+.title-wrap{position:relative;z-index:2;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 20px;text-align:center}
+.flagbar{display:flex;width:120px;height:6px;border-radius:3px;overflow:hidden;margin:0 auto 22px}
+.flagbar i{flex:1;background:var(--red)}.flagbar i+i{background:#000;border:1px solid #333}
+.logo{font-size:clamp(38px,9vw,86px);font-weight:900;line-height:.95;letter-spacing:-1px;text-transform:uppercase;
+  background:linear-gradient(180deg,var(--yel) 0%,var(--yel2) 45%,var(--red) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 4px 24px rgba(210,18,46,.45))}
+.logo small{display:block;font-size:.42em;letter-spacing:6px}
+.tagline{margin-top:14px;color:#ddd;font-size:clamp(14px,2.6vw,18px);letter-spacing:2px;text-transform:uppercase}
+.tagline b{color:var(--yel)}
+.menu{margin-top:38px;display:flex;flex-direction:column;gap:12px;width:min(320px,90vw)}
+.btn{padding:15px 22px;border-radius:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;font-size:15px;transition:.15s transform,.15s filter}
+.btn:active{transform:scale(.97)}
+.btn-pri{background:linear-gradient(135deg,var(--red),var(--red2));box-shadow:0 6px 24px rgba(210,18,46,.4)}
+.btn-yel{background:linear-gradient(135deg,var(--yel),var(--yel2));color:#111}
+.btn-ghost{background:rgba(255,255,255,.06);border:1px solid var(--line)}
+.btn:hover{filter:brightness(1.12)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.credit{position:absolute;bottom:18px;left:0;right:0;z-index:3;text-align:center;font-size:12px;color:var(--mut);letter-spacing:3px;text-transform:uppercase}
+.credit b{color:var(--red);font-weight:900}
+.machete{display:inline-block;width:20px;height:20px;vertical-align:-4px;margin-right:6px}
+
+/* ---------- SELECT ---------- */
+#scr-select{padding:24px 16px 60px;max-width:1200px;margin:0 auto}
+.sel-head{text-align:center;margin-bottom:22px}
+.sel-head h2{font-size:clamp(24px,5vw,38px);font-weight:900;text-transform:uppercase;letter-spacing:1px}
+.sel-head h2 span{color:var(--yel)}
+.sel-head p{color:var(--mut);margin-top:6px}
+.karma-banner{margin:14px auto 0;max-width:620px;padding:12px 16px;border-radius:12px;font-size:14px;border:1px solid var(--line);background:var(--card)}
+.karma-banner.pos{border-color:#2e7d4f;background:#10241a}
+.karma-banner.neg{border-color:#7d2e2e;background:#241010}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+.ccard{position:relative;border-radius:16px;overflow:hidden;background:var(--card);border:2px solid var(--line);cursor:pointer;transition:.2s transform,.2s border-color,.2s box-shadow;aspect-ratio:3/4.3}
+.ccard:hover{transform:translateY(-4px);border-color:var(--yel);box-shadow:0 10px 30px rgba(255,203,0,.18)}
+.ccard img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block}
+.ccard .info{position:absolute;left:0;right:0;bottom:0;padding:40px 14px 14px;background:linear-gradient(transparent,rgba(0,0,0,.92) 45%)}
+.ccard .nm{font-size:20px;font-weight:900}
+.ccard .tt{font-size:12px;color:var(--yel);text-transform:uppercase;letter-spacing:1px;font-weight:700}
+.ccard .lc{font-size:12px;color:#bbb;margin-top:3px}
+.ccard .age{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.7);border:1px solid #444;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700}
+.back-link{display:inline-block;margin-bottom:10px;color:var(--mut);background:none;font-size:14px}
+
+/* detail */
+.detail{display:grid;grid-template-columns:1fr 1.1fr;gap:0;max-width:820px;width:100%;background:var(--bg2);border-radius:18px;overflow:hidden;border:1px solid var(--line)}
+.detail .dimg{background:#000;min-height:360px}
+.detail .dimg img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block}
+.detail .dbody{padding:22px;display:flex;flex-direction:column;gap:12px}
+.detail h3{font-size:28px;font-weight:900}
+.detail .tt{color:var(--yel);font-weight:800;text-transform:uppercase;letter-spacing:1px;font-size:13px}
+.detail p{color:#ccc;font-size:14px;line-height:1.5}
+.perk{background:#221c08;border:1px solid #5a4a10;border-radius:10px;padding:10px 12px;font-size:13px}
+.perk b{color:var(--yel)}
+.minibars{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px}
+.mb{font-size:12px;color:var(--mut)}
+.mb .bar{height:6px;margin-top:3px}
+.namein{display:flex;gap:8px}
+.namein input{flex:1;padding:12px;border-radius:10px;border:1px solid var(--line);background:#0e0e12;color:#fff;font-size:15px}
+@media (max-width:640px){.detail{grid-template-columns:1fr}.detail .dimg{min-height:0;height:300px}}
+
+/* ---------- GAME ---------- */
+#scr-game{max-width:760px;margin:0 auto;padding-bottom:100px}
+.ghead{position:sticky;top:0;z-index:20;background:rgba(11,11,13,.95);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:12px 14px}
+.ghrow{display:flex;align-items:center;gap:12px}
+.avatar{width:58px;height:58px;border-radius:50%;overflow:hidden;border:3px solid var(--yel);flex-shrink:0;background:#000}
+.avatar img{width:100%;height:100%;object-fit:cover;object-position:center 8%;transform:scale(1.9);transform-origin:center 12%}
+.gname{font-weight:900;font-size:18px;line-height:1.1}
+.gsub{font-size:12px;color:var(--mut);margin-top:2px}
+.gmoney{margin-left:auto;text-align:right}
+.gmoney .v{font-weight:900;color:var(--green);font-size:17px}
+.gmoney .v.neg{color:#ff5b5b}
+.gmoney .a{font-size:12px;color:var(--mut)}
+.menu-btn{background:var(--card);border:1px solid var(--line);width:36px;height:36px;border-radius:10px;font-size:18px;flex-shrink:0}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 12px;padding:12px 14px;background:var(--bg2);border-bottom:1px solid var(--line)}
+.st{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+.st .row{display:flex;justify-content:space-between}
+.st .row span:last-child{color:#fff}
+.bar{height:7px;background:#2a2a32;border-radius:4px;overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;border-radius:4px;transition:width .4s}
+.tabs{display:flex;overflow-x:auto;gap:6px;padding:10px 14px;position:sticky;top:83px;z-index:19;background:var(--bg);border-bottom:1px solid var(--line);scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:9px 14px;border-radius:20px;background:var(--card);border:1px solid var(--line);font-size:13px;font-weight:700;white-space:nowrap}
+.tab.on{background:var(--yel);color:#111;border-color:var(--yel)}
+.content{padding:14px}
+.log{display:flex;flex-direction:column;gap:10px}
+.lyear{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.lyear h4{font-size:13px;color:var(--yel);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.lyear p{font-size:14px;line-height:1.5;color:#ddd;padding:3px 0;border-top:1px dashed #2c2c34}
+.lyear p:first-of-type{border-top:none}
+.lyear p.good{color:#9ff0bf}.lyear p.bad{color:#ffa3a3}.lyear p.gold{color:var(--yel)}
+.sec-title{font-size:13px;color:var(--mut);text-transform:uppercase;letter-spacing:1px;font-weight:800;margin:16px 0 8px}
+.sec-title:first-child{margin-top:0}
+.list{display:flex;flex-direction:column;gap:8px}
+.item{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:left;width:100%;transition:.15s border-color}
+button.item:hover{border-color:var(--yel)}
+button.item:disabled{opacity:.45}
+.item .ico{font-size:24px;width:36px;text-align:center;flex-shrink:0}
+.item .tx{flex:1;min-width:0}
+.item .t1{font-weight:800;font-size:15px}
+.item .t2{font-size:12px;color:var(--mut);margin-top:2px}
+.item .pr{font-weight:800;font-size:13px;color:var(--yel);white-space:nowrap}
+.tag{display:inline-block;font-size:10px;font-weight:800;padding:2px 7px;border-radius:10px;background:#2a2a33;color:#ccc;margin-left:6px;vertical-align:2px;text-transform:uppercase}
+.tag.g{background:#143d26;color:#7ef0ad}.tag.r{background:#3d1414;color:#ff9a9a}
+.energy{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--mut);margin-bottom:10px}
+.energy i{width:14px;height:14px;border-radius:50%;background:var(--yel);display:inline-block}
+.energy i.off{background:#333}
+.info-box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;font-size:14px;line-height:1.6;color:#ccc}
+.info-box b{color:#fff}
+.bottom{position:fixed;left:0;right:0;bottom:0;z-index:30;padding:12px 14px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--bg) 30%)}
+.age-btn{display:block;width:100%;max-width:732px;margin:0 auto;padding:17px;border-radius:16px;font-size:18px;font-weight:900;text-transform:uppercase;letter-spacing:1px;
+  background:linear-gradient(135deg,var(--red),var(--red2));box-shadow:0 8px 30px rgba(210,18,46,.45);border:2px solid #ff4d6a}
+.age-btn:active{transform:scale(.98)}
+
+/* ---------- MODAL ---------- */
+.modal{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:16px;animation:fade .2s}
+.modal-box{background:var(--bg2);border:1px solid var(--line);border-radius:18px;max-width:440px;width:100%;padding:22px;max-height:90vh;overflow:auto;animation:pop .25s}
+.modal-box.wide{max-width:860px;padding:0;background:transparent;border:none}
+.modal-box .mico{font-size:46px;text-align:center}
+.modal-box h3{text-align:center;font-size:20px;margin:6px 0 10px}
+.modal-box p{color:#ccc;line-height:1.55;text-align:center;font-size:15px}
+.modal-box .choices{display:flex;flex-direction:column;gap:8px;margin-top:18px}
+.choice{padding:13px;border-radius:12px;background:var(--card);border:1px solid var(--line);font-weight:700;text-align:left;font-size:14px}
+.choice:hover{border-color:var(--yel)}
+.choice small{display:block;color:var(--mut);font-weight:500;margin-top:2px}
+.result{margin-top:14px;padding:12px;border-radius:10px;background:#0e0e12;font-size:13px;color:var(--yel);text-align:center}
+@keyframes fade{from{opacity:0}}
+@keyframes pop{from{transform:scale(.9);opacity:0}}
+
+#toast{position:fixed;left:50%;top:18px;transform:translateX(-50%) translateY(-120px);z-index:200;background:#222;border:1px solid #444;padding:12px 18px;border-radius:12px;font-size:14px;max-width:90vw;transition:.3s transform;box-shadow:0 10px 30px rgba(0,0,0,.5);text-align:center}
+#toast.show{transform:translateX(-50%) translateY(0)}
+
+/* ---------- DEATH ---------- */
+#scr-death{display:none;align-items:center;justify-content:center;padding:30px 16px;text-align:center}
+#scr-death.active{display:flex}
+.dbox{max-width:480px;width:100%}
+.tomb{width:150px;height:200px;margin:0 auto 18px;border-radius:75px 75px 10px 10px;overflow:hidden;border:4px solid #555;filter:grayscale(1);position:relative}
+.tomb img{width:100%;height:100%;object-fit:cover;object-position:center 5%}
+.dbox h2{font-size:30px;font-weight:900}
+.dbox .cause{color:var(--mut);margin-top:6px}
+.summary{margin:20px 0;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.summary div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;font-size:12px;color:var(--mut)}
+.summary b{display:block;font-size:17px;color:#fff;margin-top:2px}
+.reinc{background:linear-gradient(135deg,#2a1a00,#1a0a10);border:1px solid #6b4a00;border-radius:14px;padding:16px;margin-bottom:18px;font-size:14px;line-height:1.55}
+.reinc h4{color:var(--yel);text-transform:uppercase;letter-spacing:2px;margin-bottom:6px}
+.pastlives .item{cursor:default}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- TITLE -->
+  <section id="scr-title" class="screen active">
+    <div class="title-bg" id="titleBg"></div>
+    <div class="title-wrap">
+      <div class="flagbar"><i></i><i></i></div>
+      <h1 class="logo"><small>A tua</small>Próxima<br>Encarnação</h1>
+      <div class="tagline">Uma vida. <b>Infinitas escolhas.</b></div>
+      <div class="menu">
+        <a class="btn btn-yel" href="3d/index.html" style="text-decoration:none;text-align:center">▶ Jogar agora</a>
+        <button class="btn btn-pri" onclick="goSelect()">▶ Nova Vida</button>
+        <button class="btn btn-yel hidden" id="btnContinue" onclick="continueGame()">Continuar Vida</button>
+        <button class="btn btn-ghost" onclick="showPastLives()">☠ Vidas Passadas</button>
+        <button class="btn btn-ghost" onclick="showHelp()">? Como Jogar</button>
+      </div>
+    </div>
+    <div class="credit">Criada pela <b>Dark Net AO</b></div>
+  </section>
+
+  <!-- SELECT -->
+  <section id="scr-select" class="screen">
+    <button class="back-link" onclick="show('scr-title')">← Voltar</button>
+    <div class="sel-head">
+      <h2>Escolhe a tua <span>encarnação</span></h2>
+      <p>Quem vais ser nesta vida? Cada personagem começa com uma história diferente.</p>
+      <div id="karmaBanner"></div>
+    </div>
+    <div class="grid" id="charGrid"></div>
+    <div class="credit" style="position:static;margin-top:30px">Criada pela <b>Dark Net AO</b></div>
+  </section>
+
+  <!-- GAME -->
+  <section id="scr-game" class="screen">
+    <div class="ghead">
+      <div class="ghrow">
+        <div class="avatar"><img id="gAvatar" alt=""></div>
+        <div style="min-width:0">
+          <div class="gname" id="gName"></div>
+          <div class="gsub" id="gSub"></div>
+        </div>
+        <div class="gmoney"><div class="v" id="gMoney"></div><div class="a" id="gAge"></div></div>
+        <button class="menu-btn" onclick="gameMenu()" title="Menu">☰</button>
+      </div>
+    </div>
+    <div class="stats" id="gStats"></div>
+    <div class="tabs" id="gTabs"></div>
+    <div class="content" id="gContent"></div>
+    <div class="bottom"><button class="age-btn" id="ageBtn" onclick="ageUp()">+ Envelhecer 1 Ano</button></div>
+  </section>
+
+  <!-- DEATH -->
+  <section id="scr-death" class="screen">
+    <div class="dbox" id="deathBox"></div>
+  </section>
+</div>
+
+<div id="modal" class="modal hidden" onclick="if(event.target===this&&modalClosable)closeModal()"><div class="modal-box" id="modalBox"></div></div>
+<div id="toast"></div>
+
+<script>
+/* =========================================================
+   PRÓXIMA ENCARNAÇÃO
+   Criada pela Dark Net AO
+   ========================================================= */
+const IMG = {}; // preenchido abaixo (permite versão standalone)
+const imgSrc = id => IMG[id] || ('img/' + id + '.jpg');
+
+const $ = s => document.querySelector(s);
+const R = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const chance = p => Math.random() < p;
+const clamp = v => Math.max(0, Math.min(100, Math.round(v)));
+const kz = n => (n < 0 ? '-' : '') + Math.abs(Math.round(n)).toLocaleString('pt-PT') + ' Kz';
+const kzShort = n => {
+  const a = Math.abs(n), s = n < 0 ? '-' : '';
+  if (a >= 1e9) return s + (a / 1e9).toFixed(1).replace('.0', '') + ' Mil M Kz';
+  if (a >= 1e6) return s + (a / 1e6).toFixed(1).replace('.0', '') + ' M Kz';
+  if (a >= 1e3) return s + Math.round(a / 1e3) + ' mil Kz';
+  return s + Math.round(a) + ' Kz';
+};
+
+const LABEL = { saude: 'Saúde', felicidade: 'Felicidade', inteligencia: 'Inteligência', aparencia: 'Aparência', fama: 'Fama', karma: 'Karma' };
+const COLOR = { saude: '#2ecc71', felicidade: '#ffcb00', inteligencia: '#3fa9ff', aparencia: '#ff6fb5', fama: '#b77bff', karma: '#ff7a3d' };
+const EDU = ['Sem escolaridade', 'Ensino Primário', 'Ensino Médio', 'Licenciatura', 'Mestrado'];
+
+const NOMES_M = ['João','António','Manuel','Paulo','Kiala','Nzuzi','Mateus','Adilson','Edmilson','Ngola','Lukeny','Délcio','Hélder','Osvaldo','Bento','Cristóvão','Yuri','Nelson','Kalunga','Mbinda'];
+const NOMES_F = ['Maria','Ana','Isabel','Nzinga','Josefa','Yola','Esperança','Domingas','Wanda','Djamila','Teresa','Lurdes','Kiesse','Ndalu','Mwanza','Suzana','Celeste','Tchizé','Hermenegilda','Joana'];
+const APELIDOS = ['dos Santos','Neto','Cassoma','Kiala','Mbala','Sebastião','Fernandes','Miguel','Tchipa','Lopes','Cardoso','Manuel','Domingos','Kassoma','Ngunza','Francisco','Chivukuvuku','Kapapelo','Tavares','Bumba'];
+
+/* ---------------- PERSONAGENS ---------------- */
+const CHARS = [
+  { id: 'kiluanje', nome: 'Kiluanje', apelido: 'Mbala', titulo: 'O Kandengue do Bairro', genero: 'M', idade: 18, local: 'Cazenga, Luanda',
+    stats: { saude: 80, felicidade: 70, inteligencia: 50, aparencia: 65, fama: 8, karma: 50 }, dinheiro: 25000, edu: 1,
+    desc: 'Nasceu e cresceu no musseque. Não tem kumbu, mas sabe se desenrascar como ninguém. A rua foi a sua escola.',
+    perk: '<b>Desenrascado:</b> biscates rendem +50% e tem mais sorte nos esquemas.' },
+  { id: 'ndalu', nome: 'Ndalu', apelido: 'Cassoma', titulo: 'A Estudante', genero: 'F', idade: 19, local: 'Huambo',
+    stats: { saude: 75, felicidade: 65, inteligencia: 85, aparencia: 70, fama: 5, karma: 60 }, dinheiro: 60000, edu: 2,
+    desc: 'Veio do Huambo para Luanda com uma mala e um sonho: ser a primeira da família com diploma universitário.',
+    perk: '<b>Cabeça Dura:</b> estudar e ler dá o dobro de inteligência.' },
+  { id: 'tchissola', nome: 'Tchissola', apelido: 'Tchipa', titulo: 'A Zungueira Empreendedora', genero: 'F', idade: 30, local: 'Viana, Luanda',
+    stats: { saude: 75, felicidade: 60, inteligencia: 55, aparencia: 55, fama: 10, karma: 65 }, dinheiro: 150000, edu: 1, job: 'zungueiro',
+    desc: 'Acorda às 4h da manhã, bacia na cabeça, e zunga Luanda inteira. Mulher de garra que quer abrir o seu próprio negócio.',
+    perk: '<b>Negociante Nata:</b> todos os negócios rendem +40%.' },
+  { id: 'mukuna', nome: 'Mukuna', apelido: 'Ngunza', titulo: 'O Candongueiro', genero: 'M', idade: 35, local: 'Cacuaco, Luanda',
+    stats: { saude: 70, felicidade: 65, inteligencia: 45, aparencia: 55, fama: 15, karma: 45 }, dinheiro: 300000, edu: 1, job: 'motorista', carta: true, bens: ['hiace'],
+    desc: '"Kilamba, Kilamba, Kilamba!" Dono do seu próprio Hiace azul e branco. Conhece cada buraco das estradas de Luanda.',
+    perk: '<b>Dono do Hiace:</b> começa com um candongueiro que rende kumbu todos os anos.' },
+  { id: 'kiesse', nome: 'Kiesse', apelido: 'Bumba', titulo: 'A Kudurista', genero: 'F', idade: 22, local: 'Sambizanga, Luanda',
+    stats: { saude: 80, felicidade: 80, inteligencia: 50, aparencia: 85, fama: 30, karma: 50 }, dinheiro: 80000, edu: 2,
+    desc: 'Dança desde que aprendeu a andar. Os vídeos dela já circulam no WhatsApp do bairro. Quer ser a maior estrela do kuduro.',
+    perk: '<b>Estrela:</b> toda a fama que ganhas vale o dobro.' },
+  { id: 'domingos', nome: 'Domingos', apelido: 'Tavares', titulo: 'O Filho do Kota', genero: 'M', idade: 25, local: 'Talatona, Luanda',
+    stats: { saude: 75, felicidade: 85, inteligencia: 55, aparencia: 75, fama: 25, karma: 30 }, dinheiro: 15000000, edu: 2, carta: true, bens: ['carro', 'telemovel'],
+    desc: 'Filho de um general reformado. Estudou em Lisboa (mais ou menos). Nunca andou de candongueiro na vida.',
+    perk: '<b>Herança:</b> começa rico e o pai dá bom kumbu, mas o karma começa baixo.' },
+  { id: 'kalunga', nome: 'Kalunga', apelido: 'Francisco', titulo: 'O Pescador da Ilha', genero: 'M', idade: 40, local: 'Ilha de Luanda',
+    stats: { saude: 90, felicidade: 70, inteligencia: 45, aparencia: 50, fama: 10, karma: 70 }, dinheiro: 90000, edu: 0,
+    desc: 'O mar é a sua vida. Acorda antes do sol para lançar as redes. Homem simples, respeitado por toda a Ilha.',
+    perk: '<b>Filho do Mar:</b> pesca rende 3x mais e começa com saúde de ferro.' },
+  { id: 'luena', nome: 'Luena', apelido: 'Kapapelo', titulo: 'A Basquetebolista', genero: 'F', idade: 21, local: 'Benguela',
+    stats: { saude: 95, felicidade: 70, inteligencia: 55, aparencia: 75, fama: 18, karma: 55 }, dinheiro: 50000, edu: 2,
+    desc: 'Dois metros de talento. Joga desde criança nos campos de Benguela. Sonha vestir a camisola da seleção nacional.',
+    perk: '<b>Atleta Nata:</b> pode tornar-se profissional mais facilmente e treinar dá fama.' },
+];
+
+/* ---------------- EMPREGOS (salário anual) ---------------- */
+const JOBS = [
+  { id: 'zungueiro', t: 'Zungueiro(a)', ico: '🧺', sal: 720000, req: {} },
+  { id: 'lavador', t: 'Lavador de Carros', ico: '🚿', sal: 600000, req: {} },
+  { id: 'cobrador', t: 'Cobrador de Candongueiro', ico: '📣', sal: 960000, req: { idade: 16 } },
+  { id: 'seguranca', t: 'Segurança Privado', ico: '🛡️', sal: 1200000, req: { idade: 18, saude: 50 } },
+  { id: 'cabeleireiro', t: 'Cabeleireiro(a)', ico: '💇', sal: 1300000, req: { aparencia: 50 } },
+  { id: 'motorista', t: 'Motorista de Candongueiro', ico: '🚐', sal: 1800000, req: { idade: 18, carta: true } },
+  { id: 'professor', t: 'Professor(a) Primário', ico: '🧑‍🏫', sal: 2400000, req: { edu: 2 } },
+  { id: 'enfermeiro', t: 'Enfermeiro(a)', ico: '🩺', sal: 3000000, req: { edu: 2, inteligencia: 50 } },
+  { id: 'policia', t: 'Agente da Polícia', ico: '👮', sal: 2800000, req: { edu: 2, saude: 60, idade: 18 } },
+  { id: 'funcionario', t: 'Funcionário(a) Público', ico: '🗂️', sal: 3600000, req: { edu: 3 } },
+  { id: 'jornalista', t: 'Jornalista', ico: '🎙️', sal: 4200000, req: { edu: 3, inteligencia: 55 } },
+  { id: 'bancario', t: 'Bancário(a)', ico: '🏦', sal: 6000000, req: { edu: 3, inteligencia: 60 } },
+  { id: 'kudurista', t: 'Artista de Kuduro', ico: '🎤', sal: 0, varFama: true, req: { fama: 25, aparencia: 50 } },
+  { id: 'basquete', t: 'Basquetebolista Profissional', ico: '🏀', sal: 8000000, req: { saude: 80, maxIdade: 32, fama: 20 } },
+  { id: 'medico', t: 'Médico(a)', ico: '👩‍⚕️', sal: 12000000, req: { medicina: true } },
+  { id: 'petroleo', t: 'Engenheiro(a) Petrolífero', ico: '🛢️', sal: 18000000, req: { edu: 3, inteligencia: 80 } },
+  { id: 'deputado', t: 'Deputado(a) da Assembleia', ico: '🏛️', sal: 30000000, req: { edu: 3, fama: 50, inteligencia: 65, idade: 30 } },
+];
+
+/* ---------------- EDUCAÇÃO ---------------- */
+const CURSOS = [
+  { id: 'alfa', t: 'Alfabetização de Adultos', ico: '✏️', anos: 2, custo: 0, reqEdu: 0, nivel: 1, int: 0 },
+  { id: 'primario', t: 'Ensino Primário', ico: '🎒', anos: 4, custo: 20000, reqEdu: 0, nivel: 1, int: 0 },
+  { id: 'medio', t: 'Ensino Médio (Puniv / Técnico)', ico: '📘', anos: 3, custo: 80000, reqEdu: 1, nivel: 2, int: 0 },
+  { id: 'uan', t: 'Licenciatura — Universidade Agostinho Neto', ico: '🎓', anos: 4, custo: 120000, reqEdu: 2, nivel: 3, int: 60, exame: true },
+  { id: 'privada', t: 'Licenciatura — Universidade Privada', ico: '🏫', anos: 4, custo: 1500000, reqEdu: 2, nivel: 3, int: 40 },
+  { id: 'med', t: 'Medicina — Faculdade de Medicina (UAN)', ico: '⚕️', anos: 6, custo: 180000, reqEdu: 2, nivel: 3, int: 75, exame: true, medicina: true },
+  { id: 'mestrado', t: 'Mestrado em Portugal', ico: '✈️', anos: 2, custo: 6000000, reqEdu: 3, nivel: 4, int: 65 },
+];
+
+/* ---------------- BENS ---------------- */
+const BENS = [
+  { id: 'telemovel', t: 'Smartphone', ico: '📱', p: 180000, ef: { felicidade: 4 } },
+  { id: 'gerador', t: 'Gerador (contra o apagão)', ico: '🔌', p: 400000, ef: { felicidade: 3 } },
+  { id: 'kupapata', t: 'Motorizada (Kupapata)', ico: '🏍️', p: 700000, renda: 350000, ef: { felicidade: 4 } },
+  { id: 'carro', t: 'Carro Usado', ico: '🚗', p: 4500000, ef: { felicidade: 8, fama: 2 } },
+  { id: 'hiace', t: 'carrinha (Candongueiro)', ico: '🚐', p: 10000000, renda: 2400000, ef: { felicidade: 4 } },
+  { id: 'terreno', t: 'Terreno em Viana', ico: '🟫', p: 3500000, ef: { felicidade: 3 } },
+  { id: 'kilamba', t: 'Apartamento no Kilamba', ico: '🏢', p: 35000000, casa: true, ef: { felicidade: 15 } },
+  { id: 'jeep', t: 'Jeep de Luxo (V8)', ico: '🚙', p: 60000000, ef: { felicidade: 10, fama: 8, karma: -2 } },
+  { id: 'vivenda', t: 'Vivenda em Talatona', ico: '🏡', p: 250000000, casa: true, ef: { felicidade: 20, fama: 10 } },
+];
+
+/* ---------------- NEGÓCIOS ---------------- */
+const NEG = [
+  { id: 'cantina', t: 'Cantina no Bairro', ico: '🏪', p: 1500000, min: 250000, max: 1300000 },
+  { id: 'roulotte', t: 'Roulotte de Comida', ico: '🍢', p: 3000000, min: 500000, max: 2600000 },
+  { id: 'salaob', t: 'Salão de Beleza', ico: '💅', p: 5000000, min: 700000, max: 4200000 },
+  { id: 'lavagem', t: 'Lavagem Auto', ico: '🧽', p: 8000000, min: 900000, max: 6000000 },
+  { id: 'armazem', t: 'Armazém de Bebidas', ico: '🍺', p: 25000000, min: 2000000, max: 18000000 },
+  { id: 'construtora', t: 'Empresa de Construção', ico: '🏗️', p: 90000000, min: -15000000, max: 70000000 },
+];
+
+/* ---------------- ESTADO ---------------- */
+let G = null;
+let tab = 'vida';
+let modalClosable = true;
+const SAVE = 'pe_save_v1', META = 'pe_meta_v1';
+const meta = JSON.parse(localStorage.getItem(META) || '{"karmaBonus":0,"vidas":[]}');
+const saveMeta = () => localStorage.setItem(META, JSON.stringify(meta));
+const save = () => { if (G && G.vivo) localStorage.setItem(SAVE, JSON.stringify(G)); };
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $('#' + id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+function toast(msg) {
+  const t = $('#toast'); t.innerHTML = msg; t.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 2600);
+}
+function openModal(html, closable = true, wide = false) {
+  modalClosable = closable;
+  $('#modalBox').className = 'modal-box' + (wide ? ' wide' : '');
+  $('#modalBox').innerHTML = html;
+  $('#modal').classList.remove('hidden');
+}
+function closeModal() { $('#modal').classList.add('hidden'); }
+
+/* ---------------- TÍTULO ---------------- */
+function initTitle() {
+  $('#titleBg').innerHTML = CHARS.map(c => `<img src="${imgSrc(c.id)}" alt="">`).join('');
+  if (localStorage.getItem(SAVE)) $('#btnContinue').classList.remove('hidden');
+}
+function continueGame() {
+  G = JSON.parse(localStorage.getItem(SAVE));
+  if (!G) return;
+  tab = 'vida'; show('scr-game'); render();
+}
+function showHelp() {
+  openModal(`<div class="mico">📖</div><h3>Como Jogar</h3>
+  <p style="text-align:left">
+  • Escolhe uma personagem e vive a vida dela ano a ano.<br>
+  • Carrega em <b>Envelhecer 1 Ano</b> para avançar no tempo.<br>
+  • Tens <b>4 ações por ano</b>: atividades, estudar, trabalho, namoro...<br>
+  • Ganha kumbu com emprego, negócios e bens. Cuidado com o custo de vida!<br>
+  • Acontecimentos aleatórios vão testar as tuas escolhas: gasosa, apagões, paludismo, alembamento...<br>
+  • Quando morreres, o teu <b>Karma</b> decide como começa a tua <b>próxima encarnação</b>. Boas ações = vida melhor.<br><br>
+  <span style="color:#888">Criada pela Dark Net AO</span></p>
+  <div class="choices"><button class="btn btn-yel" onclick="closeModal()">Bora!</button></div>`);
+}
+function showPastLives() {
+  const v = meta.vidas.slice().reverse();
+  openModal(`<div class="mico">☠️</div><h3>Vidas Passadas</h3>
+  ${v.length ? `<div class="list pastlives">${v.map(x => `<div class="item"><div class="ico"><img src="${imgSrc(x.img)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;object-position:center 8%;filter:grayscale(1)"></div><div class="tx"><div class="t1">${x.nome}</div><div class="t2">${x.titulo} · morreu aos ${x.idade} · ${x.causa}</div></div><div class="pr">${x.score} pts</div></div>`).join('')}</div>` : '<p>Ainda não viveste nenhuma vida. A tua alma está fresquinha.</p>'}
+  <p style="margin-top:12px;font-size:13px">Karma acumulado para a próxima vida: <b style="color:var(--yel)">${meta.karmaBonus >= 0 ? '+' : ''}${meta.karmaBonus}</b></p>
+  <div class="choices"><button class="btn btn-ghost" onclick="closeModal()">Fechar</button></div>`);
+}
+
+/* ---------------- SELEÇÃO ---------------- */
+function goSelect() {
+  if (localStorage.getItem(SAVE) && G && G.vivo) {
+    if (!confirm('Tens uma vida em curso. Começar uma nova apaga a atual. Continuar?')) return;
+  }
+  const kb = meta.karmaBonus;
+  $('#karmaBanner').innerHTML = kb === 0 ? '' :
+    `<div class="karma-banner ${kb > 0 ? 'pos' : 'neg'}">${kb > 0 ? '✨ O karma da tua vida passada abençoa-te:' : '⚠️ O karma da tua vida passada persegue-te:'} <b>${kb > 0 ? '+' : ''}${kb}</b> em todos os atributos${kb >= 8 ? ' e um envelope de kumbu' : ''}.</div>`;
+  $('#charGrid').innerHTML = CHARS.map(c => `
+    <div class="ccard" onclick="charDetail('${c.id}')">
+      <img src="${imgSrc(c.id)}" alt="${c.nome}" loading="lazy">
+      <div class="age">${c.idade} anos</div>
+      <div class="info"><div class="tt">${c.titulo}</div><div class="nm">${c.nome}</div><div class="lc">📍 ${c.local}</div></div>
+    </div>`).join('');
+  show('scr-select');
+}
+function charDetail(id) {
+  const c = CHARS.find(x => x.id === id);
+  const bars = Object.keys(LABEL).map(k => `<div class="mb">${LABEL[k]} <b style="color:#fff;float:right">${c.stats[k]}</b><div class="bar"><i style="width:${c.stats[k]}%;background:${COLOR[k]}"></i></div></div>`).join('');
+  openModal(`<div class="detail">
+    <div class="dimg"><img src="${imgSrc(c.id)}" alt=""></div>
+    <div class="dbody">
+      <div><div class="tt">${c.titulo}</div><h3>${c.nome}</h3><div style="color:#aaa;font-size:13px">📍 ${c.local} · ${c.idade} anos · ${EDU[c.edu]}</div></div>
+      <p>${c.desc}</p>
+      <div class="perk">${c.perk}</div>
+      <div class="minibars">${bars}</div>
+      <div style="font-size:13px;color:#aaa">💰 Começa com <b style="color:var(--green)">${kz(c.dinheiro)}</b></div>
+      <div class="namein"><input id="nameIn" value="${c.nome} ${c.apelido}" maxlength="30"></div>
+      <button class="btn btn-pri" onclick="startLife('${c.id}')">Encarnar nesta vida</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Escolher outro</button>
+    </div></div>`, true, true);
+}
+
+/* ---------------- INÍCIO ---------------- */
+function startLife(id) {
+  const c = CHARS.find(x => x.id === id);
+  const nome = ($('#nameIn').value || '').trim() || (c.nome + ' ' + c.apelido);
+  const kb = meta.karmaBonus;
+  const stats = {};
+  for (const k in c.stats) stats[k] = clamp(c.stats[k] + (k === 'karma' ? Math.round(kb / 2) : kb));
+  const apelido = nome.split(' ').slice(1).join(' ') || c.apelido;
+  G = {
+    nome, charId: c.id, titulo: c.titulo, genero: c.genero, idade: c.idade, local: c.local,
+    stats, dinheiro: c.dinheiro + (kb >= 8 ? 500000 : 0), edu: c.edu, medicina: false, carta: !!c.carta,
+    curso: null, emprego: null, bens: (c.bens || []).slice(), negocios: [],
+    pai: { nome: pick(NOMES_M) + ' ' + apelido, idade: c.idade + R(22, 35), vivo: true, rel: R(50, 90) },
+    mae: { nome: pick(NOMES_F) + ' ' + pick(APELIDOS), idade: c.idade + R(18, 30), vivo: true, rel: R(60, 95) },
+    parceiro: null, filhos: [], doente: false, preso: 0, acoes: 4, vivo: true, anosEmprego: 0,
+    log: [], ano: 2026
+  };
+  if (c.id === 'kalunga' && chance(.5)) G.pai.vivo = false;
+  if (c.job) { const j = JOBS.find(x => x.id === c.job); G.emprego = { id: j.id, t: j.t, sal: j.sal }; }
+  closeModal();
+  addLog(`Encarnaste como <b>${nome}</b>, ${c.titulo.toLowerCase()}, em ${c.local}.`, 'gold');
+  if (kb > 0) addLog(`✨ O bom karma da vida passada acompanha-te (+${kb}).`, 'good');
+  if (kb < 0) addLog(`⚠️ O karma da vida passada pesa nos teus ombros (${kb}).`, 'bad');
+  if (G.emprego) addLog(`Trabalhas como ${G.emprego.t}.`);
+  tab = 'vida'; save(); show('scr-game'); render();
+}
+
+/* ---------------- LOG & EFEITOS ---------------- */
+function addLog(txt, cls = '') {
+  let y = G.log[G.log.length - 1];
+  if (!y || y.idade !== G.idade) { y = { idade: G.idade, ano: G.ano, e: [] }; G.log.push(y); }
+  y.e.push({ t: txt, c: cls });
+  if (G.log.length > 120) G.log.shift();
+}
+function fx(o) {
+  const parts = [];
+  for (const k in o) {
+    let v = o[k]; if (!v) continue;
+    if (k === 'dinheiro') { v = Math.round(v); G.dinheiro += v; parts.push((v > 0 ? '+' : '') + kzShort(v)); continue; }
+    if (k === 'fama' && v > 0 && G.charId === 'kiesse') v *= 2;
+    if (k === 'inteligencia' && v > 0 && G.charId === 'ndalu') v *= 2;
+    const before = G.stats[k]; G.stats[k] = clamp(before + v);
+    const d = G.stats[k] - before;
+    if (d) parts.push(`${LABEL[k]} ${d > 0 ? '+' : ''}${d}`);
+  }
+  return parts.length ? `<span style="color:#888;font-size:12px">(${parts.join(' · ')})</span>` : '';
+}
+function useAction() {
+  if (G.preso > 0) { toast('🔒 Estás preso! Só podes esperar...'); return false; }
+  if (G.acoes <= 0) { toast('😴 Sem energia este ano. Envelhece para continuar.'); return false; }
+  G.acoes--; return true;
+}
+function pay(v) {
+  if (G.dinheiro < v) { toast('💸 Não tens kumbu suficiente! Precisas de ' + kz(v)); return false; }
+  G.dinheiro -= v; return true;
+}
+function doAct(cost, fn, msgIco) {
+  if (G.preso > 0) { toast('🔒 Estás preso!'); return; }
+  if (G.acoes <= 0) { toast('😴 Sem energia este ano. Envelhece para continuar.'); return; }
+  if (cost && G.dinheiro < cost) { toast('💸 Não tens kumbu suficiente! Precisas de ' + kz(cost)); return; }
+  G.acoes--; if (cost) G.dinheiro -= cost;
+  const r = fn();
+  if (r) { addLog(r); toast((msgIco || '') + ' ' + r.replace(/<[^>]+>/g, '')); }
+  if (G.stats.saude <= 0) return die('excesso de esforço');
+  save(); render();
+}
+
+/* ---------------- RENDER ---------------- */
+const TABS = [['vida', '📜 Vida'], ['trabalho', '💼 Trabalho'], ['escola', '🎓 Escola'], ['atividades', '⚡ Atividades'], ['relacoes', '❤️ Relações'], ['bens', '🏠 Bens & Negócios']];
+function render() {
+  $('#gAvatar').src = imgSrc(G.charId);
+  $('#gName').textContent = G.nome;
+  $('#gSub').textContent = G.preso > 0 ? `🔒 Preso — Cadeia de Viana (${G.preso} ano${G.preso > 1 ? 's' : ''})` : (G.emprego ? G.emprego.t : (G.curso ? 'Estudante' : 'Desempregado(a)')) + ' · ' + EDU[G.edu];
+  const m = $('#gMoney'); m.textContent = kzShort(G.dinheiro); m.className = 'v' + (G.dinheiro < 0 ? ' neg' : '');
+  $('#gAge').textContent = `${G.idade} anos · ${G.ano}`;
+  $('#gStats').innerHTML = Object.keys(LABEL).map(k => `<div class="st"><div class="row"><span>${LABEL[k]}</span><span>${G.stats[k]}</span></div><div class="bar"><i style="width:${G.stats[k]}%;background:${COLOR[k]}"></i></div></div>`).join('');
+  $('#gTabs').innerHTML = TABS.map(([id, t]) => `<button class="tab ${tab === id ? 'on' : ''}" onclick="tab='${id}';render()">${t}</button>`).join('');
+  const C = $('#gContent');
+  C.innerHTML = ({ vida: rVida, trabalho: rTrabalho, escola: rEscola, atividades: rAtividades, relacoes: rRelacoes, bens: rBens })[tab]();
+}
+const energy = () => `<div class="energy">Energia este ano: ${[0, 1, 2, 3].map(i => `<i class="${i < G.acoes ? '' : 'off'}"></i>`).join('')}</div>`;
+
+function rVida() {
+  return `<div class="log">${G.log.slice().reverse().map(y => `<div class="lyear"><h4>${y.idade} anos · ${y.ano}</h4>${y.e.map(e => `<p class="${e.c}">${e.t}</p>`).join('')}</div>`).join('')}</div>`;
+}
+
+function reqOk(r) {
+  const fails = [];
+  if (r.idade && G.idade < r.idade) fails.push(`idade ${r.idade}+`);
+  if (r.maxIdade && G.idade > r.maxIdade) fails.push(`até ${r.maxIdade} anos`);
+  if (r.edu && G.edu < r.edu) fails.push(EDU[r.edu]);
+  if (r.carta && !G.carta) fails.push('carta de condução');
+  if (r.medicina && !G.medicina) fails.push('curso de Medicina');
+  ['saude', 'inteligencia', 'aparencia', 'fama'].forEach(k => { if (r[k] && G.stats[k] < r[k]) fails.push(`${LABEL[k]} ${r[k]}+`); });
+  return fails;
+}
+function salario(j) { return j.varFama ? 300000 + G.stats.fama * G.stats.fama * 2500 : j.sal; }
+function rTrabalho() {
+  let h = energy();
+  if (G.emprego) {
+    const j = JOBS.find(x => x.id === G.emprego.id);
+    h += `<div class="sec-title">Emprego atual</div>
+    <div class="info-box"><b>${j.ico} ${G.emprego.t}</b><br>Salário: <b style="color:var(--green)">${kz(G.emprego.sal)}</b>/ano (${kzShort(G.emprego.sal / 12)}/mês)<br>Anos neste emprego: ${G.anosEmprego}</div>
+    <div class="list" style="margin-top:8px">
+      <button class="item" onclick="workHard()"><div class="ico">💪</div><div class="tx"><div class="t1">Trabalhar mais</div><div class="t2">Impressiona o chefe, mas cansa</div></div></button>
+      <button class="item" onclick="askRaise()"><div class="ico">📈</div><div class="tx"><div class="t1">Pedir aumento</div><div class="t2">Arriscado se o chefe estiver de mau humor</div></div></button>
+      <button class="item" onclick="quitJob()"><div class="ico">🚪</div><div class="tx"><div class="t1">Despedir-me</div><div class="t2">Sair deste emprego</div></div></button>
+    </div>`;
+  }
+  h += `<div class="sec-title">Vagas disponíveis</div><div class="list">`;
+  JOBS.forEach(j => {
+    if (G.emprego && G.emprego.id === j.id) return;
+    const f = reqOk(j.req);
+    h += `<button class="item" onclick="applyJob('${j.id}')" ${f.length ? 'disabled' : ''}><div class="ico">${j.ico}</div><div class="tx"><div class="t1">${j.t}</div><div class="t2">${f.length ? '❌ Requer: ' + f.join(', ') : '✅ Podes candidatar-te'}</div></div><div class="pr">${j.varFama ? '~' + kzShort(salario(j)) : kzShort(j.sal)}/ano</div></button>`;
+  });
+  return h + '</div>';
+}
+function applyJob(id) {
+  const j = JOBS.find(x => x.id === id);
+  if (!useAction()) return;
+  let p = .55 + (G.stats.inteligencia - 50) / 150 + (G.stats.aparencia - 50) / 300 + (G.stats.fama) / 400;
+  if (id === 'basquete' && G.charId === 'luena') p += .3;
+  if (['zungueiro', 'lavador', 'cobrador'].includes(id)) p = .95;
+  let txt;
+  if (chance(Math.min(.95, p))) {
+    G.emprego = { id: j.id, t: j.t, sal: salario(j) }; G.anosEmprego = 0;
+    txt = `🎉 Foste contratado(a) como <b>${j.t}</b>! Salário: ${kzShort(G.emprego.sal)}/ano. ` + fx({ felicidade: 8 });
+    addLog(txt, 'good');
+  } else {
+    txt = pick(['A entrevista correu mal. O lugar foi para o sobrinho do diretor.', 'Disseram que iam ligar... nunca ligaram.', 'Pediram "gasosa" para avançar o processo. Não deu.', 'Havia 300 candidatos para uma vaga.']) + ' ' + fx({ felicidade: -4 });
+    addLog(`Candidatura a ${j.t}: ` + txt, 'bad');
+  }
+  toast(txt.replace(/<[^>]+>/g, '')); save(); render();
+}
+function workHard() { doAct(0, () => { G.workBonus = (G.workBonus || 0) + 1; return 'Trabalhaste no duro este ano. ' + fx({ saude: -R(2, 5), felicidade: -R(1, 4), karma: 1 }); }, '💪'); }
+function askRaise() {
+  doAct(0, () => {
+    const p = .25 + (G.workBonus || 0) * .15 + G.anosEmprego * .03 + (G.stats.inteligencia - 50) / 200;
+    if (chance(p)) { const inc = Math.round(G.emprego.sal * R(10, 30) / 100); G.emprego.sal += inc; G.workBonus = 0; return `📈 Aumento aprovado! +${kzShort(inc)}/ano. ` + fx({ felicidade: 10 }); }
+    if (chance(.12)) { const t = G.emprego.t; G.emprego = null; return `😡 O chefe ficou furioso e despediu-te de ${t}! ` + fx({ felicidade: -15 }); }
+    return 'O chefe disse "a empresa está em crise". Nada de aumento. ' + fx({ felicidade: -5 });
+  }, '');
+}
+function quitJob() {
+  if (!confirm('Tens a certeza que te queres despedir?')) return;
+  addLog(`Despediste-te do emprego de ${G.emprego.t}.`); G.emprego = null; G.anosEmprego = 0; save(); render();
+}
+
+function rEscola() {
+  let h = energy() + `<div class="info-box">🎓 Escolaridade: <b>${EDU[G.edu]}</b>${G.medicina ? ' (Medicina)' : ''}${G.curso ? `<br>📖 A frequentar: <b>${G.curso.t}</b> — faltam ${G.curso.faltam} ano(s). Propina: ${kzShort(G.curso.custo)}/ano` : ''}</div>`;
+  if (G.curso) {
+    h += `<div class="list" style="margin-top:8px">
+      <button class="item" onclick="studyHard()"><div class="ico">📚</div><div class="tx"><div class="t1">Estudar mais</div><div class="t2">Mais inteligência, menos farra</div></div></button>
+      <button class="item" onclick="dropCourse()"><div class="ico">🚫</div><div class="tx"><div class="t1">Desistir do curso</div><div class="t2">Perdes o progresso</div></div></button></div>`;
+  }
+  h += `<div class="sec-title">Cursos</div><div class="list">`;
+  CURSOS.forEach(c => {
+    const f = [];
+    if (G.edu !== c.reqEdu && !(c.reqEdu <= G.edu && c.nivel > G.edu)) f.push(c.nivel <= G.edu ? 'já concluído' : 'requer ' + EDU[c.reqEdu]);
+    if (c.medicina && G.medicina) f.push('já és médico(a)');
+    if (G.curso) f.push('já estás a estudar');
+    const okLevel = (G.edu >= c.reqEdu) && (c.nivel > G.edu || (c.medicina && !G.medicina && G.edu >= 2));
+    const dis = !okLevel || G.curso;
+    h += `<button class="item" onclick="enroll('${c.id}')" ${dis ? 'disabled' : ''}><div class="ico">${c.ico}</div><div class="tx"><div class="t1">${c.t}</div><div class="t2">${c.anos} anos${c.exame ? ' · exame de acesso (Int. ' + c.int + '+)' : (c.int ? ' · Int. ' + c.int + '+' : '')}${dis ? ' · ' + (G.curso ? 'já estás a estudar' : (c.nivel <= G.edu && !c.medicina ? 'concluído' : 'requer ' + EDU[c.reqEdu])) : ''}</div></div><div class="pr">${c.custo ? kzShort(c.custo) + '/ano' : 'Grátis'}</div></button>`;
+  });
+  return h + '</div>';
+}
+function enroll(id) {
+  const c = CURSOS.find(x => x.id === id);
+  if (G.dinheiro < c.custo) return toast('💸 Não tens dinheiro para a primeira propina: ' + kz(c.custo));
+  if (!useAction()) return;
+  if (c.int && G.stats.inteligencia < c.int - (c.exame ? 0 : 10)) {
+    const t = c.exame ? `Reprovaste no exame de acesso para ${c.t}. Estuda mais e tenta outra vez. ` : `Não foste admitido(a) em ${c.t}. `;
+    addLog(t + fx({ felicidade: -6 }), 'bad'); toast('❌ ' + t); save(); return render();
+  }
+  if (c.exame && chance(.15)) { const t = 'O teu nome "desapareceu" da lista de admitidos. Coisas da vida... '; addLog(t + fx({ felicidade: -8 }), 'bad'); toast(t); save(); return render(); }
+  G.dinheiro -= c.custo;
+  G.curso = { id: c.id, t: c.t, faltam: c.anos, custo: c.custo, nivel: c.nivel, medicina: !!c.medicina };
+  addLog(`📚 Inscreveste-te em <b>${c.t}</b>! ` + fx({ felicidade: 6 }), 'good');
+  toast('✅ Inscrição feita: ' + c.t); save(); render();
+}
+function studyHard() { doAct(0, () => { G.curso.esforco = (G.curso.esforco || 0) + 1; return 'Noitadas a estudar com a vela durante o apagão. ' + fx({ inteligencia: R(2, 5), felicidade: -R(1, 3) }); }, '📚'); }
+function dropCourse() { if (!confirm('Desistir do curso?')) return; addLog(`Desististe de ${G.curso.t}.`, 'bad'); G.curso = null; save(); render(); }
+
+/* ---------------- ATIVIDADES ---------------- */
+const ATIV = [
+  { id: 'ginasio', t: 'Ginásio', ico: '🏋️', c: 15000, d: 'Treinar o corpo', run: () => 'Treinaste no ginásio. ' + fx({ saude: R(3, 8), aparencia: R(1, 4), felicidade: R(0, 3) }) },
+  { id: 'praia', t: 'Praia na Ilha / Mussulo', ico: '🏖️', c: 8000, d: 'Relaxar, comer peixe grelhado', run: () => pick(['Passaste o domingo na Ilha com a malta.', 'Foste de lancha ao Mussulo. Que paz!', 'Mergulho no mar e funje com peixe.']) + ' ' + fx({ felicidade: R(5, 12), saude: R(0, 3) }) },
+  { id: 'igreja', t: 'Ir à Igreja', ico: '⛪', c: 2000, d: 'Rezar e encontrar a comunidade', run: () => 'Foste ao culto e deixaste a tua oferta. ' + fx({ karma: R(3, 7), felicidade: R(1, 5) }) },
+  { id: 'farra', t: 'Farra de Kizomba & Semba', ico: '💃', c: 25000, d: 'Dançar até de manhã', run: () => { let t = pick(['Dançaste kizomba até às 6h!', 'A farra no Chá de Caxinde estava rija!', 'Semba ao vivo, cerveja gelada, ambiente top.']) + ' ' + fx({ felicidade: R(6, 14), aparencia: R(0, 2) }); if (chance(.18)) t += ' Mas exageraste na Cuca... ' + fx({ saude: -R(4, 10) }); return t; } },
+  { id: 'biblio', t: 'Ler na Biblioteca', ico: '📚', c: 0, d: 'Alimentar a mente', run: () => 'Passaste a tarde a ler na biblioteca. ' + fx({ inteligencia: R(2, 5) }) },
+  { id: 'medico', t: 'Consulta na Clínica', ico: '🏥', c: 70000, d: 'Check-up e tratamento', run: () => { const was = G.doente; G.doente = false; return (was ? 'O médico tratou a tua doença! ' : 'Check-up feito, estás bem. ') + fx({ saude: R(was ? 15 : 5, was ? 25 : 12) }); } },
+  { id: 'salao', t: 'Salão / Barbeiro', ico: '💈', c: 15000, d: 'Ficar bem pintado(a)', run: () => (G.genero === 'F' ? 'Fizeste tranças novas no salão.' : 'O barbeiro deixou o corte no ponto.') + ' ' + fx({ aparencia: R(3, 8), felicidade: R(1, 4) }) },
+  { id: 'biscate', t: 'Fazer um Biscate', ico: '🔧', c: 0, d: 'Ganhar uns trocos', run: () => { let v = R(15000, 60000) * (G.charId === 'kiluanje' ? 1.5 : 1); return pick(['Ajudaste a carregar um camião no porto.', 'Pintaste o muro de um vizinho.', 'Vendeste saldo e cartões na rua.', 'Fizeste uma mudança no Kilamba.']) + ' ' + fx({ dinheiro: v, saude: -R(0, 3) }); } },
+  { id: 'pesca', t: 'Ir à Pesca', ico: '🎣', c: 0, d: 'Lançar as redes no mar', run: () => { const v = R(10000, 50000) * (G.charId === 'kalunga' ? 3 : 1); return pick(['Apanhaste carapau e corvina.', 'Boa pescaria de garoupa!', 'O mar estava bravo, mas valeu.']) + ' ' + fx({ dinheiro: v, saude: R(0, 3), felicidade: R(1, 4) }); } },
+  { id: 'basquete', t: 'Jogar Basquetebol', ico: '🏀', c: 0, d: 'Treinar no campo do bairro', run: () => 'Jogaste basquete no campo. ' + fx({ saude: R(3, 7), felicidade: R(2, 5), fama: G.charId === 'luena' ? R(2, 5) : (chance(.2) ? 1 : 0) }) },
+  { id: 'kuduro', t: 'Gravar um Kuduro', ico: '🎤', c: 60000, d: 'Estúdio no bairro', run: () => { const s = G.stats.aparencia * .4 + G.stats.fama * .4 + R(-15, 35) + (G.charId === 'kiesse' ? 20 : 0); return s > 55 ? '🔥 O teu som está a bater em todos os candongueiros! ' + fx({ fama: R(4, 10), felicidade: 8 }) : 'Gravaste um som, mas ninguém ligou... ' + fx({ fama: R(0, 2), felicidade: -3 }); } },
+  { id: 'familia', t: 'Ajudar a Família', ico: '🤲', c: 40000, d: 'Dar uma força aos teus', run: () => { if (G.mae.vivo) G.mae.rel = clamp(G.mae.rel + 8); if (G.pai.vivo) G.pai.rel = clamp(G.pai.rel + 8); return 'Ajudaste a família com as despesas da casa. ' + fx({ karma: R(4, 9), felicidade: R(2, 6) }); } },
+  { id: 'voluntario', t: 'Voluntariado no Musseque', ico: '🧡', c: 0, d: 'Ajudar crianças do bairro', run: () => 'Deste aulas de reforço às crianças do bairro. ' + fx({ karma: R(5, 10), felicidade: R(2, 5), fama: chance(.3) ? 1 : 0 }) },
+  { id: 'terra', t: 'Visitar a Terra Natal', ico: '🚌', c: 90000, d: 'Viagem à província', run: () => 'Foste de machimbombo visitar os mais-velhos na terra. ' + fx({ felicidade: R(8, 15), karma: R(1, 4) }) },
+  { id: 'apostas', t: 'Apostas Desportivas', ico: '🎰', c: 5000, d: 'Liga Mwangolé, ligas europeias...', run: () => { const r = Math.random(); if (r < .015) return '💰 JACKPOT! Acertaste a múltipla toda! ' + fx({ dinheiro: 5000000, felicidade: 25 }); if (r < .25) return 'Acertaste a aposta! ' + fx({ dinheiro: R(10000, 50000), felicidade: 5 }); return 'O Petro empatou no último minuto... perdeste. ' + fx({ felicidade: -3 }); } },
+  { id: 'carta', t: 'Tirar Carta de Condução', ico: '🪪', c: 180000, d: 'Escola de condução', cond: () => !G.carta && G.idade >= 18, run: () => { if (chance(.7 + G.stats.inteligencia / 400)) { G.carta = true; return '🪪 Passaste no exame! Já tens carta de condução. ' + fx({ felicidade: 8 }); } return 'Chumbaste no exame de condução. O examinador queria "algo mais". ' + fx({ felicidade: -6 }); } },
+  { id: 'esquema', t: 'Fazer um Esquema', ico: '🕶️', c: 0, d: 'Kumbu fácil... arriscado', run: () => crime() },
+];
+function rAtividades() {
+  if (G.preso > 0) return `<div class="info-box">🔒 Estás na <b>Cadeia de Viana</b>. Faltam ${G.preso} ano(s). Envelhece para cumprir a pena.</div>
+    <div class="list" style="margin-top:8px"><button class="item" onclick="prisonAct()"><div class="ico">🙏</div><div class="tx"><div class="t1">Bom comportamento</div><div class="t2">Pode reduzir a pena</div></div></button></div>`;
+  return energy() + `<div class="list">` + ATIV.filter(a => !a.cond || a.cond()).map(a => `<button class="item" onclick="runAtiv('${a.id}')"><div class="ico">${a.ico}</div><div class="tx"><div class="t1">${a.t}</div><div class="t2">${a.d}</div></div><div class="pr">${a.c ? kzShort(a.c) : 'Grátis'}</div></button>`).join('') + '</div>';
+}
+function runAtiv(id) { const a = ATIV.find(x => x.id === id); doAct(a.c, a.run, a.ico); }
+function crime() {
+  const p = G.charId === 'kiluanje' ? .22 : .35;
+  if (chance(p)) {
+    G.preso = R(1, 4); if (G.emprego) { G.emprego = null; }
+    if (G.parceiro && chance(.4)) { addLog(`${G.parceiro.nome} deixou-te por causa da prisão.`, 'bad'); G.parceiro = null; }
+    return `🚔 Foste apanhado(a)! Condenado(a) a ${G.preso} ano(s) na Cadeia de Viana. ` + fx({ karma: -15, felicidade: -25, fama: 3 });
+  }
+  const v = R(150000, 1200000);
+  return pick(['Revendeste combustível no mercado negro.', 'Fizeste um "negócio" no porto.', 'Câmbio de rua com a nota "boa".']) + ' Ninguém viu... ' + fx({ dinheiro: v, karma: -8 });
+}
+function prisonAct() {
+  if (G.acoes <= 0) return toast('Sem energia este ano.');
+  G.acoes--;
+  let t = 'Mantiveste bom comportamento na cadeia. ' + fx({ karma: 3 });
+  if (chance(.2) && G.preso > 1) { G.preso--; t += ' A pena foi reduzida em 1 ano!'; }
+  addLog(t); toast(t.replace(/<[^>]+>/g, '')); save(); render();
+}
+
+/* ---------------- RELAÇÕES ---------------- */
+function relItem(ico, nome, sub, rel, btns) {
+  return `<div class="item" style="flex-wrap:wrap"><div class="ico">${ico}</div><div class="tx"><div class="t1">${nome}</div><div class="t2">${sub}</div>${rel != null ? `<div class="bar" style="max-width:180px"><i style="width:${rel}%;background:#ff5b7f"></i></div>` : ''}</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;width:100%;margin-top:8px">${btns}</div></div>`;
+}
+const sbtn = (lbl, fn) => `<button class="tab" onclick="${fn}">${lbl}</button>`;
+function rRelacoes() {
+  let h = energy() + `<div class="sec-title">Família</div><div class="list">`;
+  ['pai', 'mae'].forEach(k => {
+    const p = G[k];
+    if (p.vivo) h += relItem(k === 'pai' ? '👨🏿' : '👩🏿', p.nome, `${k === 'pai' ? 'Pai' : 'Mãe'} · ${p.idade} anos`, p.rel, sbtn('Visitar', `visitParent('${k}')`) + sbtn('Pedir kumbu', `askMoney('${k}')`));
+    else h += `<div class="item"><div class="ico">🕯️</div><div class="tx"><div class="t1">${p.nome}</div><div class="t2">${k === 'pai' ? 'Pai' : 'Mãe'} · falecido(a)</div></div></div>`;
+  });
+  h += `</div><div class="sec-title">Amor</div><div class="list">`;
+  if (G.parceiro) {
+    const p = G.parceiro;
+    h += relItem(p.casado ? '💍' : '💕', p.nome, `${p.casado ? (G.genero === 'M' ? 'Esposa' : 'Marido') : (G.genero === 'M' ? 'Namorada' : 'Namorado')} · ${p.idade} anos · ${p.anos} ano(s) juntos`, p.rel,
+      sbtn('Passar tempo', 'dateTime()') + (!p.casado ? sbtn('💍 Alembamento', 'marry()') : '') + sbtn('👶 Ter um filho', 'haveKid()') + sbtn('💔 Terminar', 'breakUp()'));
+  } else {
+    h += `<button class="item" onclick="findLove()" ${G.idade < 16 ? 'disabled' : ''}><div class="ico">💘</div><div class="tx"><div class="t1">Procurar namoro</div><div class="t2">Depende da tua aparência e fama</div></div></button>`;
+  }
+  h += `</div>`;
+  if (G.filhos.length) {
+    h += `<div class="sec-title">Filhos (${G.filhos.length})</div><div class="list">` + G.filhos.map((f, i) => relItem(f.idade < 13 ? (f.g === 'M' ? '👦🏿' : '👧🏿') : (f.g === 'M' ? '🧑🏿' : '👩🏿'), f.nome, `${f.g === 'M' ? 'Filho' : 'Filha'} · ${f.idade} anos`, f.rel, sbtn('Brincar / Conversar', `kidTime(${i})`))).join('') + '</div>';
+  }
+  return h;
+}
+function visitParent(k) { doAct(0, () => { G[k].rel = clamp(G[k].rel + R(5, 12)); return `Visitaste ${k === 'pai' ? 'o teu pai' : 'a tua mãe'}. ${pick(['Comeram muamba de galinha juntos.', 'Conversaram até tarde no quintal.', 'Recebeste muitos conselhos dos mais-velhos.'])} ` + fx({ felicidade: R(3, 7), karma: 2 }); }, '🏠'); }
+function askMoney(k) {
+  doAct(0, () => {
+    const p = G[k];
+    if (chance(p.rel / 130)) {
+      const v = G.charId === 'domingos' ? R(1000000, 5000000) : R(10000, 80000);
+      p.rel = clamp(p.rel - 5); return `${k === 'pai' ? 'O teu pai' : 'A tua mãe'} deu-te kumbu. ` + fx({ dinheiro: v });
+    }
+    p.rel = clamp(p.rel - 10); return `"Já tens idade para trabalhar!" — não te deram nada. ` + fx({ felicidade: -3 });
+  }, '💵');
+}
+function findLove() {
+  doAct(0, () => {
+    const p = (G.stats.aparencia + G.stats.fama / 2 + G.stats.felicidade / 3) / 140;
+    if (chance(p)) {
+      const g = G.genero === 'M' ? 'F' : 'M';
+      G.parceiro = { nome: pick(g === 'M' ? NOMES_M : NOMES_F) + ' ' + pick(APELIDOS), g, idade: Math.max(16, G.idade + R(-5, 5)), rel: R(55, 85), casado: false, anos: 0 };
+      return `💕 Conheceste ${G.parceiro.nome} ${pick(['numa farra de kizomba', 'na igreja', 'no candongueiro', 'na faculdade', 'pelo Instagram', 'num casamento'])}. Estão a namorar! ` + fx({ felicidade: R(8, 15) });
+    }
+    return pick(['Levaste uma tampa daquelas...', 'Ficaste no "visto" do WhatsApp.', 'Disse que só te via como amigo(a).']) + ' ' + fx({ felicidade: -R(2, 6) });
+  }, '💘');
+}
+function dateTime() { doAct(15000, () => { G.parceiro.rel = clamp(G.parceiro.rel + R(6, 14)); return `Saíste com ${G.parceiro.nome}. ${pick(['Jantar na Marginal ao pôr do sol.', 'Cinema no Kianda Mall.', 'Passeio na Ilha.'])} ` + fx({ felicidade: R(4, 9) }); }, '💑'); }
+function marry() {
+  const custo = 600000;
+  if (G.parceiro.anos < 1) return toast('Ainda é cedo! Namorem pelo menos 1 ano.');
+  doAct(custo, () => {
+    if (G.parceiro.rel < 50) { G.dinheiro += custo; return `A família de ${G.parceiro.nome} recusou o pedido. A relação precisa de melhorar. ` + fx({ felicidade: -8 }); }
+    G.parceiro.casado = true;
+    return `💍 Alembamento feito! A família recebeu as grades de cerveja, os panos e o fato. Agora estás casado(a) com ${G.parceiro.nome}! ` + fx({ felicidade: 20, karma: 4 });
+  }, '💍');
+}
+function haveKid() {
+  const mulherIdade = G.genero === 'F' ? G.idade : G.parceiro.idade;
+  if (mulherIdade > 47) return toast('Já não é possível ter filhos naturalmente.');
+  if (G.idade < 18) return toast('Ainda és muito novo(a)!');
+  doAct(0, () => {
+    if (!chance(.65)) return 'Tentaram, mas ainda não foi desta. ' + fx({ felicidade: -2 });
+    const g = chance(.5) ? 'M' : 'F';
+    const ap = G.nome.split(' ').slice(-1)[0];
+    const f = { nome: pick(g === 'M' ? NOMES_M : NOMES_F) + ' ' + ap, g, idade: 0, rel: 100 };
+    G.filhos.push(f);
+    return `👶 Nasceu ${g === 'M' ? 'o teu filho' : 'a tua filha'} <b>${f.nome}</b>! ` + fx({ felicidade: 20, karma: 3 });
+  }, '👶');
+}
+function breakUp() { if (!confirm('Terminar com ' + G.parceiro.nome + '?')) return; addLog(`💔 Terminaste com ${G.parceiro.nome}. ` + fx({ felicidade: -12 }), 'bad'); G.parceiro = null; save(); render(); }
+function kidTime(i) { doAct(0, () => { const f = G.filhos[i]; f.rel = clamp(f.rel + 8); return `Passaste tempo com ${f.nome.split(' ')[0]}. ${f.idade < 12 ? 'Jogaram à bola no quintal.' : 'Tiveram uma boa conversa sobre a vida.'} ` + fx({ felicidade: R(4, 8), karma: 2 }); }, '👨‍👧'); }
+
+/* ---------------- BENS & NEGÓCIOS ---------------- */
+function rBens() {
+  let h = `<div class="sec-title">Os teus bens</div>`;
+  h += G.bens.length ? `<div class="list">${G.bens.map((b, i) => { const B = BENS.find(x => x.id === b); return `<div class="item"><div class="ico">${B.ico}</div><div class="tx"><div class="t1">${B.t}</div><div class="t2">${B.renda ? 'Rende ~' + kzShort(B.renda) + '/ano' : (B.casa ? 'Casa própria — sem renda' : 'Bem pessoal')}</div></div><button class="tab" onclick="sellBem(${i})">Vender ${kzShort(B.p * .65)}</button></div>`; }).join('')}</div>` : `<div class="info-box">Ainda não tens nada em teu nome.</div>`;
+  if (G.negocios.length) h += `<div class="sec-title">Os teus negócios</div><div class="list">${G.negocios.map((n, i) => { const N = NEG.find(x => x.id === n.id); return `<div class="item"><div class="ico">${N.ico}</div><div class="tx"><div class="t1">${N.t}</div><div class="t2">Último ano: <span style="color:${n.ult >= 0 ? 'var(--green)' : '#ff6b6b'}">${n.ult == null ? '—' : kzShort(n.ult)}</span></div></div><button class="tab" onclick="sellNeg(${i})">Vender ${kzShort(N.p * .6)}</button></div>`; }).join('')}</div>`;
+  h += `<div class="sec-title">Comprar</div><div class="list">` + BENS.map(B => `<button class="item" onclick="buyBem('${B.id}')" ${G.dinheiro < B.p ? 'disabled' : ''}><div class="ico">${B.ico}</div><div class="tx"><div class="t1">${B.t}${G.bens.includes(B.id) ? '<span class="tag g">tens</span>' : ''}</div><div class="t2">${B.renda ? 'Rende ~' + kzShort(B.renda) + '/ano' : B.casa ? 'Deixas de pagar renda (' + kzShort(720000) + '/ano)' : 'Melhora a tua vida'}</div></div><div class="pr">${kzShort(B.p)}</div></button>`).join('') + '</div>';
+  h += `<div class="sec-title">Abrir negócio</div><div class="list">` + NEG.map(N => `<button class="item" onclick="buyNeg('${N.id}')" ${G.dinheiro < N.p ? 'disabled' : ''}><div class="ico">${N.ico}</div><div class="tx"><div class="t1">${N.t}</div><div class="t2">Lucro: ${kzShort(N.min)} a ${kzShort(N.max)}/ano${G.charId === 'tchissola' ? ' <span class="tag g">+40%</span>' : ''}</div></div><div class="pr">${kzShort(N.p)}</div></button>`).join('') + '</div>';
+  return h;
+}
+function buyBem(id) {
+  const B = BENS.find(x => x.id === id);
+  if (['carro', 'hiace', 'jeep', 'kupapata'].includes(id) && !G.carta) return toast('🪪 Precisas de carta de condução primeiro (Atividades).');
+  if (!pay(B.p)) return;
+  G.bens.push(id); const t = `🛍️ Compraste: <b>${B.t}</b>! ` + fx(B.ef || {});
+  addLog(t, 'good'); toast(t.replace(/<[^>]+>/g, '')); save(); render();
+}
+function sellBem(i) { const B = BENS.find(x => x.id === G.bens[i]); if (!confirm('Vender ' + B.t + ' por ' + kz(B.p * .65) + '?')) return; G.bens.splice(i, 1); G.dinheiro += Math.round(B.p * .65); addLog(`Vendeste ${B.t}.`); save(); render(); }
+function buyNeg(id) {
+  const N = NEG.find(x => x.id === id);
+  if (!pay(N.p)) return;
+  G.negocios.push({ id, ult: null }); const t = `🏪 Abriste o teu negócio: <b>${N.t}</b>! ` + fx({ felicidade: 8, fama: 2 });
+  addLog(t, 'good'); toast(t.replace(/<[^>]+>/g, '')); save(); render();
+}
+function sellNeg(i) { const N = NEG.find(x => x.id === G.negocios[i].id); if (!confirm('Vender ' + N.t + '?')) return; G.negocios.splice(i, 1); G.dinheiro += Math.round(N.p * .6); addLog(`Vendeste o negócio ${N.t}.`); save(); render(); }
+
+/* ---------------- EVENTOS ALEATÓRIOS ---------------- */
+const EVENTS = [
+  { ico: '👮', t: 'Gasosa na Estrada', cond: () => G.idade >= 18, txt: () => 'Um agente da polícia mandou parar o candongueiro onde vais e diz que os teus documentos "têm problema". Quer uma gasosa.',
+    ch: [['Pagar 5.000 Kz', 'Rápido e sem problemas', () => fx({ dinheiro: -5000, karma: -2 }) + ' Ele sorriu e deixou passar.'],
+         ['Recusar e argumentar', 'Os teus documentos estão em dia!', () => chance(.5) ? 'Ele desistiu e deixou-te ir. ' + fx({ karma: 4, felicidade: 4 }) : 'Levou-te à esquadra e perdeste o dia todo. ' + fx({ felicidade: -8, dinheiro: -15000 })]] },
+  { ico: '🔌', t: 'Apagão!', cond: () => !G.bens.includes('gerador'), txt: () => 'A ENDE cortou a luz há 3 dias. A comida no congelador está a estragar e o calor é insuportável.',
+    ch: [['Comprar um gerador (400 mil)', 'Nunca mais ficas às escuras', () => G.dinheiro >= 400000 ? (G.bens.push('gerador'), fx({ dinheiro: -400000, felicidade: 5 }) + ' Agora tens gerador!') : 'Não tinhas kumbu suficiente... ' + fx({ felicidade: -8 })],
+         ['Aguentar com velas', 'Paciência angolana', () => fx({ felicidade: -6, dinheiro: -10000 })]] },
+  { ico: '💧', t: 'Falta de Água', txt: () => 'Não sai água da torneira há uma semana no teu bairro.',
+    ch: [['Comprar água da cisterna', '20.000 Kz', () => fx({ dinheiro: -20000 })],
+         ['Ir buscar ao chafariz com bidões', 'De graça, mas cansa', () => fx({ saude: -R(2, 6), felicidade: -3 })]] },
+  { ico: '🦟', t: 'Paludismo', txt: () => 'Acordaste com febre alta, dores no corpo e calafrios. Parece paludismo (malária)...',
+    ch: [['Ir ao hospital', '50.000 Kz em consultas e medicamentos', () => fx({ dinheiro: -50000, saude: -5 }) + ' Fizeste o tratamento e recuperaste.'],
+         ['Tratamento caseiro', 'Chá de folhas e repouso', () => { if (chance(.45)) { G.doente = true; return 'Pioraste muito! ' + fx({ saude: -25 }) + ' Precisas de ir à clínica.'; } return 'Por sorte recuperaste. ' + fx({ saude: -10 }); }]] },
+  { ico: '👴🏿', t: 'Kota Pede Kumbu', txt: () => 'Um tio mais-velho da família aparece em tua casa: "Sobrinho(a), a vida está difícil... ajuda o teu tio com 50 mil."',
+    ch: [['Dar 50.000 Kz', 'Família é família', () => fx({ dinheiro: -50000, karma: 6, felicidade: 2 })],
+         ['Dar só 10.000 Kz', 'Meio termo', () => fx({ dinheiro: -10000, karma: 2 })],
+         ['Recusar', '"Também estou mal, tio"', () => fx({ karma: -4 }) + ' Agora toda a família fala de ti no óbito.']] },
+  { ico: '⚱️', t: 'Óbito na Família', txt: () => 'Faleceu um primo afastado. A família espera que vás ao óbito e contribuas.',
+    ch: [['Ir e contribuir (30 mil)', 'Respeito pelos mortos', () => fx({ dinheiro: -30000, karma: 5, felicidade: -3 })],
+         ['Não ir', 'Tens outras coisas para fazer', () => fx({ karma: -6 })]] },
+  { ico: '💒', t: 'Casamento do Primo', txt: () => 'Foste convidado(a) para um casamento enorme no salão de festas. Vai haver kizomba a noite toda!',
+    ch: [['Ir e dançar até de manhã', 'Precisas de roupa nova (40 mil)', () => { let t = fx({ dinheiro: -40000, felicidade: R(8, 14) }); if (!G.parceiro && chance(.3)) { const g = G.genero === 'M' ? 'F' : 'M'; G.parceiro = { nome: pick(g === 'M' ? NOMES_M : NOMES_F) + ' ' + pick(APELIDOS), g, idade: G.idade + R(-4, 4), rel: 65, casado: false, anos: 0 }; t += ` E conheceste ${G.parceiro.nome}! 💕`; } return t; }],
+         ['Ficar em casa', 'Poupar kumbu', () => fx({ felicidade: -3 })]] },
+  { ico: '🔪', t: 'Assalto!', txt: () => 'Dois meliantes de motorizada encostam-te e exigem o telemóvel e o dinheiro.',
+    ch: [['Entregar tudo', 'A vida vale mais', () => fx({ dinheiro: -Math.min(Math.max(G.dinheiro, 0), R(20000, 80000)), felicidade: -8 })],
+         ['Reagir', 'Arriscado!', () => chance(.3) ? 'Puseste-os a correr! O bairro todo fala de ti. ' + fx({ fama: 5, felicidade: 6 }) : 'Levaste uma facada no braço. ' + fx({ saude: -25, felicidade: -10 })]] },
+  { ico: '💼', t: 'Esquema do Amigo', txt: () => 'Um amigo diz que tem um "negócio garantido" de importação de viaturas do Dubai. Precisa de 500 mil Kz teus.',
+    ch: [['Investir 500.000 Kz', '"Confia, mano!"', () => { if (G.dinheiro < 500000) return 'Não tinhas o dinheiro. Talvez tenha sido melhor assim.'; G.dinheiro -= 500000; return chance(.35) ? 'Incrível, era verdade! ' + fx({ dinheiro: R(1200000, 2000000), felicidade: 12 }) : 'O amigo desapareceu com o teu kumbu. ' + fx({ felicidade: -15 }); }],
+         ['Recusar', 'Conheço essas fitas', () => 'Sabedoria. ' + fx({ inteligencia: 1 })]] },
+  { ico: '👛', t: 'Carteira Perdida', txt: () => 'Encontraste uma carteira no chão do mercado com 150.000 Kz e o BI do dono.',
+    ch: [['Devolver ao dono', 'Fazer o certo', () => 'O dono chorou de alegria e deu-te uma recompensa. ' + fx({ karma: 12, dinheiro: 15000, fama: 2 })],
+         ['Ficar com o dinheiro', 'Ninguém está a ver...', () => fx({ dinheiro: 150000, karma: -12 })]] },
+  { ico: '🌧️', t: 'Chuvas Fortes', cond: () => !G.bens.includes('vivenda') && !G.bens.includes('kilamba'), txt: () => 'Choveu toda a noite e a tua casa no bairro inundou. A água entrou pelos quartos.',
+    ch: [['Reparar a casa', '120.000 Kz', () => fx({ dinheiro: -120000, felicidade: -4 })],
+         ['Secar e seguir em frente', 'Sem dinheiro para obras', () => fx({ felicidade: -9, saude: -4 })]] },
+  { ico: '⚽', t: 'Palancas Negras no CAN!', txt: () => 'Angola está a jogar a fase final do CAN! O país inteiro para.',
+    ch: [['Ver no bar com a malta', 'Cerveja e gritos', () => (chance(.5) ? 'ANGOLA GANHOU! Festa até de manhã! ' + fx({ felicidade: 15 }) : 'Perdemos nos penáltis... ' + fx({ felicidade: -3 })) + fx({ dinheiro: -8000 })],
+         ['Ver em casa com a família', 'Mais tranquilo', () => fx({ felicidade: 6, karma: 1 })]] },
+  { ico: '🎤', t: 'Convite para Gravar', cond: () => G.stats.aparencia > 60 || G.stats.fama > 20, txt: () => 'Um produtor famoso de kuduro viu-te dançar e quer-te num videoclipe!',
+    ch: [['Aceitar!', 'Momento de brilhar', () => fx({ fama: R(6, 14), felicidade: 10, dinheiro: R(30000, 150000) })],
+         ['Recusar', 'Não é a minha cena', () => fx({ felicidade: -2 })]] },
+  { ico: '🏛️', t: 'Convite Político', cond: () => G.idade >= 25, txt: () => 'Um dirigente do bairro convida-te para as atividades do partido. "Há vantagens, camarada..."',
+    ch: [['Aceitar e vestir a camisola', 'Contactos e kumbu', () => fx({ fama: R(4, 8), dinheiro: R(100000, 400000), karma: -5 })],
+         ['Recusar educadamente', 'Manter a independência', () => fx({ karma: 3 })]] },
+  { ico: '🪪', t: 'Renovar o BI', txt: () => 'Precisas de renovar o Bilhete de Identidade. A bicha no posto dá a volta ao quarteirão.',
+    ch: [['Pagar 10 mil para "agilizar"', 'Sair em 10 minutos', () => fx({ dinheiro: -10000, karma: -3 })],
+         ['Fazer a bicha', 'Desde as 4h da manhã', () => fx({ felicidade: -6, karma: 2 })]] },
+  { ico: '🚑', t: 'Vizinho Precisa de Ajuda', txt: () => 'A mulher do vizinho entrou em trabalho de parto e eles não têm transporte para a maternidade.',
+    ch: [['Ajudar e pagar o táxi', '15.000 Kz', () => 'O bebé nasceu saudável e deram-lhe o teu nome! ' + fx({ dinheiro: -15000, karma: 12, felicidade: 8 })],
+         ['Fingir que não ouviste', '', () => fx({ karma: -10 })]] },
+  { ico: '🎓', t: 'Kandengue Quer Estudar', txt: () => 'O teu sobrinho tirou as melhores notas da escola mas a família não tem dinheiro para as propinas.',
+    ch: [['Pagar as propinas (150 mil)', 'Investir no futuro', () => fx({ dinheiro: -150000, karma: 10, felicidade: 5 })],
+         ['Não tenho como ajudar', '', () => fx({ karma: -3, felicidade: -2 })]] },
+  { ico: '🏀', t: 'Olheiro do Clube', cond: () => G.stats.saude >= 80 && G.idade <= 28 && (!G.emprego || G.emprego.id !== 'basquete'), txt: () => 'Um olheiro de um grande clube de Luanda viu-te jogar e convida-te para um teste.',
+    ch: [['Fazer o teste', 'Dar tudo em campo', () => { const p = G.charId === 'luena' ? .8 : .3; if (chance(p)) { G.emprego = { id: 'basquete', t: 'Basquetebolista Profissional', sal: 8000000 }; G.anosEmprego = 0; return '🏀 PASSASTE! És agora jogador(a) profissional! ' + fx({ fama: 15, felicidade: 20 }); } return 'Não ficaste, mas foi uma boa experiência. ' + fx({ fama: 2 }); }],
+         ['Não ir', '', () => fx({ felicidade: -3 })]] },
+  { ico: '🚔', t: 'Fiscais no Mercado', cond: () => G.emprego && G.emprego.id === 'zungueiro', txt: () => 'Os fiscais estão a apreender a mercadoria das zungueiras!',
+    ch: [['Fugir com a bacia', 'Corre!', () => chance(.55) ? 'Escapaste! ' + fx({ saude: -2 }) : 'Apanharam-te e levaram tudo. ' + fx({ dinheiro: -40000, felicidade: -10 })],
+         ['Pagar para deixarem em paz', '20.000 Kz', () => fx({ dinheiro: -20000, karma: -2 })]] },
+  { ico: '📜', t: 'Herança Inesperada', cond: () => chance(.3), txt: () => 'Um tio-avô que mal conhecias faleceu na província e deixou-te uma herança!',
+    ch: [['Aceitar a herança', '', () => fx({ dinheiro: R(300000, 2500000), felicidade: 6 })],
+         ['Dividir com os primos', 'Evitar confusões na família', () => fx({ dinheiro: R(150000, 800000), karma: 8 })]] },
+  { ico: '📉', t: 'Desvalorização do Kwanza', cond: () => G.dinheiro > 1000000, txt: () => 'O Kwanza desvalorizou outra vez face ao dólar. As tuas poupanças valem menos.',
+    ch: [['Comprar dólares na rua', 'Proteger o kumbu (arriscado)', () => chance(.75) ? 'Protegeste as poupanças. ' + fx({ dinheiro: Math.round(G.dinheiro * .05) }) : 'Deram-te notas falsas! ' + fx({ dinheiro: -Math.round(G.dinheiro * .15) })],
+         ['Deixar no banco', 'Aceitar a perda', () => fx({ dinheiro: -Math.round(G.dinheiro * .08) })]] },
+  { ico: '😷', t: 'Cólera no Bairro', txt: () => 'Há um surto de cólera no bairro. As autoridades pedem cuidados redobrados com a água.',
+    ch: [['Comprar lixívia e água engarrafada', '25.000 Kz', () => 'Ficaste protegido(a). ' + fx({ dinheiro: -25000 })],
+         ['Arriscar', 'Sempre bebi desta água', () => chance(.35) ? (G.doente = true, 'Apanhaste cólera! ' + fx({ saude: -30 })) : 'Escapaste desta vez.']] },
+  { ico: '💸', t: 'Crise no Trabalho', cond: () => G.emprego && !['kudurista', 'zungueiro'].includes(G.emprego.id), txt: () => 'A empresa está com salários em atraso há 3 meses. Os colegas querem fazer greve.',
+    ch: [['Entrar na greve', 'Lutar pelos direitos', () => chance(.5) ? 'A greve resultou! Pagaram os atrasados com aumento. ' + (G.emprego.sal = Math.round(G.emprego.sal * 1.1), fx({ felicidade: 8, karma: 3 })) : (G.emprego = null, 'Foste despedido(a) por "insubordinação". ' + fx({ felicidade: -15 }))],
+         ['Continuar a trabalhar', 'Esperar que melhore', () => fx({ felicidade: -5, dinheiro: -Math.round(G.emprego.sal * .2) })]] },
+];
+
+function eventModal(ev, after) {
+  const choices = ev.ch.map((c, i) => `<button class="choice" data-i="${i}">${c[0]}${c[1] ? `<small>${c[1]}</small>` : ''}</button>`).join('');
+  openModal(`<div class="mico">${ev.ico}</div><h3>${ev.t}</h3><p>${ev.txt()}</p><div class="choices">${choices}</div>`, false);
+  $('#modalBox').querySelectorAll('.choice').forEach(b => b.onclick = () => {
+    const c = ev.ch[+b.dataset.i];
+    const r = c[2]();
+    addLog(`${ev.ico} <b>${ev.t}:</b> ${c[0]}. ${r}`, '');
+    $('#modalBox').querySelector('.choices').outerHTML = `<div class="result">${r}</div><div class="choices"><button class="btn btn-yel" id="evOk">Continuar</button></div>`;
+    $('#evOk').onclick = () => { closeModal(); after && after(); };
+    save(); render();
+  });
+}
+
+/* ---------------- ENVELHECER ---------------- */
+function ageUp() {
+  if (!G || !G.vivo) return;
+  G.idade++; G.ano++;
+  const S = G.stats;
+
+  // pais
+  ['pai', 'mae'].forEach(k => {
+    const p = G[k]; if (!p.vivo) return; p.idade++;
+    p.rel = clamp(p.rel - R(0, 3));
+    if (chance(deathChance(p.idade) * 1.2)) { p.vivo = false; addLog(`🕯️ ${k === 'pai' ? 'O teu pai' : 'A tua mãe'}, ${p.nome}, faleceu aos ${p.idade} anos. Que descanse em paz.`, 'bad'); fx({ felicidade: -20 });
+      if (chance(.4)) { const h = R(100000, G.charId === 'domingos' ? 30000000 : 1500000); G.dinheiro += h; addLog(`Recebeste uma herança de ${kzShort(h)}.`); } }
+  });
+  // parceiro
+  if (G.parceiro) {
+    const p = G.parceiro; p.idade++; p.anos++; p.rel = clamp(p.rel - R(0, 6));
+    if (p.rel < 15) { addLog(`💔 ${p.nome} deixou-te. A relação já não estava a funcionar.`, 'bad'); fx({ felicidade: -15 }); G.parceiro = null; }
+    else if (p.idade > 55 && chance(deathChance(p.idade))) { addLog(`🕯️ ${p.nome} faleceu. Perdeste o amor da tua vida.`, 'bad'); fx({ felicidade: -25 }); G.parceiro = null; }
+  }
+  G.filhos.forEach(f => { f.idade++; f.rel = clamp(f.rel - R(0, 4)); if (f.idade === 18) addLog(`🎂 ${f.nome.split(' ')[0]} fez 18 anos!`, 'gold'); });
+
+  if (G.preso > 0) {
+    G.preso--; fx({ felicidade: -6, saude: -3 });
+    addLog(G.preso === 0 ? '🔓 Saíste da cadeia! Uma nova oportunidade.' : `🔒 Mais um ano na Cadeia de Viana. Faltam ${G.preso}.`, G.preso === 0 ? 'good' : 'bad');
+  } else {
+    // salário
+    if (G.emprego) {
+      G.anosEmprego++;
+      const j = JOBS.find(x => x.id === G.emprego.id);
+      if (j.varFama) G.emprego.sal = salario(j);
+      G.dinheiro += G.emprego.sal;
+      addLog(`💼 Salário anual como ${G.emprego.t}: +${kzShort(G.emprego.sal)}.`);
+      if (G.emprego.id === 'kudurista') fx({ fama: R(0, 3) });
+      if (G.emprego.id === 'deputado') fx({ karma: -2, fama: 2 });
+      if (G.emprego.id === 'medico' || G.emprego.id === 'enfermeiro') fx({ karma: 3 });
+      if (j.req.maxIdade && G.idade > j.req.maxIdade + 3 && chance(.4)) { addLog(`Reformaste-te como ${G.emprego.t}.`, 'gold'); G.emprego = null; }
+      else if (chance(.04)) { addLog(`📦 A empresa fechou e ficaste sem emprego de ${G.emprego.t}.`, 'bad'); G.emprego = null; fx({ felicidade: -12 }); }
+      else if (G.workBonus && chance(.2 * G.workBonus)) { const inc = Math.round(G.emprego.sal * .15); G.emprego.sal += inc; addLog(`⭐ Promovido(a) pelo esforço! +${kzShort(inc)}/ano.`, 'good'); }
+      G.workBonus = 0;
+    }
+    // reforma
+    if (G.idade >= 65 && G.emprego && chance(.35)) { addLog(`🎉 Reformaste-te depois de anos como ${G.emprego.t}. Pensão do INSS ativada.`, 'gold'); G.emprego = null; G.reformado = true; }
+    if (G.reformado) { const pen = 600000; G.dinheiro += pen; }
+  }
+  // bens com renda
+  G.bens.forEach(b => { const B = BENS.find(x => x.id === b); if (B.renda) { const v = Math.round(B.renda * R(70, 130) / 100); G.dinheiro += v; addLog(`${B.ico} ${B.t} rendeu ${kzShort(v)}.`); } });
+  // negócios
+  G.negocios.forEach(n => {
+    const N = NEG.find(x => x.id === n.id);
+    let v = R(N.min, N.max) * (G.charId === 'tchissola' ? 1.4 : 1) * (.7 + S.inteligencia / 170);
+    if (chance(.07)) v = -Math.abs(v) * .6;
+    n.ult = Math.round(v); G.dinheiro += n.ult;
+    addLog(`${N.ico} ${N.t}: ${n.ult >= 0 ? 'lucro' : 'prejuízo'} de ${kzShort(n.ult)}.`, n.ult >= 0 ? '' : 'bad');
+  });
+  // pai rico (domingos)
+  if (G.charId === 'domingos' && G.pai.vivo && G.pai.rel > 40) { const m = R(1000000, 4000000); G.dinheiro += m; addLog(`O kota mandou a mesada anual: +${kzShort(m)}.`); }
+
+  // custo de vida
+  const temCasa = G.bens.some(b => BENS.find(x => x.id === b).casa);
+  const kids = G.filhos.filter(f => f.idade < 18).length;
+  const temRenda = G.emprego || G.negocios.length || G.reformado || G.bens.some(b => BENS.find(x => x.id === b).renda);
+  let custo = G.preso > 0 ? 0 : temRenda
+    ? 480000 + (temCasa ? 0 : 720000) + kids * 300000 + (G.parceiro && G.parceiro.casado ? 200000 : 0)
+    : 180000 + kids * 150000; // sem rendimentos: vive em casa da família, gasta o mínimo
+  if (G.dinheiro > 100000000) custo += 6000000; // estilo de vida
+  G.dinheiro -= custo;
+  if (custo) addLog(temRenda ? `🧾 Custo de vida${temCasa ? '' : ' + renda de casa'}${kids ? ' + ' + kids + ' filho(s)' : ''}: -${kzShort(custo)}.` : `🧾 Sem rendimentos, vives apertado(a) em casa da família: -${kzShort(custo)}. Arranja um trabalho!`);
+  if (G.dinheiro < 0) {
+    fx({ felicidade: -8, saude: -1 });
+    if (G.dinheiro < -2000000 && chance(.5)) { const perd = Math.round(-G.dinheiro * .5); G.dinheiro += perd; addLog(`🤝 A família juntou-se e pagou metade das tuas dívidas (${kzShort(perd)}). ` + fx({ karma: -2 }), 'gold'); }
+    else addLog('⚠️ Estás endividado(a)! Os credores batem à porta.', 'bad');
+  }
+
+  // educação
+  if (G.curso) {
+    if (G.curso.faltam > 1 && G.dinheiro < G.curso.custo && G.curso.custo > 0) { addLog(`❌ Sem dinheiro para as propinas, abandonaste ${G.curso.t}.`, 'bad'); G.curso = null; }
+    else {
+      G.dinheiro -= G.curso.faltam > 1 ? G.curso.custo : 0;
+      G.curso.faltam--; fx({ inteligencia: R(2, 5) + (G.curso.esforco || 0) }); G.curso.esforco = 0;
+      if (G.curso.faltam <= 0) {
+        G.edu = Math.max(G.edu, G.curso.nivel); if (G.curso.medicina) G.medicina = true;
+        addLog(`🎓 Concluíste <b>${G.curso.t}</b>! ${G.curso.medicina ? 'És agora Médico(a)!' : 'Agora tens ' + EDU[G.edu] + '.'}`, 'gold'); fx({ felicidade: 15, fama: 2 });
+        G.curso = null;
+      }
+    }
+  }
+
+  // deriva natural
+  if (G.idade > 45) fx({ saude: -R(0, G.idade > 70 ? 5 : 3) });
+  if (G.idade > 40) fx({ aparencia: -R(0, 2) });
+  if (G.doente) {
+    if (chance(.3)) { G.doente = false; addLog('🏥 Foste tratado(a) no hospital público. Demorou, mas ficaste curado(a). ' + fx({ saude: R(5, 10) }), 'good'); }
+    else { fx({ saude: -R(5, 10) }); addLog('🤒 Continuas doente. Vai à clínica!', 'bad'); }
+  }
+  if (!G.doente && G.idade > 30 && chance(.04 + G.idade / 1000)) { G.doente = true; addLog(`🤒 Foste diagnosticado(a) com ${pick(['hipertensão', 'diabetes', 'febre tifóide', 'uma infeção grave', 'problemas cardíacos'])}.`, 'bad'); fx({ saude: -10 }); }
+  S.felicidade = clamp(S.felicidade + (50 - S.felicidade) * .05);
+
+  if (G.idade === 18) addLog('🎂 Fizeste 18 anos! Agora és maior de idade.', 'gold');
+  if (G.idade % 10 === 0) addLog(`🎉 Festa dos ${G.idade} anos com muamba, calulu e kizomba!`, 'gold');
+
+  G.acoes = 4;
+
+  // morte?
+  const dc = deathChance(G.idade) + (S.saude < 25 ? (25 - S.saude) / 60 : 0);
+  if (S.saude <= 0 || chance(dc)) { save(); render(); return die(); }
+
+  save(); render();
+  tab = 'vida'; render();
+  // evento
+  if (G.preso === 0 && chance(.75)) {
+    const pool = EVENTS.filter(e => !e.cond || e.cond());
+    eventModal(pick(pool), () => { if (G.stats.saude <= 0) die(); });
+  }
+}
+function deathChance(a) {
+  if (a < 40) return .002; if (a < 55) return .008; if (a < 65) return .02; if (a < 75) return .045; if (a < 85) return .1; if (a < 95) return .22; return .4;
+}
+
+/* ---------------- MORTE & REENCARNAÇÃO ---------------- */
+function die(causa) {
+  G.vivo = false;
+  const S = G.stats;
+  if (!causa) causa = S.saude <= 5 ? pick(['problemas de saúde', 'complicações de paludismo', 'doença prolongada']) :
+    G.idade > 78 ? pick(['velhice, em paz', 'velhice, rodeado(a) pela família', 'causas naturais']) :
+    pick(['acidente de candongueiro', 'ataque cardíaco', 'complicações de paludismo', 'acidente na estrada', 'AVC']);
+  G.causa = causa;
+  const patrimonio = G.dinheiro + G.bens.reduce((s, b) => s + BENS.find(x => x.id === b).p * .65, 0) + G.negocios.reduce((s, n) => s + NEG.find(x => x.id === n.id).p * .6, 0);
+  const score = Math.max(0, Math.round(G.idade + S.karma + S.fama + S.felicidade / 2 + G.edu * 12 + G.filhos.length * 10 + Math.log10(Math.max(1, patrimonio)) * 8));
+  const kb = Math.max(-12, Math.min(12, Math.round((S.karma - 50) / 4)));
+  meta.karmaBonus = kb;
+  meta.vidas.push({ nome: G.nome, titulo: G.titulo, img: G.charId, idade: G.idade, causa, score });
+  saveMeta(); localStorage.removeItem(SAVE);
+  closeModal();
+  const destino = kb >= 8 ? 'A tua alma brilha! Na próxima vida nascerás abençoado(a), com mais saúde, sorte e um envelope de kumbu.' :
+    kb > 0 ? 'Viveste com bondade. A próxima encarnação será um pouco mais fácil.' :
+    kb === 0 ? 'Uma vida equilibrada. A próxima começa do zero.' :
+    kb > -8 ? 'As tuas más ações deixaram marca. A próxima vida será mais dura.' : 'O teu karma está pesadíssimo... A próxima encarnação vai cobrar caro.';
+  $('#deathBox').innerHTML = `
+    <div class="tomb"><img src="${imgSrc(G.charId)}" alt=""></div>
+    <div style="color:var(--mut);letter-spacing:3px;font-size:12px;text-transform:uppercase">Aqui jaz</div>
+    <h2>${G.nome}</h2>
+    <div class="cause">${G.ano - G.idade} – ${G.ano} · Morreu aos ${G.idade} anos · ${causa}</div>
+    <div class="summary">
+      <div>Património<b>${kzShort(patrimonio)}</b></div>
+      <div>Escolaridade<b>${EDU[G.edu]}</b></div>
+      <div>Filhos<b>${G.filhos.length}</b></div>
+      <div>Último emprego<b>${G.emprego ? G.emprego.t : '—'}</b></div>
+      <div>Fama<b>${S.fama}</b></div>
+      <div>Karma<b style="color:${COLOR.karma}">${S.karma}</b></div>
+    </div>
+    <div class="reinc"><h4>☯ Próxima Encarnação</h4>${destino}<br><b style="color:var(--yel)">Bónus de karma: ${kb >= 0 ? '+' : ''}${kb}</b> · Pontuação da vida: <b>${score}</b></div>
+    <div class="menu" style="margin:0 auto">
+      <button class="btn btn-pri" onclick="G=null;goSelect()">☯ Renascer</button>
+      <button class="btn btn-ghost" onclick="G=null;initTitle();show('scr-title')">Menu Principal</button>
+    </div>
+    <div class="credit" style="position:static;margin-top:24px">Criada pela <b>Dark Net AO</b></div>`;
+  show('scr-death');
+}
+
+function gameMenu() {
+  openModal(`<div class="mico">☰</div><h3>Menu</h3><div class="choices">
+    <button class="btn btn-ghost" onclick="closeModal();showHelp()">Como Jogar</button>
+    <button class="btn btn-ghost" onclick="closeModal();show('scr-title');initTitle()">Menu Principal (vida guardada)</button>
+    <button class="btn btn-pri" onclick="if(confirm('Terminar esta vida agora?')){closeModal();die('decidiu partir para a próxima encarnação')}">☠ Terminar esta vida</button>
+    <button class="btn btn-ghost" onclick="closeModal()">Voltar ao jogo</button></div>
+    <p style="margin-top:14px;font-size:12px">Próxima Encarnação · Criada pela Dark Net AO</p>`);
+}
+
+initTitle();
+</script>
+</body>
+</html>
