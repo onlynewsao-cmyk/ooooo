@@ -270,7 +270,7 @@ async function mpTick() {
     if (MP.last) { const sp = Math.hypot(p.x - MP.last.x, p.z - MP.last.z) / Math.max(.05, (now - MP.lastT) / 1000); mv = sp > 7 ? 2 : sp > .4 ? 1 : 0; }
     MP.last = { x: p.x, z: p.z }; MP.lastT = now;
     const cfg = playerCfg(), ck = JSON.stringify(cfg);
-    const body = { room, x: +p.x.toFixed(2), z: +p.z.toFixed(2), yaw: +playerYaw.toFixed(3), mv, em: player.emoteT > 0 ? player.emote : null, nick: G.nome, since: MP.since, mu: (typeof SND !== 'undefined') && SND.RADIO.on ? [SND.RADIO.idx, +SND.RADIO.pos().toFixed(1)] : null };
+    const body = { room, x: +p.x.toFixed(2), z: +p.z.toFixed(2), yaw: +playerYaw.toFixed(3), mv, em: player.emoteT > 0 ? player.emote : null, nick: G.nome, since: MP.since, mu: (typeof SND !== 'undefined') && SND.RADIO.on ? [SND.RADIO.idx, +SND.RADIO.pos().toFixed(1)] : null }; body.dv = typeof DEV_ID !== 'undefined' ? DEV_ID : '';
     if (typeof LIVE !== 'undefined') Object.assign(body, LIVE.mpBody());
     if (ck !== MP.cfgKey || MP.needCfg || MP.ticks % 200 === 0) { body.cfg = cfg; MP.cfgKey = ck; }
     body.cv = 1; if (MP.need.length) body.need = MP.need.slice(0, 10);

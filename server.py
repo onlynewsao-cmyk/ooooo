@@ -124,6 +124,11 @@ PRESENTES = ('flores', 'chocolate', 'gasosa', 'perfume', 'relogio', 'pano', 'tel
 DESAFIOS = ('braco', 'quiz', 'danca', 'corrida')
 SOC_ACOES = ('acenar', 'abracar', 'dancar', 'respeito', 'bebida', 'elogio', 'visita')
 KZ_MAX, KZ_DIA = 5_000_000, 20_000_000
+IPSALT = os.environ.get('IP_SALT', 'pe3d-kianda-ao')   # sal para não guardar IPs em claro
+ADMIN_KEY = os.environ.get('ADMIN_KEY', '')            # chave do painel de auditoria (definir no Northflank)
+IDENTC = {}   # uid -> (dev, iph) em cache; a gravação na base só acontece quando muda
+KZIP = {}     # (uid, fid) -> (dia, total) transferências entre contas no mesmo IP
+KZIP_DIA = 2_000_000   # teto diário entre contas que partilham IP
 PAT_T = [(1e9, 'Bilionário(a)'), (1e8, 'Milionário(a)'), (2e7, 'Rico(a)'), (3e6, 'Confortável'), (3e5, 'Remediado(a)'), (-1e18, 'Humilde')]
 
 
@@ -412,6 +417,49 @@ def _batota(uid, nick, kz, now):
     return kz
 
 
+def _iph(h):
+    """hash do IP (X-Forwarded-For atrás de proxy) — privacidade: nunca guardamos o IP em claro"""
+    ip = (h.headers.get('X-Forwarded-For') or '').split(',')[0].strip() or (h.client_address[0] if h.client_address else '?')
+    return hashlib.sha256((ip + IPSALT).encode()).hexdigest()[:16]
+
+
+def _ident_get(c, uid):
+    r = c.execute('SELECT v FROM kv WHERE k=?', (f'ident:{uid}',)).fetchone()
+    try:
+        return json.loads(r[0]) if r else {}
+    except Exception:
+        return {}
+
+
+def _ident_note(self, c, uid, dev, now):
+    """regista aparelho + hash do IP de uma conta (só grava quando muda)"""
+    iph = _iph(self)
+    dev = (dev or '')[:32]
+    cur = IDENTC.get(uid)
+    if cur and cur[0] == dev and cur[1] == iph:
+        return
+    IDENTC[uid] = (dev, iph)
+    try:
+        idn = _ident_get(c, uid)
+        ips = idn.get('ips') or []
+        if iph not in ips:
+            ips = (ips + [iph])[-8:]
+        if dev and idn.get('dev') != dev:
+            idn['devs'] = ((idn.get('devs') or []) + [idn.get('dev')])[-3:] if idn.get('dev') else []
+            idn['dev'] = dev
+        elif dev:
+            idn['dev'] = dev
+        idn['ips'] = ips
+        idn['t'] = now
+        c.execute('INSERT OR REPLACE INTO kv VALUES(?, ?)', (f'ident:{uid}', json.dumps(idn)))
+    except Exception:
+        pass
+
+
+def _ident_mem(uid):
+    return IDENTC.get(uid, ('', ''))
+
+
 def db():
     return pedb.connect(DB_PATH)
 
@@ -692,6 +740,15 @@ class H(SimpleHTTPRequestHandler):
                            'x': round(_num(d.get('x'), -400, 400), 2), 'z': round(_num(d.get('z'), -400, 400), 2),
                            'yaw': round(_num(d.get('yaw'), -100, 100), 3), 'mv': int(_num(d.get('mv'), 0, 2)),
                            'em': (str(d.get('em'))[:12] if d.get('em') else None), 't': now})
+                # identidade anti-multiconta: aparelho + hash do IP (grava só quando muda)
+                dv = str(d.get('dv') or '')[:32]
+                iph = _iph(self)
+                if IDENTC.get(uid) != (dv, iph):
+                    try:
+                        with db() as c2:
+                            _ident_note(self, c2, uid, dv, now)
+                    except Exception:
+                        pass
                 st['ch'] = str(d.get('ch') or '')[:24]
                 st['pol'] = bool(d.get('pol'))
                 st['job'] = re.sub(r'[^\w À-ÿ()-]', '', str(d.get('job') or ''))[:28]
@@ -1004,6 +1061,11 @@ class H(SimpleHTTPRequestHandler):
             preso = random.random() < pn
             v = random.randint(lo, hi) if ok else 0
             if alvo:
+                devA, ipA = _ident_mem(uid); devB, ipB = _ident_mem(aid)
+                if devA and devB and devA == devB:
+                    return E('Sem efeito: essa conta pertence ao mesmo aparelho.')
+                if ipA and ipB and ipA == ipB:
+                    v = min(v, 5000)   # mesma rede (família/café): saque simbólico
                 v = min(v, int(alvo.get('kz', v)))   # não se rouba dinheiro que a vítima não tem
                 _ev(aid, {'t': 'roubado' if ok else 'tentativa', 'de': nick, 'id': uid, 'v': v, 'tipo': tipo})
             secs, wl0 = 0, cr['wl']
@@ -1099,6 +1161,24 @@ class H(SimpleHTTPRequestHandler):
                     return E(f'Podes enviar entre 100 Kz e {KZ_MAX:,} Kz de cada vez.'.replace(',', ' '))
                 if uid in SUS:
                     return E('A tua conta está em revisão: transferências bloqueadas.')
+                devA, ipA = _ident_mem(uid); devB, ipB = _ident_mem(fid)
+                if not ipB:
+                    try:
+                        with db() as c2:
+                            idb = _ident_get(c2, fid)
+                        ipB = (idb.get('ips') or [''])[-1]; devB = devB or idb.get('dev', '')
+                    except Exception:
+                        pass
+                if devA and devB and devA == devB:
+                    return E('Não podes enviar dinheiro entre contas do mesmo aparelho.')
+                mesmo_ip = bool(ipA and ipB and ipA == ipB)
+                if mesmo_ip:
+                    dia = time.strftime('%Y-%m-%d')
+                    par = KZIP.get((uid, fid))
+                    totp = par[1] if par and par[0] == dia else 0
+                    if totp + v > KZIP_DIA:
+                        SUS[uid] = 'funil de Kz entre contas no mesmo IP'
+                        return E(f'Contas na mesma rede podem trocar no máximo {KZIP_DIA:,} Kz/dia.'.replace(',', ' '))
                 tem = KZH.get(uid, (0, 0))[1]
                 if v > tem:
                     return E('Não tens esse dinheiro na carteira.')
@@ -1108,6 +1188,8 @@ class H(SimpleHTTPRequestHandler):
                 if tot + v > KZ_DIA:
                     return E(f'Limite diário de transferências: {KZ_DIA:,} Kz.'.replace(',', ' '))
                 KZDAY[uid] = (dia, tot + v)
+                if mesmo_ip:
+                    KZIP[(uid, fid)] = (dia, totp + v)   # só conta transferências que aconteceram
                 KZH[uid] = (now, tem - v)
                 if fid in KZH:
                     KZH[fid] = (KZH[fid][0], KZH[fid][1] + v)   # o salto na carteira de quem recebe não conta como batota
@@ -1361,6 +1443,24 @@ class H(SimpleHTTPRequestHandler):
                     return self.send_json(401, {'erro': 'Sessão inválida. Entra outra vez.'})
                 return self.send_json(200, {'user': public(u), 'save': json.loads(u['save']) if u['save'] else None,
                                             'meta': json.loads(u['meta']) if u['meta'] else None})
+        if self.path == '/api/admin/contas':
+            if not ADMIN_KEY or self.headers.get('X-Admin-Key', '') != ADMIN_KEY:
+                return self.send_json(404, {'erro': 'Não encontrado'})
+            grupos = {}
+            with db() as c:
+                for k, v in c.execute("SELECT k, v FROM kv WHERE k LIKE 'ident:%'").fetchall():
+                    try:
+                        uid = int(k.split(':')[1]); idn = json.loads(v)
+                    except Exception:
+                        continue
+                    for chave in ([('dev', idn['dev'])] if idn.get('dev') else []) + [('ip', i) for i in (idn.get('ips') or [])]:
+                        grupos.setdefault(chave, []).append(uid)
+                sus = []
+                for (tipo, hv), uids in grupos.items():
+                    if len(set(uids)) > 1:
+                        nomes = {r[0]: r[1] for r in c.execute('SELECT id, nome FROM users WHERE id IN (%s)' % ','.join('?' * len(set(uids))), tuple(set(uids))).fetchall()}
+                        sus.append({'tipo': tipo, 'contas': [{'id': u, 'nome': nomes.get(u, '?'), 'suspeita': u in SUS} for u in sorted(set(uids))]})
+            return self.send_json(200, {'grupos': sus, 'sus': SUS, 'agora': time.time()})
         if self.path == '/api/ads':
             return self.send_json(200, {'ads': ads_ativos(), 'v': ADS_V[0], 'srv': time.time()})
         if self.path.startswith('/api/'):
@@ -1435,6 +1535,7 @@ class H(SimpleHTTPRequestHandler):
                     return self.send_json(409, {'erro': 'Já existe uma conta com este e-mail.'})
                 tok = secrets.token_urlsafe(32)
                 c.execute('INSERT INTO sessions VALUES(?,?,?)', (tok, cur.lastrowid, time.time()))
+                _ident_note(self, c, cur.lastrowid, str(d.get('dv') or '')[:32], time.time())
                 u = c.execute('SELECT * FROM users WHERE id=?', (cur.lastrowid,)).fetchone()
                 return self.send_json(200, {'token': tok, 'user': public(u), 'save': None, 'meta': None})
             if p == '/api/login':
@@ -1444,6 +1545,7 @@ class H(SimpleHTTPRequestHandler):
                     return self.send_json(401, {'erro': 'E-mail ou senha incorretos.'})
                 tok = secrets.token_urlsafe(32)
                 c.execute('INSERT INTO sessions VALUES(?,?,?)', (tok, u['id'], time.time()))
+                _ident_note(self, c, u['id'], str(d.get('dv') or '')[:32], time.time())
                 return self.send_json(200, {'token': tok, 'user': public(u),
                                             'save': json.loads(u['save']) if u['save'] else None,
                                             'meta': json.loads(u['meta']) if u['meta'] else None})

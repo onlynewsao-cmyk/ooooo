@@ -52,3 +52,10 @@ Para testar o cluster sem nginx: `python3 tools/router.py 8090 2 8101` (só para
 2. **WebSocket** em vez de perguntas HTTP. Cortaria mais ~40–60% de CPU, mas precisa de uma biblioteca externa (ex.: `websockets`/`aiohttp`) ou de um servidor em Go/Node.
 3. **Economia 100% no servidor.** Hoje o dinheiro vive no navegador e o servidor só deteta saltos impossíveis.
 4. Moderação humana, um painel de administração e monitorização (Grafana/Uptime Kuma).
+
+## Anti-multiconta e auditoria (novo)
+- O jogo regista por conta: ID anónimo do aparelho (localStorage, não identifica a pessoa) + hash do IP (nunca em claro; define `IP_SALT`).
+- Transferências entre contas do **mesmo aparelho**: bloqueadas. Na **mesma rede/IP** (família, café): teto de 2 000 000 Kz/dia por par; acima disso a conta fica marcada (SUS, transferências bloqueadas).
+- Roubo PvP contra conta do mesmo aparelho não dá lucro.
+- Auditoria: `GET /api/admin/contas` com header `X-Admin-Key: $ADMIN_KEY` (define `ADMIN_KEY` nas variáveis do Northflank) — lista grupos de contas que partilham aparelho/IP e contas marcadas.
+- Registo adicional de batota em `data/batota.log`.

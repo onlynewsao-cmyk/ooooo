@@ -1452,6 +1452,8 @@ function drawIc(x, name, cx, cy, size, color, lw = 2.2) {
    PRÓXIMA ENCARNAÇÃO — Contas de jogador
    Online (server.py) com recurso a contas locais no navegador.
    ========================================================= */
+/* identidade do aparelho (anti-multiconta): aleatório, guardado no aparelho; não identifica a pessoa */
+let DEV_ID = ''; try { DEV_ID = localStorage.getItem('pe3d_dev') || ''; if (!DEV_ID) { DEV_ID = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('pe3d_dev', DEV_ID); } } catch (e) { DEV_ID = 'x' + Math.random().toString(36).slice(2); }
 const Acc = (() => {
   const SK = 'pe3d_session_v2', UK = 'pe3d_users_v2';
   let online = false, sess = null, saveTimer = null, pending = null, lastSent = 0, saveMs = 15000;
@@ -1518,7 +1520,7 @@ const Acc = (() => {
     },
     async register(d) {
       check(d);
-      if (online) { const r = await api('register', d); sess = { mode: 'online', token: r.token, user: r.user }; ls.set(SK, sess); return result(r.user, null, null); }
+      if (online) { const r = await api('register', Object.assign({}, d, { dv: DEV_ID })); sess = { mode: 'online', token: r.token, user: r.user }; ls.set(SK, sess); return result(r.user, null, null); }
       const users = ls.get(UK) || {}; const email = d.email.trim().toLowerCase();
       if (users[email]) throw new Error('Já existe uma conta com este e-mail neste dispositivo.');
       const salt = rnd();
@@ -1528,7 +1530,7 @@ const Acc = (() => {
     },
     async login(email, senha) {
       if (!email || !senha) throw new Error('Preenche o e-mail e a senha.');
-      if (online) { const r = await api('login', { email, senha }); sess = { mode: 'online', token: r.token, user: r.user }; ls.set(SK, sess); return result(r.user, r.save, r.meta); }
+      if (online) { const r = await api('login', { email, senha, dv: DEV_ID }); sess = { mode: 'online', token: r.token, user: r.user }; ls.set(SK, sess); return result(r.user, r.save, r.meta); }
       const users = ls.get(UK) || {}; const u = users[email.trim().toLowerCase()];
       if (!u || u.hash !== await hash(senha, u.salt)) throw new Error('E-mail ou senha incorretos.');
       sess = { mode: 'local', user: pub(u) }; ls.set(SK, sess); return result(pub(u));
@@ -9674,7 +9676,7 @@ async function mpTick() {
     if (MP.last) { const sp = Math.hypot(p.x - MP.last.x, p.z - MP.last.z) / Math.max(.05, (now - MP.lastT) / 1000); mv = sp > 7 ? 2 : sp > .4 ? 1 : 0; }
     MP.last = { x: p.x, z: p.z }; MP.lastT = now;
     const cfg = playerCfg(), ck = JSON.stringify(cfg);
-    const body = { room, x: +p.x.toFixed(2), z: +p.z.toFixed(2), yaw: +playerYaw.toFixed(3), mv, em: player.emoteT > 0 ? player.emote : null, nick: G.nome, since: MP.since, mu: (typeof SND !== 'undefined') && SND.RADIO.on ? [SND.RADIO.idx, +SND.RADIO.pos().toFixed(1)] : null };
+    const body = { room, x: +p.x.toFixed(2), z: +p.z.toFixed(2), yaw: +playerYaw.toFixed(3), mv, em: player.emoteT > 0 ? player.emote : null, nick: G.nome, since: MP.since, mu: (typeof SND !== 'undefined') && SND.RADIO.on ? [SND.RADIO.idx, +SND.RADIO.pos().toFixed(1)] : null }; body.dv = typeof DEV_ID !== 'undefined' ? DEV_ID : '';
     if (typeof LIVE !== 'undefined') Object.assign(body, LIVE.mpBody());
     if (ck !== MP.cfgKey || MP.needCfg || MP.ticks % 200 === 0) { body.cfg = cfg; MP.cfgKey = ck; }
     body.cv = 1; if (MP.need.length) body.need = MP.need.slice(0, 10);
