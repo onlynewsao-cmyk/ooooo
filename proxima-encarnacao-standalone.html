@@ -1468,7 +1468,7 @@ const Acc = (() => {
     if (sess && sess.token) h.Authorization = 'Bearer ' + sess.token;
     const r = await fetch('/api/' + path, { method: method || (body ? 'POST' : 'GET'), headers: h, body: body ? JSON.stringify(body) : undefined });
     let d = {}; try { d = await r.json(); } catch (e) { }
-    if (!r.ok) throw new Error(d.erro || 'Erro de ligação ao servidor.');
+    if (!r.ok) { const err = new Error(d.erro || 'Erro de ligação ao servidor.'); err.status = r.status; throw err; }
     return d;
   }
   async function hash(senha, salt) {
@@ -1505,27 +1505,42 @@ const Acc = (() => {
   }
   return {
     get online() { return online; },
+    get hasSession() { return !!sess; },
     get user() { return sess && sess.user; },
     get token() { return sess && sess.token; },
     async init() {
-      if (location.protocol === 'file:') online = false; else try {
-        const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 2500);
-        const r = await fetch('/api/ping', { signal: ctl.signal }); clearTimeout(t);
-        const pj = r.ok ? await r.json() : {}; online = pj.ok === true;
-        if (pj.save_s) saveMs = Math.max(10000, Math.min(120000, pj.save_s * 1000));   // o servidor decide o ritmo de gravação
-      } catch (e) { online = false; }
-      sess = ls.get(SK);
-      if (sess && (sess.mode === 'online') !== online) sess = null;
+      if (location.protocol === 'file:') online = false;
+      else {
+        online = false;
+        for (let i = 0; i < 2 && !online; i++) {   // 2 tentativas: redes móveis e arranques frios do servidor falham à primeira
+          try {
+            const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 8000);
+            const r = await fetch('/api/ping', { signal: ctl.signal }); clearTimeout(t);
+            const pj = r.ok ? await r.json() : {}; online = pj.ok === true;
+            if (pj.save_s) saveMs = Math.max(10000, Math.min(120000, pj.save_s * 1000));   // o servidor decide o ritmo de gravação
+          } catch (e) { }
+          if (!online && !i) await new Promise(res => setTimeout(res, 1200));
+        }
+      }
+      sess = ls.get(SK);   // a sessão nunca é deitada fora aqui: o restore decide (só um 401 a apaga)
       return online;
     },
     async restore() {
       if (!sess) return null;
+      if (online) {
+        try { const d = await api('me'); sess.user = d.user; ls.set(SK, sess); return result(d.user, d.save, d.meta); }
+        catch (e) {
+          if (e && e.status === 401) { sess = null; ls.del(SK); }   // token mesmo inválido/expirado
+          // erro de rede ou 5xx (redeploy, arranque frio): manter a sessão para a próxima visita
+          return null;
+        }
+      }
+      if (sess.mode === 'online') return null;   // servidor inatingível agora — a sessão fica guardada
       try {
-        if (online) { const d = await api('me'); sess.user = d.user; ls.set(SK, sess); return result(d.user, d.save, d.meta); }
         const users = ls.get(UK) || {}; const u = Object.values(users).find(x => x.id === sess.user.id);
         if (!u) { sess = null; ls.del(SK); return null; }
         return result(pub(u));
-      } catch (e) { sess = null; ls.del(SK); return null; }
+      } catch (e) { return null; }
     },
     async register(d) {
       check(d);
@@ -6220,7 +6235,15 @@ window.addEventListener('load', () => {
   try { init3D(); } catch (e) { console.error(e); $('#loading').innerHTML = '<div style="text-align:center">⚠️ O teu navegador não suporta WebGL.<br><a href="../index.html" style="color:#ffcb00">Jogar a versão 2D</a></div>'; return; }
   setTimeout(async () => {
     try { buildWorld(); } catch (e) { console.error(e); }
-    try { await Acc.init(); const r = await Acc.restore(); if (r) setSession(r); } catch (e) { console.error(e); }
+    try {
+      await Acc.init();
+      let r = await Acc.restore();
+      for (let i = 0; !r && Acc.hasSession && i < 3; i++) {   // rede móvel/servidor a acordar: insiste antes de mostrar o login
+        await new Promise(res => setTimeout(res, 2000 * (i + 1)));
+        await Acc.init(); r = await Acc.restore();
+      }
+      if (r) setSession(r);
+    } catch (e) { console.error(e); }
     $('#loading').classList.add('hidden'); goTitle();
   }, 30);
 });

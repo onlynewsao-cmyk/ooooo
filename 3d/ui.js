@@ -734,7 +734,15 @@ window.addEventListener('load', () => {
   try { init3D(); } catch (e) { console.error(e); $('#loading').innerHTML = '<div style="text-align:center">⚠️ O teu navegador não suporta WebGL.<br><a href="../index.html" style="color:#ffcb00">Jogar a versão 2D</a></div>'; return; }
   setTimeout(async () => {
     try { buildWorld(); } catch (e) { console.error(e); }
-    try { await Acc.init(); const r = await Acc.restore(); if (r) setSession(r); } catch (e) { console.error(e); }
+    try {
+      await Acc.init();
+      let r = await Acc.restore();
+      for (let i = 0; !r && Acc.hasSession && i < 3; i++) {   // rede móvel/servidor a acordar: insiste antes de mostrar o login
+        await new Promise(res => setTimeout(res, 2000 * (i + 1)));
+        await Acc.init(); r = await Acc.restore();
+      }
+      if (r) setSession(r);
+    } catch (e) { console.error(e); }
     $('#loading').classList.add('hidden'); goTitle();
   }, 30);
 });
