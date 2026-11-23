@@ -57,5 +57,6 @@ Para testar o cluster sem nginx: `python3 tools/router.py 8090 2 8101` (só para
 - O jogo regista por conta: ID anónimo do aparelho (localStorage, não identifica a pessoa) + hash do IP (nunca em claro; define `IP_SALT`).
 - Transferências entre contas do **mesmo aparelho**: bloqueadas. Na **mesma rede/IP** (família, café): teto de 2 000 000 Kz/dia por par; acima disso a conta fica marcada (SUS, transferências bloqueadas).
 - Roubo PvP contra conta do mesmo aparelho não dá lucro.
+- Contas novas (menos de **3 dias reais**) não podem enviar dinheiro nem fazer apostas com dinheiro — anti conta-fantasma.
 - Auditoria: `GET /api/admin/contas` com header `X-Admin-Key: $ADMIN_KEY` (define `ADMIN_KEY` nas variáveis do Northflank) — lista grupos de contas que partilham aparelho/IP e contas marcadas.
 - Registo adicional de batota em `data/batota.log`.

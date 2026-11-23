@@ -627,7 +627,7 @@ function v4PfSub(view, d, v, nick) {
   const back = `<div class="sd4a"><button class="btn btn-ghost" onclick="v4PfView('main')">‹ Voltar ao perfil</button></div>`;
   let h = '<div class="pf4sv">';
   if (view === 'kz') {
-    h += `<div class="sd4h4">💸 Enviar dinheiro a ${esc(nick)}</div><p class="sd4d">Tens <b>${kz(Math.max(0, G.dinheiro))}</b> na carteira. Limite: 5 milhões por envio, 20 milhões por dia.</p>
+    h += `<div class="sd4h4">💸 Enviar dinheiro a ${esc(nick)}</div><p class="sd4d">Tens <b>${kz(Math.max(0, G.dinheiro))}</b> na carteira. Limite: 5 milhões por envio, 20 milhões por dia. A tua conta precisa de <b>3 dias de vida</b> para enviar.</p>
       <div class="pf4kz">${[1000, 5000, 20000, 100000, 500000, 1000000].map(x => `<button class="chip" ${G.dinheiro < x ? 'disabled style="opacity:.4"' : ''} onclick="v4Kz(${x})">${kzShort(x)}</button>`).join('')}</div>
       <input id="v4kzIn" class="pf4in" type="number" inputmode="numeric" min="100" placeholder="Outro valor (Kz)"><button class="btn btn-yel" style="width:100%" onclick="v4Kz(document.getElementById('v4kzIn').value)">Enviar</button>`;
   } else if (view === 'gift') {

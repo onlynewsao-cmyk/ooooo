@@ -129,6 +129,8 @@ ADMIN_KEY = os.environ.get('ADMIN_KEY', '')            # chave do painel de audi
 IDENTC = {}   # uid -> (dev, iph) em cache; a gravação na base só acontece quando muda
 KZIP = {}     # (uid, fid) -> (dia, total) transferências entre contas no mesmo IP
 KZIP_DIA = 2_000_000   # teto diário entre contas que partilham IP
+TRF_DIAS = 3   # contas novas só enviam dinheiro após 3 dias reais (anti conta-fantasma)
+UAGE = {}    # uid -> ts de criação da conta (cache)
 PAT_T = [(1e9, 'Bilionário(a)'), (1e8, 'Milionário(a)'), (2e7, 'Rico(a)'), (3e6, 'Confortável'), (3e5, 'Remediado(a)'), (-1e18, 'Humilde')]
 
 
@@ -458,6 +460,52 @@ def _ident_note(self, c, uid, dev, now):
 
 def _ident_mem(uid):
     return IDENTC.get(uid, ('', ''))
+
+
+def _funil_check(uid, fid, v, now):
+    """regras anti conta-fantasma para QUALQUER dinheiro entre jogadores. None = pode seguir."""
+    if uid in SUS:
+        return 'A tua conta está em revisão: transferências bloqueadas.'
+    cri = UAGE.get(uid)
+    if not cri:
+        try:
+            with db() as c2:
+                r2 = c2.execute('SELECT criado FROM users WHERE id=?', (uid,)).fetchone()
+            cri = float(r2[0]) if r2 else now
+            if now - cri >= TRF_DIAS * 86400:
+                UAGE[uid] = cri   # cache só das contas já livres (a idade da conta só cresce)
+        except Exception:
+            cri = now
+    if now - cri < TRF_DIAS * 86400:
+        falta = TRF_DIAS - int((now - cri) // 86400)
+        return f'⏳ Contas novas só movimentam dinheiro entre jogadores após {TRF_DIAS} dias de vida (falta {falta} dia{"s" if falta > 1 else ""}).'
+    devA, ipA = _ident_mem(uid); devB, ipB = _ident_mem(fid)
+    if not ipB:
+        try:
+            with db() as c2:
+                idb = _ident_get(c2, fid)
+            ipB = (idb.get('ips') or [''])[-1]; devB = devB or idb.get('dev', '')
+        except Exception:
+            pass
+    if devA and devB and devA == devB:
+        return 'Não podes movimentar dinheiro entre contas do mesmo aparelho.'
+    if ipA and ipB and ipA == ipB:
+        dia = time.strftime('%Y-%m-%d')
+        par = KZIP.get((uid, fid))
+        totp = par[1] if par and par[0] == dia else 0
+        if totp + v > KZIP_DIA:
+            SUS[uid] = 'funil de Kz entre contas no mesmo IP'
+            return f'Contas na mesma rede podem trocar no máximo {KZIP_DIA:,} Kz/dia.'.replace(',', ' ')
+    return None
+
+
+def _funil_book(uid, fid, v):
+    """regista o valor no teto diário por IP — só quando o dinheiro muda mesmo de mãos"""
+    _, ipA = _ident_mem(uid); _, ipB = _ident_mem(fid)
+    if ipA and ipB and ipA == ipB:
+        dia = time.strftime('%Y-%m-%d')
+        par = KZIP.get((uid, fid))
+        KZIP[(uid, fid)] = (dia, (par[1] if par and par[0] == dia else 0) + v)
 
 
 def db():
@@ -1161,24 +1209,9 @@ class H(SimpleHTTPRequestHandler):
                     return E(f'Podes enviar entre 100 Kz e {KZ_MAX:,} Kz de cada vez.'.replace(',', ' '))
                 if uid in SUS:
                     return E('A tua conta está em revisão: transferências bloqueadas.')
-                devA, ipA = _ident_mem(uid); devB, ipB = _ident_mem(fid)
-                if not ipB:
-                    try:
-                        with db() as c2:
-                            idb = _ident_get(c2, fid)
-                        ipB = (idb.get('ips') or [''])[-1]; devB = devB or idb.get('dev', '')
-                    except Exception:
-                        pass
-                if devA and devB and devA == devB:
-                    return E('Não podes enviar dinheiro entre contas do mesmo aparelho.')
-                mesmo_ip = bool(ipA and ipB and ipA == ipB)
-                if mesmo_ip:
-                    dia = time.strftime('%Y-%m-%d')
-                    par = KZIP.get((uid, fid))
-                    totp = par[1] if par and par[0] == dia else 0
-                    if totp + v > KZIP_DIA:
-                        SUS[uid] = 'funil de Kz entre contas no mesmo IP'
-                        return E(f'Contas na mesma rede podem trocar no máximo {KZIP_DIA:,} Kz/dia.'.replace(',', ' '))
+                ferr = _funil_check(uid, fid, v, now)
+                if ferr:
+                    return E(ferr)
                 tem = KZH.get(uid, (0, 0))[1]
                 if v > tem:
                     return E('Não tens esse dinheiro na carteira.')
@@ -1188,8 +1221,7 @@ class H(SimpleHTTPRequestHandler):
                 if tot + v > KZ_DIA:
                     return E(f'Limite diário de transferências: {KZ_DIA:,} Kz.'.replace(',', ' '))
                 KZDAY[uid] = (dia, tot + v)
-                if mesmo_ip:
-                    KZIP[(uid, fid)] = (dia, totp + v)   # só conta transferências que aconteceram
+                _funil_book(uid, fid, v)   # só conta transferências que aconteceram
                 KZH[uid] = (now, tem - v)
                 if fid in KZH:
                     KZH[fid] = (KZH[fid][0], KZH[fid][1] + v)   # o salto na carteira de quem recebe não conta como batota
@@ -1219,6 +1251,10 @@ class H(SimpleHTTPRequestHandler):
                 ap = int(_num(d.get('aposta'), 0, 1_000_000))
                 if ap and KZH.get(uid, (0, 0))[1] < ap:
                     return E('Não tens dinheiro para essa aposta.')
+                if ap:
+                    ferr = _funil_check(uid, fid, ap, now)
+                    if ferr:
+                        return E(ferr)
                 if now - SOCT.get((uid, fid, 'des'), 0) < 20:
                     return E('Já desafiaste esta pessoa há pouco. Espera pela resposta.')
                 SOCT[(uid, fid, 'des')] = now
@@ -1243,9 +1279,13 @@ class H(SimpleHTTPRequestHandler):
                 pa = max(.12, min(.88, .5 + (ds['st'] - meu) / 220))   # probabilidade de o desafiante ganhar
                 ganhou_a = random.random() < pa
                 if ap:
+                    ferr = _funil_check(fid, uid, ap, now) or _funil_check(uid, fid, ap, now)
+                    if ferr:
+                        return E(ferr)
                     a0, b0 = KZH.get(fid, (now, 0)), KZH.get(uid, (now, 0))
                     KZH[fid] = (a0[0], a0[1] + (ap if ganhou_a else -ap))
                     KZH[uid] = (b0[0], b0[1] + (-ap if ganhou_a else ap))
+                    _funil_book(uid, fid, ap) if ganhou_a else _funil_book(fid, uid, ap)
                 sa, sb = ds['st'], meu
                 _ev(fid, {'t': 'desafio_res', 'win': ganhou_a, 'v': ap, 'tipo': ds['tipo'], 'vs': nick, 'id': uid, 'eu': sa, 'ele': sb})
                 return J({'ok': True, 'win': not ganhou_a, 'v': ap, 'tipo': ds['tipo'], 'vs': ds['nick'], 'eu': sb, 'ele': sa})
