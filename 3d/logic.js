@@ -750,7 +750,8 @@ function applyJob(id) {
     G.cunha = 0;
     if (j.outfit) { unlockOutfit(j.outfit); if (!j.part || !G.roupa) G.roupa = j.outfit; }
     G.historico.push(j.t);
-    after(`🎉 Foste contratado(a): <b>${j.t}</b>! Salário: ${kzShort(salario(e))}/ano. ` + fx({ felicidade: 10 }), 'good', 'cheer');
+    { const sl = salario(e), fm = !j.informal, irt = fm ? vrIRT(sl) : 0, inss = fm ? Math.round(sl * .03) : 0;
+      after(`🎉 Foste contratado(a): <b>${j.t}</b>! Salário: ${kzShort(sl)}/ano${fm ? ` (≈${kzShort(sl - irt - inss)} líquidos após IRT e INSS)` : ''}. ` + fx({ felicidade: 10 }), 'good', 'cheer'); }
     if (typeof checkPlayerLook === 'function') checkPlayerLook();
   } else {
     after(`Candidatura a ${j.t}: ` + pick(['A entrevista correu mal. O lugar foi para o sobrinho do diretor.', 'Disseram que iam ligar... nunca ligaram.', 'Pediram "gasosa" para avançar o processo.', 'Havia 300 candidatos para uma vaga.']) + ' ' + fx({ felicidade: -4 }), 'bad', 'sad');
@@ -1310,7 +1311,8 @@ function ageUpLogic() {
       if (!e) return; const j = job(e.id);
       e.anos++; e.anosNivel++;
       const s = salario(e); G.dinheiro += s;
-      addLog(`💼 ${key === 'part' ? 'Part-time' : 'Salário'} como ${jobTitle(e)}: +${kzShort(s)}.`);
+      const fm = !j.informal, irt = fm ? vrIRT(s) : 0, inss = fm ? Math.round(s * .03) : 0;
+      addLog(`💼 ${key === 'part' ? 'Part-time' : 'Salário'} como ${jobTitle(e)}: <b>+${kzShort(s)}</b>/ano brutos.${fm ? ` Ficas com ≈<b>${kzShort(s - irt - inss)}</b> depois do IRT (−${kzShort(irt)}) e do INSS 3% (−${kzShort(inss)}), descontados no fecho do ano.` : ' Trabalho informal: sem descontos, mas também sem INSS para a reforma.'}`);
       e.desemp = clamp(e.desemp - R(4, 10) + (G.stats.inteligencia > 60 ? 2 : 0));
       if (e.id === 'kudurista') fx({ fama: R(0, 3) });
       if (e.id === 'deputado') fx({ karma: -2, fama: 2 });

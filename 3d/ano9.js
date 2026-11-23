@@ -107,6 +107,20 @@ function a9Modal() {
   ageUpUI = function () {
     if (!G || !G.vivo || mode !== 'game' || busy || modalOpen) return _aui.apply(this, arguments);
     if (!window.A9_DEV && !a9Estado().ready) return a9Modal();
+    if (!window.A9_DEV && typeof Acc !== 'undefined' && Acc.online && Acc.token) {
+      if (A9.srvBusy) return;
+      A9.srvBusy = true;
+      fetch('/api/ano', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + Acc.token }, body: '{}' })
+        .then(r => (r.ok ? r.json() : null)).then(d => {
+          A9.srvBusy = false;
+          if (!d || d.ok) { if (d && d.ok) { const a = a9G(); a.n = Math.max(0, d.n - 1); } return _aui.apply(this, arguments); }  /* o hook do ageUpLogic faz a.n++ → fica igual ao do servidor */
+          const a = a9G();
+          if (d.cedo) { a.p = 0; a.ms = 0; toast(`⏱️ O servidor pede calma: fechaste anos demasiado seguidos. Espera ${Math.max(1, Math.ceil((d.espera || 0) / 60))} min.`); }
+          else { a.n = A9.MAX_DIA; toast(`🌙 O servidor confirma: já viveste ${A9.MAX_DIA} anos hoje. Amanhã há mais.`); }
+          a9Hud(); save();
+        }).catch(() => { A9.srvBusy = false; return _aui.apply(this, arguments); });
+      return;
+    }
     return _aui.apply(this, arguments);
   };
   // fechar o ano: zera a barra

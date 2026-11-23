@@ -1372,9 +1372,9 @@ function updateWorld(dt) {
   Object.values(markers).forEach(m => {
     if (!m.g.visible) return;
     const d = Math.hypot(m.L.x - playerPos.x, m.L.z - playerPos.z), dc = Math.hypot(m.L.x - camera.position.x, m.L.z - camera.position.z);
-    const mid = d > 5 && d < 30 && dc > 7, lo = mid ? Math.min(1, (d - 5) / 3, (30 - d) / 6) : 0;
+    const mid = d > 5 && d < 46 && dc > 7, lo = mid ? Math.min(1, (d - 5) / 3, (46 - d) / 8) : 0;
     m.label.visible = lo > .02; m.label.material.opacity = lo; m.label.position.y = 3.3 + Math.sin(wTime * 2) * .08;
-    m.badge.visible = d >= 26 && d < 110; m.badge.material.opacity = Math.min(.9, (d - 26) / 6);
+    m.badge.visible = d >= 14 && d < 170; m.badge.material.opacity = Math.min(.9, (d - 14) / 8); m.badge.position.y = 3.6 + Math.sin(wTime * 2 + m.t0) * .12;
     const near = d < 5; m.dm.opacity = near ? .85 + Math.sin(wTime * 4 + m.t0) * .12 : .55; const sc = 1 + Math.sin(wTime * 2.5 + m.t0) * .03 + (near ? .04 : 0); m.decal.scale.set(sc, sc, 1);
   });
   // vans

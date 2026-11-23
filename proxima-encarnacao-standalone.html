@@ -2319,7 +2319,8 @@ function applyJob(id) {
     G.cunha = 0;
     if (j.outfit) { unlockOutfit(j.outfit); if (!j.part || !G.roupa) G.roupa = j.outfit; }
     G.historico.push(j.t);
-    after(`🎉 Foste contratado(a): <b>${j.t}</b>! Salário: ${kzShort(salario(e))}/ano. ` + fx({ felicidade: 10 }), 'good', 'cheer');
+    { const sl = salario(e), fm = !j.informal, irt = fm ? vrIRT(sl) : 0, inss = fm ? Math.round(sl * .03) : 0;
+      after(`🎉 Foste contratado(a): <b>${j.t}</b>! Salário: ${kzShort(sl)}/ano${fm ? ` (≈${kzShort(sl - irt - inss)} líquidos após IRT e INSS)` : ''}. ` + fx({ felicidade: 10 }), 'good', 'cheer'); }
     if (typeof checkPlayerLook === 'function') checkPlayerLook();
   } else {
     after(`Candidatura a ${j.t}: ` + pick(['A entrevista correu mal. O lugar foi para o sobrinho do diretor.', 'Disseram que iam ligar... nunca ligaram.', 'Pediram "gasosa" para avançar o processo.', 'Havia 300 candidatos para uma vaga.']) + ' ' + fx({ felicidade: -4 }), 'bad', 'sad');
@@ -2879,7 +2880,8 @@ function ageUpLogic() {
       if (!e) return; const j = job(e.id);
       e.anos++; e.anosNivel++;
       const s = salario(e); G.dinheiro += s;
-      addLog(`💼 ${key === 'part' ? 'Part-time' : 'Salário'} como ${jobTitle(e)}: +${kzShort(s)}.`);
+      const fm = !j.informal, irt = fm ? vrIRT(s) : 0, inss = fm ? Math.round(s * .03) : 0;
+      addLog(`💼 ${key === 'part' ? 'Part-time' : 'Salário'} como ${jobTitle(e)}: <b>+${kzShort(s)}</b>/ano brutos.${fm ? ` Ficas com ≈<b>${kzShort(s - irt - inss)}</b> depois do IRT (−${kzShort(irt)}) e do INSS 3% (−${kzShort(inss)}), descontados no fecho do ano.` : ' Trabalho informal: sem descontos, mas também sem INSS para a reforma.'}`);
       e.desemp = clamp(e.desemp - R(4, 10) + (G.stats.inteligencia > 60 ? 2 : 0));
       if (e.id === 'kudurista') fx({ fama: R(0, 3) });
       if (e.id === 'deputado') fx({ karma: -2, fama: 2 });
@@ -4626,9 +4628,9 @@ function updateWorld(dt) {
   Object.values(markers).forEach(m => {
     if (!m.g.visible) return;
     const d = Math.hypot(m.L.x - playerPos.x, m.L.z - playerPos.z), dc = Math.hypot(m.L.x - camera.position.x, m.L.z - camera.position.z);
-    const mid = d > 5 && d < 30 && dc > 7, lo = mid ? Math.min(1, (d - 5) / 3, (30 - d) / 6) : 0;
+    const mid = d > 5 && d < 46 && dc > 7, lo = mid ? Math.min(1, (d - 5) / 3, (46 - d) / 8) : 0;
     m.label.visible = lo > .02; m.label.material.opacity = lo; m.label.position.y = 3.3 + Math.sin(wTime * 2) * .08;
-    m.badge.visible = d >= 26 && d < 110; m.badge.material.opacity = Math.min(.9, (d - 26) / 6);
+    m.badge.visible = d >= 14 && d < 170; m.badge.material.opacity = Math.min(.9, (d - 14) / 8); m.badge.position.y = 3.6 + Math.sin(wTime * 2 + m.t0) * .12;
     const near = d < 5; m.dm.opacity = near ? .85 + Math.sin(wTime * 4 + m.t0) * .12 : .55; const sc = 1 + Math.sin(wTime * 2.5 + m.t0) * .03 + (near ? .04 : 0); m.decal.scale.set(sc, sc, 1);
   });
   // vans
@@ -9664,7 +9666,7 @@ async function mpTick() {
     if (!(Acc.online && Acc.token && G && player && mode === 'game')) { wait = 1000; return; }
     if (MP.busy) return;
     const room = mpRoom();
-    if (room !== MP.room) { MP.room = room; for (const id of [...MP.others.keys()]) mpRemove(id); }
+    if (room !== MP.room) { MP.room = room; MP.roomN = -1; for (const id of [...MP.others.keys()]) mpRemove(id); }
     const now = performance.now(), p = playerPos;
     let mv = 0;
     if (MP.last) { const sp = Math.hypot(p.x - MP.last.x, p.z - MP.last.z) / Math.max(.05, (now - MP.lastT) / 1000); mv = sp > 7 ? 2 : sp > .4 ? 1 : 0; }
@@ -9691,6 +9693,12 @@ async function mpTick() {
     if (d.sh) { if (MP.sh && MP.sh !== d.sh) { for (const id of [...MP.others.keys()]) mpRemove(id); MP.since = 0; mpSys(`Estás agora em Luanda ${d.sh}.`); } MP.sh = d.sh; MP.shOn = d.shOn; MP.shards = d.shards || []; MP.shCap = d.shCap; localStorage.setItem('pe3d_sh', d.sh); }
     const on = document.getElementById('mpOn'); if (on) on.textContent = d.online;
     if (MP.room === room) mpApply(d.players || []);
+    {   // salas: ao entrar num prédio diz quantas pessoas lá estão; avisa quando entra alguém
+      const nn = (d.players || []).length, iv = room !== 'rua' && !room.startsWith('casa#');
+      if (MP.roomN === -1) { if (iv) toast(nn ? `👥 ${nn === 1 ? '1 pessoa está' : nn + ' pessoas estão'} aqui em ${mpRoomName(room)} — falem no chat ou por voz.` : `🚪 ${mpRoomName(room)}: és o(a) único(a) aqui dentro por agora.`); }
+      else if (iv && nn > MP.roomN) mpSys(nn - MP.roomN === 1 ? 'Alguém entrou na sala.' : `${nn - MP.roomN} pessoas entraram na sala.`);
+      MP.roomN = nn;
+    }
     if (MP.plOpen) mpRenderPl(d.online);
     const first = !MP.since;
     for (const m of d.chat || []) {
@@ -14624,7 +14632,7 @@ const V4K = {
       price: s ? kzShort(s / 12) + '/mês' : 'variável',
       keys: [f.length ? [`✗ ${f.length} requisito${f.length > 1 ? 's' : ''}`, 'no'] : ['✓ Requisitos', 'ok']].concat(j.niv ? [[`${j.niv.length} níveis`]] : []).concat(j.part ? [['Part-time']] : []),
       desc: `${j.ico} <b>${j.t}</b> — ${j.cat}. ${j.niv ? `Começas como <b>${j.niv[0]}</b> e, com bom desempenho e anos de casa, podes ser promovido(a).` : 'Trabalho sem escada de carreira: o salário sobe com aumentos e experiência.'}`,
-      stats: [{ l: 'Salário inicial', v: s, txt: s ? kzShort(s) + '/ano' : (j.varFama ? 'Varia com a fama' : 'Varia com seguidores') }, { l: 'Por mês', v: s / 12, txt: s ? kzShort(s / 12) : '—' },
+      stats: [{ l: 'Salário inicial', v: s, txt: s ? kzShort(s) + '/ano' : (j.varFama ? 'Varia com a fama' : 'Varia com seguidores') }, { l: 'Líquido (IRT+INSS)', v: s && !j.informal ? s - vrIRT(s) - Math.round(s * .03) : s, txt: s ? (j.informal ? 'sem descontos (informal)' : '≈' + kzShort(s - vrIRT(s) - Math.round(s * .03)) + '/ano') : '—' }, { l: 'Por mês', v: s / 12, txt: s ? kzShort(s / 12) : '—' },
         { l: 'Topo da carreira', v: top || 0, txt: top ? kzShort(top) + '/ano' : '—' }, { l: 'Níveis de carreira', v: j.niv ? j.niv.length : 1, txt: String(j.niv ? j.niv.length : 1), pct: (j.niv ? j.niv.length : 1) / 5 * 100 }],
       career: j.niv, careerT: 'Carreira', pros, cons, reqs: V4_REQL(j.req || {}),
       acts: [{ l: mine ? '✓ Já trabalhas aqui' : '📨 Candidatar-me', code: `applyJob('${id}')`, pri: true, dis: f.length > 0 || mine, why: f.length ? 'Falta: ' + f.join(', ') : '',
@@ -19061,6 +19069,20 @@ function a9Modal() {
   ageUpUI = function () {
     if (!G || !G.vivo || mode !== 'game' || busy || modalOpen) return _aui.apply(this, arguments);
     if (!window.A9_DEV && !a9Estado().ready) return a9Modal();
+    if (!window.A9_DEV && typeof Acc !== 'undefined' && Acc.online && Acc.token) {
+      if (A9.srvBusy) return;
+      A9.srvBusy = true;
+      fetch('/api/ano', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + Acc.token }, body: '{}' })
+        .then(r => (r.ok ? r.json() : null)).then(d => {
+          A9.srvBusy = false;
+          if (!d || d.ok) { if (d && d.ok) { const a = a9G(); a.n = Math.max(0, d.n - 1); } return _aui.apply(this, arguments); }  /* o hook do ageUpLogic faz a.n++ → fica igual ao do servidor */
+          const a = a9G();
+          if (d.cedo) { a.p = 0; a.ms = 0; toast(`⏱️ O servidor pede calma: fechaste anos demasiado seguidos. Espera ${Math.max(1, Math.ceil((d.espera || 0) / 60))} min.`); }
+          else { a.n = A9.MAX_DIA; toast(`🌙 O servidor confirma: já viveste ${A9.MAX_DIA} anos hoje. Amanhã há mais.`); }
+          a9Hud(); save();
+        }).catch(() => { A9.srvBusy = false; return _aui.apply(this, arguments); });
+      return;
+    }
     return _aui.apply(this, arguments);
   };
   // fechar o ano: zera a barra

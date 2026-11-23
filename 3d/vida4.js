@@ -323,7 +323,7 @@ const V4K = {
       price: s ? kzShort(s / 12) + '/mês' : 'variável',
       keys: [f.length ? [`✗ ${f.length} requisito${f.length > 1 ? 's' : ''}`, 'no'] : ['✓ Requisitos', 'ok']].concat(j.niv ? [[`${j.niv.length} níveis`]] : []).concat(j.part ? [['Part-time']] : []),
       desc: `${j.ico} <b>${j.t}</b> — ${j.cat}. ${j.niv ? `Começas como <b>${j.niv[0]}</b> e, com bom desempenho e anos de casa, podes ser promovido(a).` : 'Trabalho sem escada de carreira: o salário sobe com aumentos e experiência.'}`,
-      stats: [{ l: 'Salário inicial', v: s, txt: s ? kzShort(s) + '/ano' : (j.varFama ? 'Varia com a fama' : 'Varia com seguidores') }, { l: 'Por mês', v: s / 12, txt: s ? kzShort(s / 12) : '—' },
+      stats: [{ l: 'Salário inicial', v: s, txt: s ? kzShort(s) + '/ano' : (j.varFama ? 'Varia com a fama' : 'Varia com seguidores') }, { l: 'Líquido (IRT+INSS)', v: s && !j.informal ? s - vrIRT(s) - Math.round(s * .03) : s, txt: s ? (j.informal ? 'sem descontos (informal)' : '≈' + kzShort(s - vrIRT(s) - Math.round(s * .03)) + '/ano') : '—' }, { l: 'Por mês', v: s / 12, txt: s ? kzShort(s / 12) : '—' },
         { l: 'Topo da carreira', v: top || 0, txt: top ? kzShort(top) + '/ano' : '—' }, { l: 'Níveis de carreira', v: j.niv ? j.niv.length : 1, txt: String(j.niv ? j.niv.length : 1), pct: (j.niv ? j.niv.length : 1) / 5 * 100 }],
       career: j.niv, careerT: 'Carreira', pros, cons, reqs: V4_REQL(j.req || {}),
       acts: [{ l: mine ? '✓ Já trabalhas aqui' : '📨 Candidatar-me', code: `applyJob('${id}')`, pri: true, dis: f.length > 0 || mine, why: f.length ? 'Falta: ' + f.join(', ') : '',

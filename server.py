@@ -48,7 +48,7 @@ CHAT = deque(maxlen=200)
 SEQ = [0]
 TOKC = {}             # token -> (uid, nome, t)
 STRIKES, MUTE, LASTMSG, NICKC = {}, {}, {}, {}
-MP_TIMEOUT = 10
+MP_TIMEOUT = 25   # rede móvel real tem falhas; só expira quem some mesmo
 PERTO = 35           # metros: alcance do chat "perto"
 DED = deque(maxlen=80)   # dedicatórias nas rádios ao vivo
 DSEQ = [0]
@@ -105,6 +105,7 @@ def _sys(txt, sh=None):
 # ----- escala: cidades paralelas (shards), cache agregada por segundo -----
 SHARD_CAP = int(os.environ.get('SHARD_CAP', 250))
 SAVE_S = max(10, int(os.environ.get('SAVE_S', 15)))        # o cliente grava no servidor no máximo 1 vez a cada SAVE_S s
+ANO_GAP = 20*60   # segundos mínimos entre anos fechados (o cliente pede 25 min; o servidor dá margem)
 POLL_MUL = max(1.0, min(3.0, float(os.environ.get('POLL_MUL', 1))))   # >1 = clientes perguntam menos vezes (menos tráfego)   # jogadores por cidade paralela
 VIEW = 140                                          # só recebes jogadores a menos de 140 m (na rua)
 MAX_PS = 24                                         # e no máximo os 24 mais perto
@@ -1395,6 +1396,22 @@ class H(SimpleHTTPRequestHandler):
                 with db() as c:
                     c.execute(f"UPDATE users SET {', '.join(sets)} WHERE id=?", (*args, who[0]))
             return self.send_json(200, {'ok': True})
+        if p == '/api/ano':   # fechar o ano: o servidor é a autoridade no limite de 3 por dia real
+            who = self.mp_uid()
+            if not who:
+                return self.send_json(401, {'erro': 'Sessão inválida. Entra outra vez.'})
+            uid = who[0]; now = time.time(); hoje = time.strftime('%Y-%m-%d')
+            with db() as c:
+                r = c.execute('SELECT dia,n,ts FROM anos WHERE uid=?', (uid,)).fetchone()
+                dia, n, ts = (r[0], int(r[1]), float(r[2])) if r else (None, 0, 0)
+                if dia != hoje:
+                    n = 0
+                if n >= 3:
+                    return self.send_json(200, {'ok': 0, 'n': n, 'max': 3})
+                if ts and now - ts < ANO_GAP:
+                    return self.send_json(200, {'ok': 0, 'cedo': 1, 'espera': int(ANO_GAP - (now - ts))})
+                c.execute('INSERT INTO anos(uid,dia,n,ts) VALUES(?,?,?,?) ON CONFLICT(uid) DO UPDATE SET dia=?,n=?,ts=?', (uid, hoje, n + 1, now, hoje, n + 1, now))
+            return self.send_json(200, {'ok': 1, 'n': n + 1})
         with db() as c:
             if p == '/api/register':
                 nome = str(d.get('nome', '')).strip()[:40]

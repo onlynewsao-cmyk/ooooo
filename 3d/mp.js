@@ -264,7 +264,7 @@ async function mpTick() {
     if (!(Acc.online && Acc.token && G && player && mode === 'game')) { wait = 1000; return; }
     if (MP.busy) return;
     const room = mpRoom();
-    if (room !== MP.room) { MP.room = room; for (const id of [...MP.others.keys()]) mpRemove(id); }
+    if (room !== MP.room) { MP.room = room; MP.roomN = -1; for (const id of [...MP.others.keys()]) mpRemove(id); }
     const now = performance.now(), p = playerPos;
     let mv = 0;
     if (MP.last) { const sp = Math.hypot(p.x - MP.last.x, p.z - MP.last.z) / Math.max(.05, (now - MP.lastT) / 1000); mv = sp > 7 ? 2 : sp > .4 ? 1 : 0; }
@@ -291,6 +291,12 @@ async function mpTick() {
     if (d.sh) { if (MP.sh && MP.sh !== d.sh) { for (const id of [...MP.others.keys()]) mpRemove(id); MP.since = 0; mpSys(`Estás agora em Luanda ${d.sh}.`); } MP.sh = d.sh; MP.shOn = d.shOn; MP.shards = d.shards || []; MP.shCap = d.shCap; localStorage.setItem('pe3d_sh', d.sh); }
     const on = document.getElementById('mpOn'); if (on) on.textContent = d.online;
     if (MP.room === room) mpApply(d.players || []);
+    {   // salas: ao entrar num prédio diz quantas pessoas lá estão; avisa quando entra alguém
+      const nn = (d.players || []).length, iv = room !== 'rua' && !room.startsWith('casa#');
+      if (MP.roomN === -1) { if (iv) toast(nn ? `👥 ${nn === 1 ? '1 pessoa está' : nn + ' pessoas estão'} aqui em ${mpRoomName(room)} — falem no chat ou por voz.` : `🚪 ${mpRoomName(room)}: és o(a) único(a) aqui dentro por agora.`); }
+      else if (iv && nn > MP.roomN) mpSys(nn - MP.roomN === 1 ? 'Alguém entrou na sala.' : `${nn - MP.roomN} pessoas entraram na sala.`);
+      MP.roomN = nn;
+    }
     if (MP.plOpen) mpRenderPl(d.online);
     const first = !MP.since;
     for (const m of d.chat || []) {
