@@ -199,7 +199,7 @@ const LP = { win: null };
 function lpOpen() {
   if (!G.bens.includes('portatil')) return toast('💻 Ainda não tens portátil (450.000 Kz na loja de tecnologia).');
   const apps = [['free', '💼', 'Freelance'], ['aulas', '🎓', 'Aula Online'], ['jogos', '🎮', 'Jogos'], ['news', '📰', 'Notícias'], ['fin', '📊', 'Finanças'], ['mus', '🎵', 'Música']];
-  dvOpen('laptop', '💻 Portátil · Kianda OS', `<div class="lpscr"><div class="lpdesk">${apps.map(([k, i, t]) => `<button onclick="lpApp('${k}')"><i>${i}</i><span>${t}</span></button>`).join('')}</div><div class="lpwin hidden" id="lpWin"><div class="lpwt"><b id="lpWT"></b><button onclick="lpApp(null)">✕</button></div><div class="lpwb" id="lpWB"></div></div><div class="lptask"><span>⊞ Kianda OS</span><span>${G.bens.includes('starlink') ? '🛰️ Céu Net' : '📶 Mbote 4G'}</span><span id="lpClock">${nowTxt()}</span></div></div>`);
+  dvOpen('laptop', '💻 Portátil · Kianda OS', `<div class="lpscr"><div class="lpdesk">${apps.map(([k, i, t]) => `<button onclick="lpApp('${k}')"><i>${i}</i><span>${t}</span></button>`).join('')}</div><div class="lpwin hidden" id="lpWin"><div class="lpwt"><b id="lpWT"></b><button onclick="lpApp(null)">✕</button></div><div class="lpwb" id="lpWB"></div></div><div class="lptask"><span>⊞ Kianda OS</span><span>${G.bens.includes('starlink') ? '🛰️ Céu Net' : '📶 DarkCell 4G'}</span><span id="lpClock">${nowTxt()}</span></div></div>`);
   DV.t = setInterval(() => { const c = document.getElementById('lpClock'); if (c) c.textContent = nowTxt(); }, 5000);
 }
 function lpApp(k) {

@@ -45,6 +45,8 @@ CREATE INDEX IF NOT EXISTS membros_gid ON membros(gid);
 CREATE INDEX IF NOT EXISTS amigos_fid ON amigos(fid);
 CREATE INDEX IF NOT EXISTS ads_exp ON ads(exp);
 CREATE INDEX IF NOT EXISTS users_nome_lower ON users(lower(nome));
+CREATE TABLE IF NOT EXISTS sms(id INTEGER PRIMARY KEY AUTOINCREMENT, de INTEGER, para INTEGER, txt TEXT, ts REAL);
+CREATE INDEX IF NOT EXISTS sms_para ON sms(para);
 '''
 
 SCHEMA_PG = '''
@@ -71,6 +73,8 @@ CREATE INDEX IF NOT EXISTS amigos_fid ON amigos(fid);
 CREATE INDEX IF NOT EXISTS ads_exp ON ads(exp);
 CREATE INDEX IF NOT EXISTS users_nome_lower ON users(lower(nome));
 CREATE INDEX IF NOT EXISTS grupos_nome_lower ON grupos(lower(nome));
+CREATE TABLE IF NOT EXISTS sms(id BIGSERIAL PRIMARY KEY, de BIGINT, para BIGINT, txt TEXT, ts DOUBLE PRECISION);
+CREATE INDEX IF NOT EXISTS sms_para ON sms(para);
 '''
 
 # ---------------------------------------------------------------- tradução SQLite -> PostgreSQL

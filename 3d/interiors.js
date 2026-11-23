@@ -827,9 +827,119 @@ const IV_CASA = {
   },
 };
 
+
+/* ---------- A MINHA CASA: começa VAZIA — os móveis são comprados pelo jogador ---------- */
+const IV_TIER_WH = { simples: [12, 9], bairro: [14, 10], apto: [16, 11], luxo: [20, 14] };
+function ivColchao(x, z, ry) {
+  ivGrp(x, z, ry, () => {
+    ivB(1.5, .2, 2.5, '#8a8f80', 0, .1, 0);
+    ivB(1.3, .08, 1.5, new T.MeshStandardMaterial({ map: waxTex(['#c8102e', '#ffcb00', '#1d1d1d', '#f2f2f2']) }), 0, .22, .35);
+    ivB(.7, .12, .4, '#f4f4f4', 0, .22, -.85);
+  });
+}
+function ivCama(x, z, ry) {
+  ivGrp(x, z, ry, () => {
+    ivB(1.9, .32, 2.6, '#6b4a2a', 0, .16, 0);
+    ivB(1.8, .24, 2.5, '#f4f1ea', 0, .42, 0);
+    ivB(1.7, .1, 1.4, new T.MeshStandardMaterial({ map: waxTex(['#1f63c9', '#ffcb00', '#f2f2f2', '#c8102e']) }), 0, .54, .4);
+    ivB(.75, .13, .45, '#ffffff', -.45, .54, -.9); ivB(.75, .13, .45, '#ffffff', .45, .54, -.9);
+    ivB(1.9, 1, .1, '#6b4a2a', 0, .5, -1.32);
+  });
+}
+function ivFogao(x, z, ry) {
+  ivGrp(x, z, ry, () => {
+    ivB(.9, .85, .65, '#d9d9de', 0, .42, 0, { metalness: .3, roughness: .4 });
+    ivB(.8, .03, .55, '#222222', 0, .86, 0);
+    [[-.2, -.13], [.2, -.13], [-.2, .13], [.2, .13]].forEach(([a, b]) => ivC(.09, .09, .02, '#0a0a0a', a, .88, b, 10));
+    ivB(.66, .38, .03, '#1a1a1a', 0, .34, .34);
+    ivB(.3, .12, .24, '#8a8a8a', -.1, .95, 0);
+  });
+}
+function ivGeladeira(x, z, ry) {
+  ivGrp(x, z, ry, () => {
+    ivB(.8, 1.9, .7, '#f4f4f4', 0, .95, 0, { roughness: .3, metalness: .2 });
+    ivB(.05, .55, .05, '#999999', .3, 1.15, .37);
+    ivB(.78, .03, .68, '#cccccc', 0, 1.25, 0);
+  });
+}
+function ivSomCasa(x, z, ry) {
+  ivGrp(x, z, ry, () => {
+    ivB(.32, .75, .32, '#161616', -.55, .37, 0); ivB(.32, .75, .32, '#161616', .55, .37, 0);
+    ivB(.55, .28, .32, '#242424', 0, .5, 0); ivB(.45, .13, .02, '#3a86ff', 0, .5, .17);
+  });
+}
+function ivCasaVazia(D, tier) {
+  tier = IV_TIER_WH[tier] ? tier : 'bairro';
+  const [W, H] = IV_TIER_WH[tier];
+  const M = (G && G.moveis) || [];
+  const tem = id => M.includes(id);
+  if (tier === 'simples') { ivRoom(D, { w: 12, d: 9, h: 3.6, ftex: ivFloorTex('cement', '#8f857a', '#000'), frep: 3, fr: 1, wall: '#6fa8a0', wains: '#4a7f78', wainsH: .9, trim: '#3a5a55', bg: '#141210', dist: 12.5, door: '#3a6aa8', doorFrame: '#5a3a1e' }); ivWindow(D, 'back', -3.8, 1.3, 1.4, 1.1, 'bairro', '#5a3a1e'); }
+  else if (tier === 'bairro') { ivRoom(D, { w: 14, d: 10, h: 3.8, ftex: ivFloorTex('tile', '#eadfcb', '#d6c6aa'), frep: 2.4, fr: .4, wall: '#f2e6c8', wains: '#c9a77a', trim: '#8a6a48', bg: '#16120e', dist: 13.5 }); ivWindow(D, 'back', 4.6, 1.2, 1.8, 1.5, 'bairro', '#f4f1ea'); }
+  else if (tier === 'apto') { ivRoom(D, { w: 16, d: 11, h: 4, ftex: ivFloorTex('wood', '#c49a6c', '#000'), frep: 4, fr: .5, wall: '#f4f1ec', trim: '#9a8a78', bg: '#101418', dist: 14.5, door: '#3d5a73' }); ivWindow(D, 'back', 2.6, .9, 3.6, 2.6, 'city', '#2a2a2a'); }
+  else { ivRoom(D, { w: 20, d: 14, h: 5, ftex: ivFloorTex('marble', '#f4f0e9', '#ddd5c8'), frep: 5, fr: .12, fm: .1, wall: '#f7f4ef', trim: '#c9a227', bg: '#0e1216', dist: 17, door: '#2a2a2a' }); ivGlassWall(D, 'pool', '#c9a227'); }
+  IVP = D.st;
+  if (!M.length) {
+    // casa acabada de comprar: vazia, com as caixas da mudança
+    ivB(.6, .5, .6, '#a87f4f', W * .12, .25, H * .16); ivB(.5, .45, .5, '#96703f', W * .12 + .8, .22, H * .16 - .2); ivB(.5, .4, .5, '#b08a55', W * .12 + .35, .68, H * .16, null, false);
+    ivCol(D, W * .12 + .3, H * .16, 1.4, 1.2);
+    ivB(.5, .04, .3, '#7a6a55', -W * .1, .02, H * .2, null, false);   // tapete velho enrolado
+  }
+  const ax = (fx, fz) => [W * fx, -H * fz];
+  if (tem('cama')) { const [x, z] = ax(.34, .36); ivCama(x, z, 0); ivCol(D, x, z, 2, 2.7); }
+  else if (tem('colchao')) { const [x, z] = ax(.34, .36); ivColchao(x, z, 0); ivCol(D, x, z, 1.6, 2.5); }
+  if (tem('sofa')) { const [x, z] = ax(-.16, .16); ivSofa(x, z, Math.PI, tier === 'luxo' ? '#f4f1ea' : tier === 'apto' ? '#7a8794' : '#a3482a', Math.min(3.2, W * .22)); ivCol(D, x, z, Math.min(3.4, W * .24), 1); }
+  if (tem('tv')) { const [x, z] = ax(-.16, .44); ivB(2.2, .55, .5, tier === 'simples' ? '#6b4a2a' : '#1d1d1d', x, 0, z); ivTV(x, .68, z - .12, 0, tier === 'luxo' ? 2.6 : 1.5); ivCol(D, x, z, 2.3, .6); }
+  if (tem('mesa')) { const [x, z] = ax(.26, .24); ivTable(x, z, Math.min(2.4, W * .16), 1, .76, tier === 'simples' ? '#7a5236' : '#6b4423'); ivChair(x - .6, z - .75, 0, '#7a5236'); ivChair(x + .6, z - .75, 0, '#7a5236'); ivChair(x, z + .75, Math.PI, '#7a5236'); ivCol(D, x, z, 2.4, 1.8); }
+  if (tem('fogao')) { const [x, z] = ax(-.44, .42); ivFogao(x, z, 0); ivCol(D, x, z, 1, .8); }
+  if (tem('geladeira')) { const [x, z] = ax(-.44, .28); ivGeladeira(x, z, 0); ivCol(D, x, z, .9, .8); }
+  if (tem('guardaroupa')) { const [x, z] = ax(.465, .3); ivWardrobe(x, z, -Math.PI / 2, Math.min(2.4, H * .22), 2.3, tier === 'luxo' ? '#1d1d1d' : '#8a5a3a'); ivCol(D, x, z, .7, 2.4); }
+  if (tem('som')) { const [x, z] = ax(-.42, -.34); ivSomCasa(x, z, Math.PI); ivCol(D, x, z, 1.4, .5); }
+  if (tem('tapete')) ivRug(0, -H * .06, Math.min(4.6, W * .32), Math.min(3.2, H * .3), null, ivRugTex(tier === 'luxo' ? '#1d1d1d' : '#8a1a2a', '#ffcb00', tier === 'luxo' ? '#c9a227' : '#1d1d1d'));
+  if (tem('candeeiro')) ivLampF(-W * .45, H * .36);
+  if (tem('pc')) { const [x, z] = ax(-.44, -.22); ivTable(x, z, .75, 1.2, .76, '#6b4423'); ivLaptop(x, .77, z, Math.PI / 2); ivChair(x + .75, z, -Math.PI / 2, '#3d5a73'); ivCol(D, x, z, 1.5, 1.3); }
+  if (tem('candeeiro') || tier !== 'simples') ivPlant(W * .46, H * .4, 1);
+  ivLights(D, { hi: tem('candeeiro') ? .72 : .58, ki: .6, points: [[0, 3, -1, tem('candeeiro') ? '#ffe6c0' : '#d9c9a8', .8, 10]] });
+  const ST = {
+    simples: { main: [-1, -1.1, 0, [-1, -3.5, 1.6, 1.4, 1.2]], fam: [2.4, -1, Math.PI, [2.4, -2.2, 1.5, 1, 1.2]], roupa: [-4.4, -2.6, -Math.PI / 2, [-5.7, -2.6, .4, 2.6, 1.8]], diario: [4.8, -1.4, Math.PI, [4.8, -3.3, 1.9, 2, .8]] },
+    bairro: { main: [-2.6, -3.4, 0, [-2.6, -2, 3, 2.6, 1.4]], fam: [3, -.3, Math.PI, [3, -2, 2, 1.8, 1]], roupa: [5.4, -3.2, Math.PI / 2, [6.6, -3.2, .7, 2.1, 2.3]], diario: [-5.1, 2.1, -Math.PI / 2, [-6.4, 2.1, .8, 1.3, 1]] },
+    apto: { main: [-3.6, -3.9, 0, [-3.6, -2.2, 3.4, 2.4, 1.3]], fam: [2.8, 1, Math.PI, [2.8, -.8, 2.6, 2, 1]], roupa: [6.3, -1.2, Math.PI / 2, [7.6, -1.2, .7, 2.3, 2.4]], diario: [-6.2, 1.4, -Math.PI / 2, [-7.5, 1.4, .8, 1.5, 1]] },
+    luxo: { main: [-4, -4.6, 0, [-4, -2.4, 4, 2.6, 1.3]], fam: [4.5, 1, Math.PI, [4.5, -1.2, 4.2, 2.3, 1]], roupa: [8.2, -4, Math.PI / 2, [9.6, -4, .7, 3.1, 2.6]], diario: [-7.6, 2.4, -Math.PI / 2, [-9.1, 2.4, 1.8, 2, 1]] },
+  };
+  ivCasaStations(D, ST[tier]);
+  if (G && G.parceiro && G.parceiro.juntos && tem('sofa')) { const [x, z] = ax(-.16, .16); ivNPC(D, x, z, Math.PI, { mode: 'sit', seat: .48, fem: G.parceiro.g === 'F' }); }
+}
+
+/* ---------- Abrigo da Missão (quando não tens casa) ---------- */
+function ivAbrigo(D) {
+  ivRoom(D, { w: 13, d: 9, h: 3.4, ftex: ivFloorTex('cement', '#7f7a70', '#000'), frep: 3, fr: 1, wall: '#8a9a8a', wains: '#5a6a5a', wainsH: 1, trim: '#3a4a3a', bg: '#121410', dist: 12.5, door: '#4a6a4a', doorFrame: '#3a3a2a' });
+  ivWindow(D, 'back', -3, 1.4, 1.4, 1, 'bairro', '#4a4a3a'); ivWindow(D, 'back', 3, 1.4, 1.4, 1, 'bairro', '#4a4a3a');
+  IVP = D.st;
+  for (let i = 0; i < 3; i++) {
+    const bx = -4 + i * 2.6;
+    ivGrp(bx, -2.8, 0, () => {
+      ivB(1.4, .3, 2.2, '#4a5a6a', 0, .15, 0);
+      ivB(1.3, .12, 2.1, '#7a8a9a', 0, .36, 0);
+      ivB(1.2, .08, 1.2, '#a34a3a', 0, .42, .3);
+    });
+    ivCol(D, bx, -2.8, 1.5, 2.3);
+  }
+  ivTable(3.8, -3.2, 1.6, .9, .76, '#5a4a3a'); ivCol(D, 3.8, -3.2, 1.7, 1);
+  ivB(.4, .3, .3, '#c8b090', 3.8, .78, -3.2, null, false);
+  ivB(.5, .2, .35, '#d9d9de', 3.2, .76, -3.4, null, false);
+  ivLights(D, { hi: .62, ki: .55, points: [[0, 2.9, -1, '#ffe6c0', .8, 9]] });
+  ivStation(D, { x: 0, z: -.6, ry: 0, tab: 'main', ico: '🏚️', label: 'Abrigo da Missão', hit: [0, -2.2, 2.6, 1.6, 1.2] });
+  ivStation(D, { x: 3.8, z: -1.6, ry: Math.PI, tab: 'fam', ico: '🍲', label: 'Sopa dos pobres', hit: [3.8, -3.2, 1.8, 1.2, 1] });
+  ivNPC(D, -1.4, -2.8, 0, { mode: 'sit' }); ivNPC(D, 4.4, -3.4, Math.PI, { mode: 'idle', fem: true });
+}
+
 function ivBuild(id, key) {
   const D = ivNew(id);
-  if (id === 'casa') IV_CASA[key.split(':')[1]](D); else IV_ROOMS[id](D);
+  if (id === 'casa') {
+    const p = key.split(':');
+    if (p[1] === 'minha') ivCasaVazia(D, p[2]);       // casa própria/arrendada: começa vazia, mostra os móveis comprados
+    else if (p[1] === 'abrigo') ivAbrigo(D);          // sem casa: Abrigo da Missão
+    else IV_CASA[p[2] || 'bairro'](D);                // casa dos pais: mobilada pela família
+  } else IV_ROOMS[id](D);
   ivFinish(D);
   D.hall = { x: 0, z: D.d / 2 - 1.3 };
   return D;
@@ -841,9 +951,15 @@ function ivBuild(id, key) {
 const IV_IDS = ['casa', 'empresa', 'banco', 'emprego', 'escola', 'clinica', 'igreja', 'ginasio', 'shopping', 'farra', 'obras', 'imobiliaria', 'cela'];
 function ivBase(D) { return D.dist * (camera.aspect < .8 ? 1.5 : 1); }
 function ivNight() { return Math.sin(dayT * Math.PI * 2 - Math.PI / 2) < -.05; }
+function ivCasaKey() {
+  if (!G) return 'casa:pais:bairro';
+  if (G.casa.tipo === 'rua') return 'casa:abrigo';
+  if (G.casa.tipo === 'propria' || G.casa.tipo === 'arrendada') return 'casa:minha:' + ivCasaTier() + ':' + (G.moveis || []).slice().sort().join('.');
+  return 'casa:pais:' + ivCasaTier();
+}
 function ivEnter(id) {
   const L = LOC_POS[id]; if (!L || !player) return openPanel(id);
-  const key = id === 'casa' ? 'casa:' + ivCasaTier() : id;
+  const key = id === 'casa' ? ivCasaKey() : id;
   const f = $('#fade'); f.innerHTML = `<div><small>A entrar em…</small><b style="font-size:34px">${L.ico} ${L.n}</b></div>`; f.classList.add('on'); uiBlocked = true; autoGo = null;
   closePanel(); if (typeof closePhone === 'function') closePhone();
   setTimeout(() => {
@@ -861,7 +977,7 @@ function ivEnter(id) {
     ivCamSnap();
     f.classList.remove('on'); uiBlocked = false;
     const st = D.stations[0]; ivGo = { path: [D.hall, st], st, t: 0, stuck: 0 };
-    toast(id === 'casa' ? (G.casa && G.casa.tipo === 'rua' ? '🏚️ Abrigo da Missão: sopa, banho e uma cama. Trabalha para sair da rua!' : '🏠 Estás em casa. Toca nos móveis para descansar, ver TV ou falar com a família.') : `${L.ico} Bem-vindo(a) a ${L.n}! Toca nos balcões para falar com as pessoas.`);
+    toast(id === 'casa' ? (G.casa && G.casa.tipo === 'rua' ? '🏚️ Abrigo da Missão: sopa, banho e uma cama. Trabalha para sair da rua!' : G.casa.tipo === 'pais' ? '👨‍👩‍👧 Casa dos teus pais — aqui tens tudo, mas a independência é lá fora.' : !(G.moveis || []).length ? '🏠 A tua casa está VAZIA! Vai à Imobiliária → 🪑 Móveis para mobilar (colchão, fogão, TV…).' : '🏠 Estás em casa. Toca nos móveis para descansar, ver TV ou falar com a família.') : `${L.ico} Bem-vindo(a) a ${L.n}! Toca nos balcões para falar com as pessoas.`);
   }, 380);
 }
 function ivExit(instant) {
@@ -997,7 +1113,7 @@ function ivTap(id) {
 (function ivHook() {
   const _openLoc = openLocation;
   openLocation = function (id) {
-    if (inInt) { if (id === inInt.loc && (id !== 'casa' || IV_CACHE['casa:' + ivCasaTier()] === inInt)) return openPanel(id); ivExit(true); }
+    if (inInt) { if (id === inInt.loc && (id !== 'casa' || IV_CACHE[ivCasaKey()] === inInt)) return openPanel(id); ivExit(true); }
     if (IV_IDS.includes(id) && mode === 'game' && player && worldScene && G) {
       if (G.preso > 0 && id !== 'cela') return toast('🔒 Estás preso(a)! Não podes sair da cela.');
       return ivEnter(id);

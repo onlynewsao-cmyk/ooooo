@@ -341,6 +341,38 @@ const zonaCasa = id => ZONAS_CASA.find(z => z.id === id) || ZONAS_CASA[2];
 const precoCasa = C => Math.round(C.preco * cid().custo / 50000) * 50000; // o preço muda com a cidade
 const nivelCidade = P => P.custo >= .9 ? 'rica' : P.custo >= .75 ? 'media' : 'pobre';
 const casaT = id => CASAS.find(c => c.id === id);
+
+/* ---------------- MÓVEIS (a casa compra-se vazia — mobilar é contigo) ---------------- */
+const MOVEIS = [
+  { id: 'colchao', t: 'Colchão', ico: '🛏️', p: 25000, d: 'Dormir em casa sem ser no chão frio' },
+  { id: 'cama', t: 'Cama com colchão', ico: '🛏️', p: 180000, d: 'Dormir a sério: energia no máximo e +saúde' },
+  { id: 'mesa', t: 'Mesa e cadeiras', ico: '🪑', p: 85000, d: 'Refeições sentado(a), receber visitas' },
+  { id: 'fogao', t: 'Fogão a gás', ico: '🍳', p: 130000, d: 'Cozinhar em casa — a comida mais barata' },
+  { id: 'geladeira', t: 'Geladeira', ico: '🧊', p: 260000, d: 'Comida guardada: acordas com menos fome' },
+  { id: 'sofa', t: 'Sofá', ico: '🛋️', p: 210000, d: 'Descansar, ver TV e receber kambas' },
+  { id: 'tv', t: 'TV LED', ico: '📺', p: 280000, d: 'Ver a novela da Kalemba TV e o futebol (+felicidade)' },
+  { id: 'som', t: 'Aparelho de som', ico: '🔊', p: 150000, d: 'Kizomba em casa (+felicidade)' },
+  { id: 'guardaroupa', t: 'Guarda-roupa', ico: '🚪', p: 190000, d: 'Guardar a roupa: trocar de look em casa' },
+  { id: 'candeeiro', t: 'Candeeiros', ico: '💡', p: 35000, d: 'Casa iluminada e acolhedora' },
+  { id: 'tapete', t: 'Tapetes', ico: '🟥', p: 45000, d: 'Casa com cara de lar' },
+  { id: 'pc', t: 'Computador portátil', ico: '💻', p: 520000, d: 'Estudar e trabalhar melhor em casa' },
+];
+const movelT = id => MOVEIS.find(m => m.id === id);
+const precoMovel = M => Math.round(M.p * cid().custo / 1000) * 1000;
+const temMovel = id => (G.moveis || []).includes(id);
+const casaPropriaOuArrendada = () => G && (G.casa.tipo === 'propria' || G.casa.tipo === 'arrendada');
+function buyMovel(id) {
+  const M = movelT(id); if (!M) return;
+  if (!casaPropriaOuArrendada()) return toast('🏚️ Precisas de uma casa (própria ou arrendada) para ter móveis. Vai à Imobiliária!');
+  G.moveis = G.moveis || [];
+  if (G.moveis.includes(id)) return toast('Já tens isto em casa.');
+  if (!pay(precoMovel(M))) return;
+  G.moveis.push(id);
+  if (typeof IV_CACHE !== 'undefined') Object.keys(IV_CACHE).forEach(k => { if (k.startsWith('casa:')) delete IV_CACHE[k]; });
+  const t = `🪑 <b>${M.t}</b> entregue em tua casa! ` + fx({ felicidade: 2 });
+  addLog(t, 'good'); toast('🪑 ' + M.t + ' entregue! Entra em casa para veres.'); save(); refresh();
+  if (typeof inInt !== 'undefined' && inInt && inInt.loc === 'casa' && typeof ivExit === 'function' && typeof ivEnter === 'function') { ivExit(true); setTimeout(() => ivEnter('casa'), 60); }
+}
 const BENS = [
   // Telemóveis
   { id: 'tel1', cat: 'Telemóveis', t: 'Tijolinho 105 (básico)', ico: '📞', p: 15000, tel: 1, d: 'Chamadas, SMS, rádio e jogo da cobrinha' },
@@ -435,7 +467,7 @@ function newLife() {
     edu: 0, estudo: null, area: null, curso: null, cursosFeitos: [], tecnicos: [], mestrado: false, notaMedia: 0, notas: [],
     carta: false, cadastro: false, treinos: 0,
     emprego: null, historico: [], reformado: false,
-    casa: rua ? { tipo: 'rua' } : { tipo: 'pais' }, origem: rua ? 'rua' : 'familia', fundo, imoveis: [], bens: [], negocios: [],
+    casa: { tipo: 'rua' }, origem: rua ? 'rua' : 'familia', fundo, imoveis: [], bens: [], negocios: [], moveis: [], telNum: null,
     tel: 0, seg: 0, posts: 0, verificado: false,
     pai, mae, irmaos, amigos: [], parceiro: null, filhos: [], ex: 0,
     roupa: null, roupas: ['casual', 'luanda', 'bata'],
@@ -450,6 +482,7 @@ function newLife() {
   } else {
     addLog(`👶 Nasceste em <b>${G.cidade.mun}, ${prov.n}</b>, numa <b>${cls.t.toLowerCase()}</b>. Chamam-te <b>${nome}</b>.`, 'gold');
     addLog(`O teu pai é ${pai.vivo ? pai.prof.toLowerCase() : 'ausente'} e a tua mãe é ${mae.prof.toLowerCase()}. És filho(a) único(a).`);
+    addLog('🏚️ Aos 16 anos saíste de casa dos teus pais para fazeres a tua vida: <b>estás na rua</b> — dormes em passeios e no Abrigo da Missão. Trabalha, poupa e arrenda um quarto ou compra a tua casa (Imobiliária). Os teus pais estão a uma chamada de distância.', 'bad');
   }
   if (ci >= 3) addLog(`🍀 <b>Sorte rara!</b> Só ${cls.w} em cada 100 pessoas nascem numa ${cls.t.toLowerCase()} — e o fundo acaba: trabalhar continua a ser o caminho.`, 'gold');
   if (fundo) addLog(`💳 A tua família abriu-te uma conta com <b>${kzShort(fundo.total)}</b>. Recebes até ${kzShort(fundo.anual)} por ano enquanto durar — quando acabar, é contigo. Trabalhar continua a ser o caminho.`, 'gold');
@@ -493,6 +526,8 @@ function infancia(cls, ci, tal, prov) {
 }
 
 /* ---------------- NÚCLEO ---------------- */
+// DarkCell: ao entrar, se já tens telemóvel mas ainda não tens número, atribui um.
+setTimeout(() => { try { if (typeof G !== 'undefined' && G && G.tel > 0 && !G.telNum && typeof telNovo === 'function') telNovo(); } catch (e) { } }, 4000);
 function addLog(txt, cls = '') {
   let y = G.log[G.log.length - 1];
   if (!y || y.idade !== G.idade) { y = { idade: G.idade, ano: G.ano, e: [] }; G.log.push(y); }
@@ -920,10 +955,47 @@ function adopt() {
 function kidSchool(i, tipo) { G.filhos[i].escola = tipo; addLog(`🏫 ${G.filhos[i].nome.split(' ')[0]} vai para a escola ${tipo === 'privada' ? 'privada (1,5M/ano)' : 'pública'}.`); save(); refresh(); }
 function kidTime(i) { doAct(0, () => { const f = G.filhos[i]; f.rel = clamp(f.rel + 10); return `Passaste tempo com ${f.nome.split(' ')[0]}. ${f.idade < 12 ? 'Jogaram à bola no quintal.' : 'Tiveram uma boa conversa sobre a vida.'} ` + fx({ felicidade: R(4, 8), karma: 2 }); }, 'love'); }
 function breakUp() {
-  const p = G.parceiro; if (!confirm((p.casado ? 'Divorciar-te de ' : 'Terminar com ') + p.nome + '?')) return;
+  const p = G.parceiro; if (!confirm((p.casado ? 'Divorciar-te de ' : 'Terminar com ') + p.nome + '?' + (p.casado ? '\n⚖️ Divórcio: os bens são partilhados 50/50 (dinheiro, casa, móveis).' : ''))) return;
   let t = `💔 ${p.casado ? 'Divorciaste-te de' : 'Terminaste com'} ${p.nome}. `;
-  if (p.casado && G.dinheiro > 0) { const m = Math.round(G.dinheiro * .5); G.dinheiro -= m; t += `Na partilha de bens perdeste ${kzShort(m)}. `; }
+  if (p.casado) {
+    if (G.dinheiro > 0) { const m = Math.round(G.dinheiro * .5); G.dinheiro -= m; t += `Na partilha de bens perdeste ${kzShort(m)} em dinheiro. `; }
+    if (G.casa.tipo === 'propria' && G.casa.idx != null && G.imoveis[G.casa.idx]) {
+      if (chance(.5)) {
+        const iv = G.imoveis.splice(G.casa.idx, 1)[0];
+        const c = casaT(iv.id);
+        G.casa = { tipo: 'arrendada', id: c.id }; G.moveis = [];
+        t += `A casa (${c.t}) ficou para ${p.nome.split(' ')[0]} e voltaste para uma casa arrendada, sem mobília. `;
+      } else t += `A casa ficou contigo, mas pagaste a parte dele(a) na partilha. `;
+    } else if (G.moveis && G.moveis.length) {
+      const perde = G.moveis.filter(() => chance(.5));
+      if (perde.length) { G.moveis = G.moveis.filter(m => !perde.includes(m)); t += `Ele(a) levou ${perde.length === 1 ? '1 móvel' : perde.length + ' móveis'}. `; }
+    }
+    const fmen = G.filhos.filter(f => f.idade < 18);
+    if (fmen.length && G.casa.tipo !== 'rua') {
+      const nomeMenor = fmen[0].nome.split(' ')[0];
+      G.divorcio = { nome: p.nome, pensao: fmen.length, filho: nomeMenor, total: 0, desde: G.ano };
+      t += `⚖️ O tribunal decidiu: os filhos ficam contigo e ${p.nome.split(' ')[0]} paga assistência todo o mês (DarkCell Money). `;
+    }
+  }
   G.parceiro = null; G.ex++; addLog(t + fx({ felicidade: -12 }), 'bad'); save(); refresh();
+}
+
+// Pensão de alimentos: o ex paga 1×/dia se ainda não pagou este dia
+function divorcioUI() {
+  const d = G.divorcio; if (!d) return '';
+  if (G.stats.felicidade < 50) d.lastE = d.lastE || 0;
+  const pend = d.lastP !== v6Hoje();
+  return `<div class="card" style="border-color:#e74c3c55"><b>⚖️ Divórcio de ${esc(d.nome)}</b><br><span class="dim">${d.filho} e ${d.pensao > 1 ? `mais ${d.pensao - 1} filho(s)` : '1 filho'} ficaram contigo. Total recebido: ${kzShort(d.total)}.</span><br>${pend ? `<button class="pbtn" onclick="divorcioCobrar()">💸 Pedir assistência do dia</button>` : `<span class="dim">✅ Assistência de hoje já entrou na DarkCell Money.</span>`}</div>`;
+}
+function divorcioCobrar() {
+  const d = G.divorcio; if (!d || d.lastP === v6Hoje()) return toast('Já recebeste a assistência de hoje.');
+  d.lastP = v6Hoje();
+  const base = 8000 * d.pensao * (cid().custo || 1) * (1 + (G.ano - (d.desde || G.ano)) * .06);
+  const v = Math.max(2000, Math.round(base * R(50, 110) / 100));
+  d.total += v; G.dinheiro += v;
+  (G.inbox = G.inbox || []).unshift({ key: 'ex', de: d.nome + ' (ex)', txt: `Transferência DarkCell Money: ${kz(v)} para a assistência ${d.pensao > 1 ? 'das' : 'da'} nossa${d.pensao > 1 ? 's' : ''} criança${d.pensao > 1 ? 's' : ''}.`, ano: G.ano, lida: false });
+  addLog(`💸 ${d.nome.split(' ')[0]} enviou ${kz(v)} pela DarkCell Money (assistência de ${d.pensao > 1 ? d.pensao + ' filhos' : '1 filho'}). ` + fx({ felicidade: 2 }), 'good');
+  save(); refresh();
 }
 
 /* ---------------- CASAS ---------------- */
@@ -1007,6 +1079,7 @@ function buyBem(id) {
   if (!pay(B.p)) return;
   if (B.tel) { G.bens = G.bens.filter(b => !bemT(b).tel); G.tel = B.tel; }
   G.bens.push(id);
+  if (B.tel && typeof telNovo === 'function') setTimeout(telNovo, 400);
   after(`🛍️ Compraste: <b>${B.t}</b>! ` + fx(B.ef || {}), 'good', 'cheer');
 }
 function sellBem(id) { const B = bemT(id); const v = Math.round(B.p * .55); if (!confirm(`Vender ${B.t} por ${kz(v)}?`)) return; G.bens = G.bens.filter(b => b !== id); if (B.tel) G.tel = 0; G.dinheiro += v; addLog(`Vendeste ${B.t} por ${kzShort(v)}.`); save(); refresh(); }
@@ -1095,12 +1168,16 @@ function genInbox() {
   if (G.parceiro && chance(.8)) m(n1(G.parceiro.nome) + ' 💕', '💕', pick(['Bom dia, meu amor ☀️', 'Hoje à noite jantamos fora? 🍷', 'Tenho saudades tuas 🥺', 'Onde estás? Não respondes...']), 'par');
   G.amigos.slice(0, 3).forEach((f, i) => { if (chance(.5)) m(n1(f.nome), '🧑🏿', pick(['Mano, bora à farra sábado? 🎶', 'Viste o vídeo que te mandei? 😂', 'Preciso de um favor... liga-me', 'Bwé de tempo que não nos vemos!']), 'a' + i); });
   if (G.emprego && chance(.4)) m('Chefe', '💼', pick(['Reunião amanhã às 8h em ponto.', 'Bom trabalho este mês 👏', 'Preciso do relatório até sexta.']), 'chefe');
-  if (chance(.6)) m('Mbote Telecom', '📶', pick(['Ativa já o pacote 5G Ilimitado por 9.900 Kz!', 'Recebeste 500 MB de bónus 🎁', 'O teu saldo está a acabar. Recarrega já.']), 'unitel');
+  if (chance(.6)) m('DarkCell', '📶', pick(['Semana Bwé: chamadas e SMS à vontade por 9.900 Kz!', 'Recebeste 500 MB de bónus 🎁', 'O teu saldo está a acabar. Recarrega já.']), 'darkcell');
   if (G.seg > 5000 && chance(.6)) m('Marca parceira', '🤝', `Olá! Adorávamos colaborar contigo (${numShort(G.seg)} seguidores). Interessado(a)?`, 'marca');
   if (G.inbox.length > 40) G.inbox.length = 40;
 }
 function sendMsg(key) {
   if (G.tel < 1) return toast('📵 Não tens telemóvel.');
+  if (key[0] === 'p') {   // jogador real (rede DarkCell)
+    if (typeof smsNovoPara === 'function') smsNovoPara(key.slice(1));
+    return;
+  }
   G.msgAno = G.msgAno || {};
   const p = key === 'pai' || key === 'mae' ? G[key] : key === 'par' ? G.parceiro : key[0] === 'a' ? G.amigos[+key.slice(1)] : key[0] === 'i' ? G.irmaos[+key.slice(1)] : null;
   if (!p) return;

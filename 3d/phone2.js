@@ -1,6 +1,6 @@
 /* =========================================================
    PRÓXIMA ENCARNAÇÃO — Telemóvel 2.0
-   Barra de estado real, apps novas (Mbote, Calculadora, Relógio,
+   Barra de estado real, apps novas (DarkCell, Calculadora, Relógio,
    Notas, Lanterna) e apps antigas com muito mais conteúdo.
    ========================================================= */
 const P2 = {
@@ -52,7 +52,7 @@ function p2Bar() {
 (function () {
   const at = APPS.findIndex(a => a.id === 'vida');
   APPS.splice(at, 0,
-    { id: 'mbote', ico: '📶', t: 'Mbote', bg: 'linear-gradient(#ff9f1c,#e85d04)', tel: 2 },
+    { id: 'darkcell', ico: '📶', t: 'DarkCell', bg: 'linear-gradient(#ff9f1c,#b3261e)', tel: 2 },
     { id: 'calc', ico: '🧮', t: 'Calculadora', bg: 'linear-gradient(#3a3a40,#121214)', tel: 2 },
     { id: 'relogio', ico: '⏰', t: 'Relógio', bg: 'linear-gradient(#2b2b30,#000)', tel: 2 },
     { id: 'notas', ico: '📝', t: 'Notas', bg: 'linear-gradient(#ffe066,#f4b400)', tel: 2 },
@@ -117,9 +117,9 @@ function p2Reply(k, txt) {
   const t = (txt || '').toLowerCase(), kind = p2Kind(k), me = p2N1(G.nome);
   const has = re => re.test(t);
   if (kind === 'chefe') return pick(['Ok. Amanhã às 8h no escritório.', 'Recebido. Foca-te nos resultados.', 'Fala comigo depois da reunião.', has(/aumento|salario|salário/) ? 'Aumento só com resultados. Vamos ver no fim do ano.' : 'Certo, obrigado pela mensagem.']);
-  if (kind === 'unitel') return pick(['Mbote Telecom: a tua mensagem foi recebida. Ativa o pacote Ilimitado 5G na app Mbote!', 'Obrigado por escolheres a Mbote Telecom. Mais rede, mais Angola! 📶']);
+  if (kind === 'unitel' || kind === 'darkcell') return pick(['DarkCell: a tua mensagem foi recebida. Ativa a Semana Bwé na app DarkCell!', 'Obrigado por escolheres a DarkCell. Mais rede, mais Angola! 📶']);
   if (kind === 'marca') return pick(['Ótimo! A nossa equipa vai enviar a proposta. 🤝', 'Adoramos o teu conteúdo! Continua a publicar.']);
-  if (has(/\b(ol[aá]|oi|bom dia|boa tarde|boa noite|mbote|tudo bem|como est[aá]s|wi)\b/)) return kind === 'pais' ? pick([`Olá ${me}! Estou bem, graças a Deus. E tu, já comeste? 🍲`, 'Oi filho(a)! Por aqui tudo bem. Tens saudades da comida da mãe? 😄']) : kind === 'par' ? pick(['Oi amor 🥰 Estava agora a pensar em ti!', 'Olá meu bem ❤️ Como foi o teu dia?']) : pick(['Mbote mano! Tudo fixe, e contigo? 😎', 'Ei! Bwé de tempo, tudo bem?', 'Oi! Tudo tranquilo por aqui.']);
+  if (has(/\b(ol[aá]|oi|bom dia|boa tarde|boa noite|mbote|tudo bem|como est[aá]s|wi)\b/)) return kind === 'pais' ? pick([`Olá ${me}! Estou bem, graças a Deus. E tu, já comeste? 🍲`, 'Oi filho(a)! Por aqui tudo bem. Tens saudades da comida da mãe? 😄']) : kind === 'par' ? pick(['Oi amor 🥰 Estava agora a pensar em ti!', 'Olá meu bem ❤️ Como foi o teu dia?']) : pick(['Mbote mano! Tudo fixe, e contigo? 😎', 'Ei! Bwé de tempo, tudo bem?', 'Oi! Tudo tranquilo por aqui.']) /* mbote=gíria */;
   if (has(/dinheiro|kumbu|kz|emprest|ajud|transfer/)) {
     if (kind === 'pais') { const p = personByKey(k); G.msgAno = G.msgAno || {}; if (p && p.rel > 60 && !G.msgAno['kz_' + k] && G.dinheiro < 500000) { G.msgAno['kz_' + k] = 1; G.dinheiro += 10000; setTimeout(() => { toast('💸 ' + p2N1(p.nome) + ' transferiu-te 10 mil Kz pelo Palanca Pay.'); save(); refresh(); }, 300); return 'Mandei-te 10 mil pelo Palanca Pay. Não gastes em farra! 😅'; } return 'Filho(a), a situação não está fácil… mas reza e trabalha que Deus abre portas 🙏'; }
     return pick(['Epá, estou mal de kumbu também 😅', 'Só no fim do mês, mano.', 'Quanto? Hmm… deixa ver 🤔']);
@@ -169,15 +169,16 @@ function p2Bub(m, i) {
   return `<div class="bub ${cls}">${esc(m.txt)}${tick}</div>`;
 }
 chatView = function (k) {
+  if (k && k[0] === 'p' && typeof smsThread === 'function') return smsThread(k.slice(1));
   const p = personByKey(k);
-  const nome = p ? p.nome : { chefe: 'Chefe', unitel: 'Mbote Telecom', marca: 'Marca parceira' }[k] || k;
+  const nome = p ? p.nome : { chefe: 'Chefe', unitel: 'DarkCell', darkcell: 'DarkCell', marca: 'Marca parceira' }[k] || k;
   const ms = (G.inbox || []).filter(m => m.key === k).slice().reverse();
   ms.forEach(m => m.lida = true); setTimeout(updateBadge, 0);
   G.msgAno = G.msgAno || {};
   let quick = '';
   if (k === 'marca') quick = G.seg > 5000 && !G.msgAno.marca ? `<button class="pbtn" onclick="acceptBrand()">🤝 Aceitar parceria (+${kzShort(Math.round(G.seg * 6))})</button>` : '';
   else if (k === 'chefe' && G.emprego && !G.msgAno.chefe) quick = `<button class="pbtn" onclick="G.msgAno.chefe=1;G.emprego.desemp=clamp(G.emprego.desemp+3);toast('👍 O chefe gostou da tua prontidão.');save();renderPhone(true)">👍 Ok chefe, conte comigo!</button>`;
-  else if (k === 'unitel' && G.pacoteAno !== G.ano) quick = `<button class="pbtn" onclick="phoneOpen('mbote')">📶 Abrir a app Mbote</button>`;
+  else if ((k === 'unitel' || k === 'darkcell') && G.pacoteAno !== G.ano) quick = `<button class="pbtn" onclick="phoneOpen('darkcell')">📶 Abrir a app DarkCell</button>`;
   const online = p ? (P2.typing === k ? '<span class="typing">a escrever…</span>' : (phHash(k + G.ano) % 3 ? 'online' : 'visto por último hoje')) : 'conta verificada ✔';
   const conv = p2Chat(k);
   return `<div class="aphead chat"><button onclick="phoneBack()">‹</button><div class="cav sm">${p ? (k === 'par' ? '💕' : (p.g === 'F' || k === 'mae' ? '👩🏿' : '🧑🏿')) : '🏢'}</div><div style="flex:1;min-width:0"><h3>${esc(nome)}</h3><div class="apsub">${online}</div></div>${p ? `<button class="chcall" onclick="callPerson('${k}')" aria-label="Ligar">📞</button>` : ''}</div>
@@ -259,17 +260,18 @@ function p2Pac(id) {
   if (id === 'ilim') { G.pacoteAno = G.ano; fx({ felicidade: 1 }); } else G.dadosCap = (G.dadosCap || 2048) + P.mb;
   toast(`📶 Pacote ${P.t} ativado!`); SND.play('good'); save(); refresh(); renderPhone(true);
 }
-PHONE_VIEWS.mbote = () => {
+PHONE_VIEWS.darkcell = () => {
   const ilim = G.pacoteAno === G.ano, cap = G.dadosCap || 2048, used = Math.min(cap, G.dadosMB || 0), s = p2Sig();
   const pct = ilim ? 100 : Math.max(0, 100 - used / cap * 100);
   const nv = nivelCidade(cid());
-  return apHead('Mbote', 'Mbote Telecom · a tua rede', `<span class="aibadge" style="background:#e85d04">${p2Net(s)}</span>`)
+  return apHead('DarkCell', 'DarkCell · a tua rede', `<span class="aibadge" style="background:#b3261e">${p2Net(s)}</span>`)
     + `<div class="mbring" style="--p:${pct}"><div><b>${ilim ? '∞' : ((cap - used) / 1024).toFixed(1) + ' GB'}</b><small>${ilim ? 'Ilimitado 5G' : 'dados restantes'}</small></div></div>`
     + `<div class="grid2p"><div><small>Rede em ${esc(G.cidade.mun)}</small><b>${p2SigSVG(s)} ${['', 'Fraca', 'Razoável', 'Boa', 'Excelente'][s]}</b></div><div><small>Usados este ano</small><b>${((G.dadosMB || 0) / 1024).toFixed(2)} GB</b></div></div>`
+    + `<div class="apnote" style="text-align:center">📞 O teu número DarkCell: <b>${typeof fmtTel === 'function' ? fmtTel(G.telNum || '—') : (G.telNum || '—')}</b> · partilha com outros jogadores para receberes SMS!</div>`
     + (nv === 'pobre' && !ilim ? '<div class="apwarn">📶 A rede é fraca nas províncias pobres. O Ilimitado 5G melhora o sinal.</div>' : '')
     + (!ilim && used >= cap ? '<div class="apwarn">⚠️ Ficaste sem dados! Compra um pacote.</div>' : '')
     + `<div class="apsec">Pacotes</div><div class="list">${P2_PAC.map(P => btnItem(P.id === 'ilim' ? '🚀' : '📶', P.t + (P.id === 'ilim' && ilim ? ' <span class="tag">ativo</span>' : ''), P.d, P.p.toLocaleString('pt-PT') + ' Kz', `p2Pac('${P.id}')`, P.id === 'ilim' && ilim)).join('')}</div>`
-    + `<div class="apsec">Mbote Kumbu</div><div class="list">${G.mae.vivo ? btnItem('💸', 'Enviar dinheiro à mãe', 'Transferência por telemóvel', '', "helpParent('mae')") : ''}${G.pai.vivo ? btnItem('💸', 'Enviar dinheiro ao pai', 'Transferência por telemóvel', '', "helpParent('pai')") : ''}${btnItem('📞', 'Liga-me grátis', 'Manda um "liga-me" a um amigo', 'Grátis', "toast('📲 Mandaste um liga-me. Agora espera sentado(a) 😂')")}</div>`;
+    + `<div class="apsec">DarkCell Money</div><div class="list">${G.mae.vivo ? btnItem('💸', 'Enviar dinheiro à mãe', 'Transferência por telemóvel', '', "helpParent('mae')") : ''}${G.pai.vivo ? btnItem('💸', 'Enviar dinheiro ao pai', 'Transferência por telemóvel', '', "helpParent('pai')") : ''}${btnItem('📞', 'Liga-me grátis', 'Manda um "liga-me" a um amigo', 'Grátis', "toast('📲 Mandaste um liga-me. Agora espera sentado(a) 😂')")}</div>`;
 };
 
 /* =========================================================
@@ -526,7 +528,7 @@ function p2News() {
       tab('🏀', sel(['Angola conquista mais um Afrobasket', 'Águias do Kilamba campeões de basquetebol', 'Jovem de Cabinda assina por clube europeu'], 'f'), 'O basquetebol continua a ser o orgulho do desporto angolano.'),
     ]],
     ['Tecnologia', [
-      tab('📶', sel(['Mbote Telecom leva o 5G a mais províncias', 'Céu Net chega às aldeias do interior', 'Palanca Pay ultrapassa 5 milhões de utilizadores'], 'g'), 'A cobertura de rede é cada vez melhor, mas as províncias do interior ainda pedem mais antenas.'),
+      tab('📶', sel(['DarkCell leva o 5G a mais províncias', 'DarkCell Money já tem 2 milhões de carteiras', 'Palanca Pay ultrapassa 5 milhões de utilizadores'], 'g'), 'A cobertura de rede é cada vez melhor, mas as províncias do interior ainda pedem mais antenas.'),
       tab('💻', sel(['Startups angolanas atraem investimento estrangeiro', 'Jovens programadores criam app de kandongueiros', 'Universidade Pública de Luanda abre curso de IA'], 'h'), 'O ecossistema tecnológico de Luanda nunca esteve tão animado.'),
     ]],
     [P.n, [
@@ -720,7 +722,7 @@ function p2RandomNotif() {
     () => { const V = P2_KV[R(0, P2_KV.length - 1)]; return ['🎵', 'Kuia', `@${V.u} publicou: ${V.c}`, () => { P2.kuiaIdx = P2_KV.indexOf(V); p2OpenApp('kuia'); }]; },
     () => ['🛵', 'Txova', pick(['Fome? Muamba com entrega grátis hoje! 🍲', 'Pizza familiar com 20% de desconto 🍕', 'O teu restaurante favorito está aberto']), () => p2OpenApp('tupuca')],
     () => ['📰', 'Notícias', strip(p2News()[R(0, 3)][1][0]?.t || 'Últimas notícias de Angola'), () => { P2.newsOpen = null; p2OpenApp('noticias'); }],
-    () => ['📶', 'Mbote Telecom', G.pacoteAno === G.ano ? 'Obrigado por usares o Ilimitado 5G 🚀' : 'Ativa o Ilimitado 5G e tem rede em todo o lado!', () => p2OpenApp('mbote')],
+    () => ['📶', 'DarkCell', (G.telNum ? 'Número: ' + (typeof fmtTel === 'function' ? fmtTel(G.telNum) : G.telNum) + ' · ' : '') + (G.pacoteAno === G.ano ? 'Semana Bwé ativa 🚀' : 'Ativa a Semana Bwé e tem rede em todo o lado!'), () => p2OpenApp('darkcell')],
     () => { const T = SND.RADIO.TRACKS[R(0, SND.RADIO.TRACKS.length - 1)]; return ['🎶', 'Kizomba FM', `A tocar agora: ${T.t} — ${T.a}`, () => p2OpenApp('musica')]; },
     G.passos > 5000 && !G.metaPassos ? (() => ['👟', 'Saúde', `Já deste ${Math.round(G.passos).toLocaleString('pt-PT')} passos. Faltam ${(10000 - Math.round(G.passos)).toLocaleString('pt-PT')} para a meta!`, () => p2OpenApp('saude')]) : null,
     G.mercado ? (() => ['📈', 'Invest AO', `Bolsa de Luanda ${G.mercado.bodiva >= 0 ? 'em alta' : 'em queda'}: ${G.mercado.bodiva >= 0 ? '+' : ''}${Math.round(G.mercado.bodiva * 100)}%`, () => p2OpenApp('investir')]) : null,

@@ -194,7 +194,7 @@ const V6_AGUA = {
 };
 const V6_COZ = { gas: { ico: '🔥', t: 'Botija de gás 12 kg', m: 7500, d: 'Limpo e rápido.' }, carvao: { ico: '🪵', t: 'Carvão e fogareiro', m: 5500, d: 'Mais barato, mas o fumo faz mal à saúde.' } };
 const V6_TV = [{ ico: '📺', t: 'Sem TV paga', m: 0, d: 'Só os canais abertos.' }, { ico: '📡', t: 'Kianda TV Satélite · Básico', m: 9000, d: 'Novelas, notícias e desenhos animados.' }, { ico: '⚽', t: 'Kianda TV Satélite · Premium', m: 25000, d: 'Girabola em direto, filmes e futebol europeu.' }];
-const V6_NET = [{ ico: '📶', t: 'Só dados no telemóvel', m: 0, d: 'Pacotes da Mbote quando dá.' }, { ico: '📡', t: 'Router 4G Mbote', m: 15000, d: 'Internet em casa para estudar e trabalhar.' }, { ico: '🌐', t: 'Fibra Kianda Net', m: 35000, d: 'Rápida e estável: aulas online e trabalho remoto (+inteligência).' }];
+const V6_NET = [{ ico: '📶', t: 'Só dados no telemóvel', m: 0, d: 'Pacotes da DarkCell quando dá.' }, { ico: '📡', t: 'Router 4G DarkCell', m: 15000, d: 'Internet em casa para estudar e trabalhar.' }, { ico: '🌐', t: 'Fibra Kianda Net', m: 35000, d: 'Rápida e estável: aulas online e trabalho remoto (+inteligência).' }];
 const v6Indep = () => ['arrendada', 'propria'].includes(G.casa.tipo);
 function v6Contas() {
   const v = v6G(), c = v.casa, L = [];

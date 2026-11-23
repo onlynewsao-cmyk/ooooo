@@ -36,7 +36,7 @@ const MU_AV = 160; // z da Avenida dos Transportes
    ========================================================= */
 const AD_BASE = [
   { marca: 'Kitanda Super', t: 'Tudo mais barato!', s: 'Arroz, óleo e fuba com 20% de desconto', cta: 'Todos os dias', cor: '#e63946', ico: 'shopping-cart', tpl: 'promo' },
-  { marca: 'Mbote Telecom', t: 'Ilimitado 5G', s: 'Fala e navega sem parar por 9.900 Kz', cta: 'Marca *123#', cor: '#ff7a1a', ico: 'signal', tpl: 'classico' },
+  { marca: 'DarkCell', t: 'Semana Bwé', s: 'Chamadas e SMS à vontade por 9.900 Kz', cta: 'Marca *123#', cor: '#ff7a1a', ico: 'signal', tpl: 'classico' },
   { marca: 'Banco Palanca', t: 'O teu futuro começa aqui', s: 'Abre conta grátis na app Palanca Pay', cta: 'Palanca Pay', cor: '#0d2a4a', ico: 'landmark', tpl: 'minimal' },
   { marca: 'Txova', t: 'A fome não espera', s: 'Comida quente à tua porta em 30 minutos', cta: 'Pede já', cor: '#2a9d8f', ico: 'utensils', tpl: 'classico' },
   { marca: 'Kandonga', t: 'Chega lá mais rápido', s: 'Viagens seguras pela cidade inteira', cta: 'Abre a app', cor: '#ffcb00', ico: 'car-taxi-front', tpl: 'promo' },

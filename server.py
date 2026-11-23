@@ -49,6 +49,7 @@ CHAT = deque(maxlen=200)
 SEQ = [0]
 TOKC = {}             # token -> (uid, nome, t)
 STRIKES, MUTE, LASTMSG, NICKC = {}, {}, {}, {}
+SMS_T = {}            # uid -> últimos envios de SMS (limite de ritmo)
 MP_TIMEOUT = 25   # rede móvel real tem falhas; só expira quem some mesmo
 PERTO = 35           # metros: alcance do chat "perto"
 DED = deque(maxlen=80)   # dedicatórias nas rádios ao vivo
@@ -1695,6 +1696,59 @@ class H(SimpleHTTPRequestHandler):
                     c.execute('UPDATE users SET adulto=? WHERE id=?', (1 if d['adulto'] else 0, u['id']))
                 u = c.execute('SELECT * FROM users WHERE id=?', (u['id'],)).fetchone()
                 return self.send_json(200, {'user': public(u)})
+            if p == '/api/tel/reg':
+                # DarkCell: regista o número do jogador para receber SMS (o número vem do save do jogador)
+                num = re.sub(r'[^0-9]', '', str(d.get('num') or ''))
+                if not re.fullmatch(r'9[0-9]{8}', num):
+                    return self.send_json(400, {'erro': 'Número inválido.'})
+                dono = c.execute('SELECT v FROM kv WHERE k=?', ('tel:' + num,)).fetchone()
+                if dono and int(dono[0]) != u['id']:
+                    return self.send_json(409, {'erro': 'Este número já pertence a outro jogador.'})
+                antigo = c.execute('SELECT v FROM kv WHERE k=?', ('telu:' + str(u['id']),)).fetchone()
+                if antigo and antigo[0] != num:
+                    c.execute('DELETE FROM kv WHERE k=?', ('tel:' + antigo[0],))
+                c.execute('INSERT INTO kv(k,v) VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=?', ('tel:' + num, str(u['id']), str(u['id'])))
+                c.execute('INSERT INTO kv(k,v) VALUES(?,?) ON CONFLICT(k) DO UPDATE SET v=?', ('telu:' + str(u['id']), num, num))
+                return self.send_json(200, {'ok': True, 'num': num})
+            if p == '/api/tel/quem':
+                num = re.sub(r'[^0-9]', '', str(d.get('num') or ''))
+                r2 = c.execute('SELECT v FROM kv WHERE k=?', ('tel:' + num,)).fetchone()
+                if not r2:
+                    return self.send_json(404, {'erro': 'Número não encontrado na rede DarkCell.'})
+                w = c.execute('SELECT id, nome FROM users WHERE id=?', (int(r2[0]),)).fetchone()
+                if not w:
+                    return self.send_json(404, {'erro': 'Número não encontrado na rede DarkCell.'})
+                return self.send_json(200, {'nome': w['nome'], 'num': num, 'eu': w['id'] == u['id']})
+            if p == '/api/tel/msg':
+                num = re.sub(r'[^0-9]', '', str(d.get('para') or ''))
+                txt = str(d.get('txt') or '')[:140]
+                limpo, hits, bloq, motivo = filtrar(txt)
+                if bloq:
+                    return self.send_json(400, {'erro': motivo or 'Mensagem bloqueada.'})
+                txt = limpo
+                if not txt:
+                    return self.send_json(400, {'erro': 'Mensagem vazia.'})
+                agora = time.time()
+                ult = SMS_T.get(u['id'], [])
+                ult = [x for x in ult if agora - x < 60]
+                if len(ult) >= 15:
+                    return self.send_json(429, {'erro': 'Calma! Muitos SMS seguidos. Espera um minuto.'})
+                ult.append(agora); SMS_T[u['id']] = ult
+                r2 = c.execute('SELECT v FROM kv WHERE k=?', ('tel:' + num,)).fetchone()
+                if not r2:
+                    return self.send_json(404, {'erro': 'Número não encontrado na rede DarkCell.'})
+                para = int(r2[0])
+                if para == u['id']:
+                    return self.send_json(400, {'erro': 'Não podes mandar SMS a ti mesmo.'})
+                c.execute('INSERT INTO sms(de, para, txt, ts) VALUES(?,?,?,?)', (u['id'], para, txt, agora))
+                _ev(para, {'t': 'sms', 'de': u['nome'], 'num': str(d.get('meu') or ''), 'txt': txt})
+                return self.send_json(200, {'ok': True})
+            if p == '/api/tel/caixa':
+                rs = c.execute('''SELECT s.id, s.de, s.para, s.txt, s.ts, ud.nome AS den, up.nome AS paran,
+                                  CASE WHEN s.de=? THEN (SELECT v FROM kv WHERE k='telu:' || CAST(s.para AS TEXT)) ELSE (SELECT v FROM kv WHERE k='telu:' || CAST(s.de AS TEXT)) END AS num
+                                  FROM sms s JOIN users ud ON ud.id=s.de JOIN users up ON up.id=s.para
+                                  WHERE s.de=? OR s.para=? ORDER BY s.id DESC LIMIT 120''', (u['id'], u['id'], u['id'])).fetchall()
+                return self.send_json(200, {'eu': u['id'], 'msgs': [{'id': r2['id'], 'de': r2['de'], 'para': r2['para'], 'den': r2['den'], 'paran': r2['paran'], 'num': r2['num'] or '', 'txt': r2['txt'], 'ts': r2['ts']} for r2 in rs]})
             if p == '/api/logout':
                 c.execute('DELETE FROM sessions WHERE token=?', (self.headers.get('Authorization', '')[7:],))
                 TOKC.pop(self.headers.get('Authorization', '')[7:], None)

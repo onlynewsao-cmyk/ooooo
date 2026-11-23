@@ -90,7 +90,16 @@ function vrEvent(e) {
   else if (e.t === 'alerta') {
     VR.alertas.push(Object.assign({ at: performance.now() }, e)); VR.alertas = VR.alertas.slice(-8);
     toast(`🚨 Alerta à polícia: <b>${esc(e.de)}</b> — ${esc(e.tn)} ${vrStars(e.wl)}`); if (typeof SND !== 'undefined') SND.play('notif');
-  } else if (e.t === 'pedido') { toast(`🤝 <b>${esc(e.de)}</b> quer ser teu kamba! Abre Cidade → Amigos.`); VR.fetchT.amigos = 0; vrBadge(true); }
+  } else if (e.t === 'sms') {
+    G.telNomes = G.telNomes || {}; if (e.num) G.telNomes[e.num] = e.de;
+    (G.inbox = G.inbox || []).unshift({ key: 'p' + (e.num || '?'), de: e.de || 'DarkCell', txt: String(e.txt || '').slice(0, 140), ano: G.ano, lida: false });
+    G.inbox = G.inbox.slice(0, 80);
+    flash(`💬 SMS de <b>${esc(e.de || '?')}</b>: ${esc(String(e.txt || '').slice(0, 50))}`);
+    if (typeof SND !== 'undefined') SND.play('notif');
+    save(); if (typeof updateBadge === 'function') updateBadge();
+    if (typeof phoneApp !== 'undefined' && phoneApp && typeof renderPhone === 'function') renderPhone(true);
+  }
+  else if (e.t === 'pedido') { toast(`🤝 <b>${esc(e.de)}</b> quer ser teu kamba! Abre Cidade → Amigos.`); VR.fetchT.amigos = 0; vrBadge(true); }
   else if (e.t === 'amigo_ok') { toast(`🤝 Tu e <b>${esc(e.de)}</b> agora são kambas!`); VR.fetchT.amigos = 0; }
   else if (e.t === 'grupo_entrou') { toast(`👥 ${esc(e.de)} entrou no teu grupo!`); VR.fetchT.grupo = 0; }
   else if (e.t === 'expulso') { addLog(`👥 Foste expulso(a) do grupo ${esc(e.g)}.`, 'bad'); v.gtag = v.gtipo = null; VR.grupo = null; }
@@ -278,6 +287,7 @@ async function vrPolOp(op, extra) {
 function vrComer(id) {
   const F = VR_FOOD.find(f => f[0] === id), v = vrG(); if (!F) return;
   if (F[7] && !vrNearLoc(F[7], 34)) return toast(`📍 Isto só existe perto de: ${LOC_POS[F[7]].n}.`);
+  if (F[0] === 'casa' && G.casa && (G.casa.tipo === 'propria' || G.casa.tipo === 'arrendada') && !(G.moveis || []).includes('fogao')) return toast('🍳 Não tens fogão! Compra um na Imobiliária → 🪑 Móveis para cozinhares em casa.');
   if (vrPreso()) return toast('🔒 Na cadeia comes o que te dão.');
   if (!pay(F[4])) return;
   v.fome = Math.min(100, v.fome + F[5]); v.energia = Math.min(100, v.energia + F[6]);
@@ -294,7 +304,21 @@ function vrDormir(sesta) {
       v.energia = Math.min(100, v.energia + 30); v.fome = Math.max(0, v.fome - 5);
       if (Math.random() < .3 && G.dinheiro > 0) { const p = Math.round(G.dinheiro * (.05 + Math.random() * .1)); G.dinheiro -= p; addLog(`😴 Fizeste uma sesta no jardim e acordaste sem ${kz(p)} na carteira. <i>Razão: dormir na rua é arriscado.</i>`, 'bad'); }
       else toast('😴 Sesta feita: +30 de energia.');
-    } else { v.energia = 100; v.fome = Math.max(0, v.fome - 12); addLog('🌙 Dormiste em casa e acordaste com a energia no máximo. ' + fx({ saude: 2, felicidade: 1 })); if (typeof dayT !== 'undefined') dayT = .3; }
+    } else {
+      const minha = G.casa && (G.casa.tipo === 'propria' || G.casa.tipo === 'arrendada');
+      const mv = G.moveis || [];
+      if (minha && !mv.includes('cama') && !mv.includes('colchao')) {
+        v.energia = Math.min(100, v.energia + 45); v.fome = Math.max(0, v.fome - 8);
+        addLog('🌙 Dormiste no chão frio da tua casa vazia e acordaste todo(a) dorido(a). <i>Compra pelo menos um colchão (Imobiliária → 🪑 Móveis).</i> ' + fx({ saude: -1, felicidade: -2 }), 'bad');
+      } else if (minha && !mv.includes('cama')) {
+        v.energia = Math.min(100, v.energia + 75); v.fome = Math.max(0, v.fome - 10 - (mv.includes('geladeira') ? 4 : 0));
+        addLog('🌙 Dormiste no colchão no chão. Dá para descansar, mas uma cama a sério era outra coisa. ' + fx({ saude: 1 })); 
+      } else {
+        v.energia = 100; v.fome = Math.max(0, v.fome - 12 - (mv.includes('geladeira') ? 6 : 0));
+        addLog('🌙 Dormiste bem na tua cama e acordaste com a energia no máximo. ' + fx({ saude: 2, felicidade: 1 + (mv.length >= 5 ? 1 : 0) }));
+      }
+      if (typeof dayT !== 'undefined') dayT = .3;
+    }
     save(); refresh(); vrHud();
   }, 1300);
 }

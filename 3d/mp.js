@@ -64,7 +64,7 @@ function mpBuildUI() {
   hud.appendChild(live);
   if (localStorage.getItem('pe3d_livemin') === '1') live.classList.add('min');
   const bar = document.createElement('div'); bar.id = 'mpBar'; bar.className = 'hidden';
-  const quick = ['Olá a todos! 👋', 'Mbote, kambas!', 'Bora à farra? 🎶', 'Kkkk 😂', 'Fixe!', 'Onde estão?', 'Quem quer trabalhar comigo? 💼', 'Boa noite 🌙'];
+  const quick = ['Olá a todos! 👋', 'DarkCell, kambas!', 'Bora à farra? 🎶', 'Kkkk 😂', 'Fixe!', 'Onde estão?', 'Quem quer trabalhar comigo? 💼', 'Boa noite 🌙'];
   bar.innerHTML = `<div class="mpq">${quick.map(q => `<button type="button" onclick="mpSend(${JSON.stringify(q).replace(/"/g, '&quot;')})">${q}</button>`).join('')}</div><form id="mpForm"><button type="button" id="mpScope" onclick="mpSetScope()"></button><input id="mpIn" data-noic maxlength="120" autocomplete="off" enterkeyhint="send" placeholder="Diz algo a todos os jogadores…"><span id="mpCnt">0/120</span><button type="submit" aria-label="Enviar"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button><button type="button" class="mpx" onclick="mpClose()" aria-label="Fechar">✕</button></form><div id="mpWarn"></div>`;
   document.body.appendChild(bar);
   const inp = bar.querySelector('#mpIn');

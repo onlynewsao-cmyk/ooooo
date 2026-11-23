@@ -398,7 +398,7 @@ function gmEnd(id, r, o) {
     else txt = `⚽ Perdeste nos penáltis (${r.gm}-${r.go}) contra ${o.opp}. ` + fx({ felicidade: 1 + bon });
   } else if (id === 'freefire') {
     if (o.torneio) {
-      if (r.booyah) { const p = R(120000, 480000); txt = `🏆 Ganhaste o torneio Mbote eSports com ${r.kills} abates! Prémio: ${kz(p)}. ` + fx({ dinheiro: p, fama: R(2, 5), felicidade: 10 }); }
+      if (r.booyah) { const p = R(120000, 480000); txt = `🏆 Ganhaste o torneio DarkCell eSports com ${r.kills} abates! Prémio: ${kz(p)}. ` + fx({ dinheiro: p, fama: R(2, 5), felicidade: 10 }); }
       else txt = `🎮 Torneio: ficaste em #${r.rank} com ${r.kills} abates. Para a próxima! ` + fx({ felicidade: 1 });
     } else if (r.booyah) { G.gmW.freefire = (G.gmW.freefire || 0) + 1; txt = `🔥 BOOYAH! ${r.kills} abates (${r.heads} headshots). ` + fx({ felicidade: 7 + bon }); extra = 'torneio'; }
     else txt = `🎮 Ficaste em #${r.rank} com ${r.kills} abates. ` + fx({ felicidade: 2 + bon, saude: -1 });
@@ -414,7 +414,7 @@ function gmEnd(id, r, o) {
   after(txt, '', id === 'xadrez' ? 'think' : 'cheer');
   const host = document.getElementById('gmHost'); if (!host) return;
   host.insertAdjacentHTML('beforeend', `<div class="gmres"><p>${txt.replace(/<[^>]+>/g, '')}</p>
-    ${extra === 'torneio' ? `<button class="pbtn" onclick="gmTorneio()">🏆 Entrar no torneio Mbote eSports (5.000 Kz)</button>` : ''}
+    ${extra === 'torneio' ? `<button class="pbtn" onclick="gmTorneio()">🏆 Entrar no torneio DarkCell eSports (5.000 Kz)</button>` : ''}
     <button class="pbtn" onclick="dvClose();gmStart('${id}',{dev:'${o.cons ? 'tv' : ''}'||undefined})">Jogar outra vez (1 energia)</button><button class="pbtn ghost" onclick="dvClose()">Sair</button></div>`);
 }
 function gmTorneio() {

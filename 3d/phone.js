@@ -132,11 +132,12 @@ const PHONE_VIEWS = {
 
   mensagens: () => {
     if (chatKey) return chatView(chatKey);
-    const cs = contacts(), extra = [['chefe', '💼', 'Chefe'], ['unitel', '📶', 'Mbote Telecom'], ['marca', '🤝', 'Marca parceira']].filter(([k]) => (G.inbox || []).some(m => m.key === k));
-    const all = [...cs.map(c => ({ key: c.key, ico: c.ico, nome: c.nome })), ...extra.map(([key, ico, nome]) => ({ key, ico, nome }))];
+    const cs = contacts(), extra = [['chefe', '💼', 'Chefe'], ['darkcell', '📶', 'DarkCell'], ['unitel', '📶', 'DarkCell'], ['marca', '🤝', 'Marca parceira']].filter(([k]) => (G.inbox || []).some(m => m.key === k));
+    const jogs = smsThreads().map(j => ({ key: 'p' + j.num, ico: '📶', nome: j.nome + ' · ' + fmtTel(j.num) }));
+    const all = [...jogs, ...cs.map(c => ({ key: c.key, ico: c.ico, nome: c.nome })), ...extra.map(([key, ico, nome]) => ({ key, ico, nome }))];
     const rows = all.map(c => { const ms = (G.inbox || []).filter(m => m.key === c.key); const last = ms[0]; const un = ms.filter(m => !m.lida).length; return { c, last, un }; })
       .sort((a, b) => (b.un - a.un) || ((b.last ? 1 : 0) - (a.last ? 1 : 0)));
-    return apHead('Fala Já', 'Conversas', '<span style="font-size:20px">📷</span>') + `<div class="clist">${rows.map(({ c, last, un }) => `<button class="crow" onclick="chatKey='${c.key}';renderPhone()"><div class="cav">${c.ico}</div><div class="cinfo"><b>${esc(c.nome)}</b><span>${last ? esc(last.txt) : 'Toca para conversar'}</span></div>${un ? `<span class="unb">${un}</span>` : ''}</button>`).join('')}</div>`;
+    return apHead('Fala Já', 'Conversas', `<button style="background:none;border:0;font-size:20px;cursor:pointer" onclick="smsNovo()" title="SMS a um número">✉️＋</button>`) + `<div class="clist">${rows.map(({ c, last, un }) => `<button class="crow" onclick="chatKey='${c.key}';renderPhone()"><div class="cav">${c.ico}</div><div class="cinfo"><b>${esc(c.nome)}</b><span>${last ? esc(last.txt) : 'Toca para conversar'}</span></div>${un ? `<span class="unb">${un}</span>` : ''}</button>`).join('')}</div>`;
   },
 
   bwe: () => {
@@ -235,7 +236,7 @@ const PHONE_VIEWS = {
       ['⚽ Leões da Ilha conquistam mais uma Liga Mwangolé', '🏀 Águias do Kilamba vencem a final do campeonato de basquetebol', '⚽ Palancas Negras apurados para o CAN'][hh % 3],
       ['🚇 Obras do metro de superfície de Luanda avançam', '🛣️ Nova estrada liga Luanda a Catete', '✈️ Novo aeroporto internacional recebe mais voos'][(hh >>> 3) % 3],
       ['🔌 ENDE anuncia cortes de energia programados', '🌧️ Chuvas fortes causam inundações em vários bairros', '🛢️ Preço do petróleo sobe e anima a economia'][(hh >>> 5) % 3],
-      ['📱 Mbote Telecom lança rede 5G em mais províncias', '💻 Startups angolanas atraem investimento estrangeiro', '🎓 UAN abre novas vagas para Medicina'][(hh >>> 7) % 3],
+      ['📱 DarkCell cobre mais províncias com 5G', '💻 Startups angolanas atraem investimento estrangeiro', '🎓 UAN abre novas vagas para Medicina'][(hh >>> 7) % 3],
     ];
     if (G.stats.fama >= 25) news.unshift(`⭐ ${G.nome} é uma das figuras mais faladas de ${G.cidade.prov}!`);
     if (G.negocios.length) news.push(`🏪 Pequenos negócios crescem em ${G.cidade.mun}`);
@@ -277,16 +278,104 @@ const PHONE_VIEWS = {
 function nokiaScreen() {
   const it = (t, f) => `<button class="nk" onclick="${f}">${t}</button>`;
   const hd = t => `<div class="nkh">${t}</div>`;
-  if (phoneApp === 'lock') return `<div class="nkl"><div class="nkt">${nowTxt()}</div><div>${G.cidade.mun}</div>${unread() ? `<div style="margin-top:14px">✉ ${unread()} mensagem(ns) nova(s)</div>` : ''}<div class="nkm">Toca em <b>Menu</b> para desbloquear</div></div>`;
-  if (phoneApp === 'home') return hd('Menu') + it('📇 Contactos', "phoneApp='telefone';renderPhone()") + it(`✉ Mensagens${unread() ? ' (' + unread() + ')' : ''}`, "phoneApp='mensagens';renderPhone()") + it('💰 Mbote Kumbu', "phoneApp='nkmoney';renderPhone()") + it('📻 Rádio FM', 'listenMusic()') + it('🐍 Cobrinha', "playGame('cobra')") + it('📊 A minha vida', "phoneApp='nkvida';renderPhone()") + it('⚙ Definições', "phoneApp='definicoes';renderPhone()");
-  if (phoneApp === 'telefone') return hd('Contactos') + contacts().map(c => `<div class="nkr"><span>${esc(c.nome.split(' ')[0])}</span>${c.call ? `<button onclick="callPerson('${c.key}')">Ligar</button>` : ''}<button onclick="sendMsg('${c.key}')">SMS</button></div>`).join('');
+  if (phoneApp === 'lock') return `<div class="nkl"><div class="nkt">${nowTxt()}</div><div>DarkCell · ${G.cidade.mun}</div>${unread() ? `<div style="margin-top:14px">✉ ${unread()} mensagem(ns) nova(s)</div>` : ''}<div class="nkm">Toca em <b>Menu</b> para desbloquear</div></div>`;
+  if (phoneApp === 'home') return hd('Menu') + it('📇 Contactos', "phoneApp='telefone';renderPhone()") + it(`✉ Mensagens${unread() ? ' (' + unread() + ')' : ''}`, "phoneApp='mensagens';renderPhone()") + it('💰 DarkCell Money', "phoneApp='nkmoney';renderPhone()") + it('📻 Rádio FM', 'listenMusic()') + it('🐍 Cobrinha', "playGame('cobra')") + it('📊 A minha vida', "phoneApp='nkvida';renderPhone()") + it('⚙ Definições', "phoneApp='definicoes';renderPhone()");
+  if (phoneApp === 'telefone') { const jogs = smsThreads(); return hd('Contactos') + contacts().map(c => `<div class="nkr"><span>${esc(c.nome.split(' ')[0])}</span>${c.call ? `<button onclick="callPerson('${c.key}')">Ligar</button>` : ''}<button onclick="sendMsg('${c.key}')">SMS</button></div>`).join('') + (jogs.length ? hd('Jogadores (DarkCell)') : '') + jogs.map(j => `<div class="nkr"><span>${esc(j.nome.split(' ')[0])}</span><button onclick="smsNovoPara('${j.num}')">SMS</button></div>`).join('') + it('＋ SMS a número novo', 'smsNovo()'); }
   if (phoneApp === 'mensagens') { (G.inbox || []).forEach(m => m.lida = true); return hd('Mensagens') + ((G.inbox || []).slice(0, 12).map(m => `<div class="nkmsg"><b>${esc(m.de)}:</b> ${esc(m.txt)}</div>`).join('') || '<div class="nkmsg">Sem mensagens.</div>'); }
-  if (phoneApp === 'nkmoney') return hd('Mbote Kumbu') + `<div class="nkmsg">Saldo: <b>${kz(G.dinheiro)}</b></div>` + (G.mae.vivo ? it('Enviar dinheiro à mãe', "helpParent('mae')") : '') + (G.pai.vivo ? it('Enviar dinheiro ao pai', "helpParent('pai')") : '');
+  if (phoneApp === 'nkmoney') return hd('DarkCell Money') + `<div class="nkmsg">Saldo: <b>${kz(G.dinheiro)}</b></div>` + (G.mae.vivo ? it('Enviar dinheiro à mãe', "helpParent('mae')") : '') + (G.pai.vivo ? it('Enviar dinheiro ao pai', "helpParent('pai')") : '');
   if (phoneApp === 'nkvida') return hd(esc(G.nome)) + Object.keys(LABEL).map(k => `<div class="nkr"><span>${LABEL[k]}</span><b>${G.stats[k]}</b></div>`).join('');
   if (phoneApp === 'definicoes') return hd('Definições') + it(plus18() ? '+18: Ligado' : '+18: Desligado', 'toggle18()') + it('Créditos', 'closePhone();showCredits()') + it('Terminar sessão', 'closePhone();doLogout()');
   return hd('...');
 }
 function nokiaKey(k) { if (k === 'menu') { phoneApp = 'home'; renderPhone(); } else if (k === 'back') { if (phoneApp === 'home' || phoneApp === 'lock') closePhone(); else { phoneApp = 'home'; renderPhone(); } } }
+
+/* ---------------- DARKCELL: número próprio e SMS entre jogadores ---------------- */
+const fmtTel = n => !n ? '' : String(n).replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3');
+function telNum() {
+  if (!G.telNum) {
+    const base = String((typeof USER !== 'undefined' && USER ? USER.id : 0) || Date.now()).replace(/\D/g, '') || '1';
+    G.telNum = '95' + String(1000000 + (parseInt(base, 10) * 7919) % 9000000);
+  }
+  return G.telNum;
+}
+async function telReg(tent) {   // regista o número na rede (para outros jogadores te encontrarem)
+  if (typeof Acc === 'undefined' || !Acc.online || !G || !G.tel || !G.telNum) return;
+  try {
+    const r = await fetch('/api/tel/reg', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + Acc.token }, body: JSON.stringify({ num: G.telNum }) });
+    if (r.status === 409 && !tent) { G.telNum = '95' + String(1000000 + Math.floor(Math.random() * 9000000)); return telReg(1); }
+  } catch (e) { }
+}
+function telNovo() {   // ao comprar telemóvel (ou ao entrar com um sem número)
+  if (!G || !G.tel) return;
+  const novo = !G.telNum;
+  telNum();
+  if (novo) {
+    (G.inbox = G.inbox || []).unshift({ key: 'darkcell', de: 'DarkCell', txt: `📶 Bem-vindo(a) à DarkCell! O teu número é ${fmtTel(G.telNum)}. Partilha-o com os teus kambas e troquem SMS de verdade. Oferta de boas-vindas: 500 Kz de saldo.`, ano: G.ano, lida: false });
+    toast(`📶 DarkCell: o teu número é ${fmtTel(G.telNum)}!`); save();
+  }
+  telReg();
+}
+function smsThreads() {   // conversas com jogadores reais (chave 'p'+número no inbox)
+  const th = {};
+  (G.inbox || []).forEach(m => {
+    if (!m.key || m.key[0] !== 'p') return;
+    const num = m.key.slice(1);
+    if (!th[num]) th[num] = { num, nome: (G.telNomes || {})[num] || num, last: null, un: 0 };
+    if (!m.out && m.de && m.de !== 'Eu') th[num].nome = m.de;
+    if (m.out && m.pnome) th[num].nome = m.pnome;
+    if (!m.lida) th[num].un++;
+    if (!th[num].last) th[num].last = m;
+  });
+  return Object.values(th).sort((a, b) => (b.un - a.un) || ((b.last ? 1 : 0) - (a.last ? 1 : 0)));
+}
+async function smsNovo() {
+  if (G.tel < 1) return toast('📵 Não tens telemóvel.');
+  if (typeof Acc === 'undefined' || !Acc.online) return toast('📶 SMS entre jogadores precisa de internet (modo online).');
+  const num = (prompt(`📶 DarkCell — número do jogador (o teu é ${fmtTel(telNum())}):`) || '').replace(/\D/g, '');
+  if (!num) return;
+  try {
+    const r = await fetch('/api/tel/quem', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + Acc.token }, body: JSON.stringify({ num }) });
+    const d = await r.json();
+    if (!r.ok) return toast('📵 ' + (d.erro || 'Número não encontrado.'));
+    if (d.eu) return toast('😄 Esse é o teu próprio número!');
+    G.telNomes = G.telNomes || {}; G.telNomes[num] = d.nome; save();
+    chatKey = 'p' + num; renderPhone();
+  } catch (e) { toast('📶 Sem rede DarkCell. Tenta outra vez.'); }
+}
+function smsNovoPara(num) {   // fluxo simples (tijolinho)
+  const nome = (G.telNomes || {})[num] || num;
+  const txt = (prompt(`💬 SMS para ${nome} (${fmtTel(num)}):`) || '').trim();
+  if (txt) smsSendTxt(num, txt).then(ok => { if (ok) toast(`💬 SMS enviado a ${nome}.`); });
+}
+async function smsSendTxt(num, txt) {
+  if (G.tel < 1) { toast('📵 Não tens telemóvel.'); return false; }
+  if (typeof Acc === 'undefined' || !Acc.online) { toast('📶 SMS entre jogadores precisa de internet.'); return false; }
+  txt = (txt || '').trim().slice(0, 140); if (!txt) return false;
+  try {
+    const r = await fetch('/api/tel/msg', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + Acc.token }, body: JSON.stringify({ para: num, txt, meu: telNum() }) });
+    let d = {}; try { d = await r.json(); } catch (e) { }
+    if (!r.ok) { toast('📵 ' + (d.erro || 'Falha ao enviar.')); return false; }
+    (G.inbox = G.inbox || []).unshift({ key: 'p' + num, de: 'Eu', pnome: (G.telNomes || {})[num] || num, txt, ano: G.ano, lida: true, out: true });
+    G.inbox = G.inbox.slice(0, 80);
+    save(); updateBadge();
+    return true;
+  } catch (e) { toast('📶 Sem rede DarkCell. Tenta outra vez.'); return false; }
+}
+async function smsSend(num) {
+  const inp = document.getElementById('smsIn');
+  const txt = (inp && inp.value || '').trim(); if (!txt) return;
+  if (await smsSendTxt(num, txt)) { renderPhone(true); setTimeout(() => { const i = document.getElementById('smsIn'); if (i) i.focus(); }, 60); }
+}
+function smsThread(num) {
+  G.telNomes = G.telNomes || {};
+  const ms = (G.inbox || []).filter(m => m.key === 'p' + num).slice().reverse();
+  ms.forEach(m => { m.lida = true; if (!m.out && m.de && m.de !== 'Eu') G.telNomes[num] = m.de; if (m.out && m.pnome) G.telNomes[num] = m.pnome; });
+  setTimeout(updateBadge, 0); save();
+  const nome = G.telNomes[num] || fmtTel(num);
+  return `<div class="aphead chat"><button onclick="phoneBack()">‹</button><div class="cav sm">📶</div><div style="flex:1;min-width:0"><h3>${esc(nome)}</h3><div class="apsub">DarkCell ${fmtTel(num)}</div></div></div>
+    <div class="chatbg">${ms.map(m => m.out ? `<div class="bub out">${esc(m.txt)}<small>✓✓</small></div>` : `<div class="bub in">${esc(m.txt)}<small>${m.ano}</small></div>`).join('') || '<div class="apnote" style="text-align:center">Ainda não há mensagens.<br>Diz mbote! 👋</div>'}</div>
+    <div style="display:flex;gap:6px;padding:8px;background:#101018"><input id="smsIn" maxlength="140" placeholder="Escreve um SMS…" style="flex:1;padding:10px 12px;border-radius:20px;border:1px solid #333;background:#1a1a24;color:#fff" onkeydown="if(event.key==='Enter')smsSend('${num}')"><button class="pbtn" style="width:auto;padding:0 16px;margin:0" onclick="smsSend('${num}')">➤</button></div>`;
+}
 
 /* ---------------- CONTACTOS / CHAT ---------------- */
 function contacts() {
@@ -300,11 +389,25 @@ function contacts() {
 function personByKey(k) { return k === 'pai' || k === 'mae' ? G[k] : k === 'par' ? G.parceiro : k[0] === 'a' ? G.amigos[+k.slice(1)] : k[0] === 'i' ? G.irmaos[+k.slice(1)] : null; }
 function callPerson(k) {
   const p = personByKey(k); if (!p) return;
+  if (k === 'pai' || k === 'mae') {   // 1 chamada por dia a cada um — com recompensa
+    const hoje = new Date().toDateString();
+    G.telDia = G.telDia && G.telDia.d === hoje ? G.telDia : { d: hoje };
+    if (G.telDia[k]) return toast(`📞 Já ligaste ${k === 'mae' ? 'à tua mãe' : 'ao teu pai'} hoje. Volta a ligar amanhã!`);
+    G.telDia[k] = 1;
+    doAct(0, () => {
+      p.rel = clamp(p.rel + R(8, 14));
+      let extra = '';
+      if (chance(.4)) { const v = R(2000, 12000) * (['rica', 'elite'].includes(G.classe) ? 8 : G.classe === 'media' ? 3 : 1); G.dinheiro += v; extra = ` E mandou-te <b>${kz(v)}</b> pelo DarkCell Money! 💸`; }
+      return `📞 Ligaste ${k === 'mae' ? 'à tua mãe' : 'ao teu pai'}. ${pick(['Falaram mais de uma hora!', 'Contou-te as novidades do bairro todas.', 'Disse que tens de comer bem e aparecer para almoçar.', 'Perguntou se já tens casa — mentiste um bocadinho.', 'Riram-se bwé ao telefone.'])}${extra} ` + fx({ felicidade: R(3, 6), karma: 1 });
+    }, 'think');
+    return;
+  }
   doAct(0, () => { p.rel = clamp(p.rel + R(6, 12)); return `📞 Ligaste a ${p.nome.split(' ')[0]}. ${pick(['Falaram mais de uma hora!', 'Riram-se bwé ao telefone.', 'Contaram as novidades todas.', 'A chamada caiu duas vezes, mas valeu a pena.'])} ` + fx({ felicidade: R(2, 5), karma: 1 }); }, 'think');
 }
 function chatView(k) {
+  if (k && k[0] === 'p') return smsThread(k.slice(1));
   const p = personByKey(k);
-  const nome = p ? p.nome : { chefe: 'Chefe', unitel: 'Mbote Telecom', marca: 'Marca parceira' }[k] || k;
+  const nome = p ? p.nome : { chefe: 'Chefe', unitel: 'DarkCell', darkcell: 'DarkCell', marca: 'Marca parceira' }[k] || k;
   const ms = (G.inbox || []).filter(m => m.key === k).slice().reverse();
   ms.forEach(m => m.lida = true); setTimeout(updateBadge, 0);
   G.msgAno = G.msgAno || {};
@@ -312,7 +415,7 @@ function chatView(k) {
   if (p) quick = G.msgAno[k] ? '<div class="apnote">Já falaste este ano. Liga para fortalecer mais a relação.</div>' : `<button class="pbtn" onclick="sendMsg('${k}');renderPhone(true)">${pick(['❤️ Responder com carinho', '😂 Mandar um meme', '👋 Perguntar como está'])}</button>`;
   else if (k === 'marca') quick = G.seg > 5000 && !G.msgAno.marca ? `<button class="pbtn" onclick="acceptBrand()">🤝 Aceitar parceria (+${kzShort(Math.round(G.seg * 6))})</button>` : '';
   else if (k === 'chefe' && G.emprego && !G.msgAno.chefe) quick = `<button class="pbtn" onclick="G.msgAno.chefe=1;G.emprego.desemp=clamp(G.emprego.desemp+3);toast('👍 O chefe gostou da tua prontidão.');save();renderPhone(true)">👍 Ok chefe, conte comigo!</button>`;
-  else if (k === 'unitel' && !G.msgAno.unitel) quick = `<button class="pbtn" onclick="if(pay(9900)){G.msgAno.unitel=1;fx({felicidade:1});toast('📶 Pacote 5G ilimitado ativado!');save();refresh();}">📶 Ativar 5G ilimitado (9.900 Kz)</button>`;
+  else if ((k === 'darkcell' || k === 'unitel') && !G.msgAno.darkcell) quick = `<button class="pbtn" onclick="if(pay(9900)){G.msgAno.darkcell=1;fx({felicidade:1});toast('📶 DarkCell: Semana Bwé ativada — chamadas e SMS à vontade!');save();refresh();}">📶 Ativar Semana Bwé (9.900 Kz)</button>`;
   return `<div class="aphead chat"><button onclick="phoneBack()">‹</button><div class="cav sm">${p ? (k === 'par' ? '💕' : '🧑🏿') : '🏢'}</div><div style="flex:1;min-width:0"><h3>${esc(nome)}</h3><div class="apsub">${p ? 'online' : 'conta verificada'}</div></div><span>📞</span></div>
     <div class="chatbg">${ms.map(m => `<div class="bub in">${esc(m.txt)}<small>${m.ano}</small></div>`).join('') || '<div class="apnote" style="text-align:center">Ainda não há mensagens.</div>'}${p && G.msgAno[k] ? '<div class="bub out">Também te adoro ❤️ Falamos em breve!<small>✓✓</small></div>' : ''}</div>${quick}`;
 }

@@ -48,7 +48,7 @@ const V6_RT = [
       ['Ligar tu e pôr em alta voz', 'Esperto', () => 'Ligaste tu e passaste a chamada em alta voz. Ele desistiu logo… ' + fx({ inteligencia: 1 })],
       ['Dizer que não', '', () => 'Seguiste caminho com o telefone bem guardado.'],
     ] }) },
-  { w: 1, cond: () => G.tel >= 1 && G.idade >= 16, ev: () => ({ ico: '✉️', t: 'SMS: "Parabéns, ganhou!"', txt: () => 'SMS de um número estranho: "PARABÉNS! Ganhou 5.000.000 Kz na promoção Mbote. Para levantar envie 5.000 Kz de saldo para este número."', ch: [
+  { w: 1, cond: () => G.tel >= 1 && G.idade >= 16, ev: () => ({ ico: '✉️', t: 'SMS: "Parabéns, ganhou!"', txt: () => 'SMS de um número estranho: "PARABÉNS! Ganhou 5.000.000 Kz na promoção DarkCell. Para levantar envie 5.000 Kz de saldo para este número."', ch: [
       ['Mandar os 5.000 Kz', '5 milhões!', () => v6Pay(5000, '🤦 Mandaste… e o número desapareceu. Era burla, claro. ' + fx({ felicidade: -5, inteligencia: 1 }))],
       ['Apagar e bloquear', 'Já conheces essa', () => '🛡️ Burla clássica. Bloqueado! ' + fx({ inteligencia: 1 })],
       ['Responder a gozar', '', () => '😂 Respondeste "manda tu primeiro". Nunca mais escreveram. ' + fx({ felicidade: 2 })],

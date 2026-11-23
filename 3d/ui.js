@@ -256,7 +256,7 @@ function showHelp() {
   <p><b>⚡ Energia</b><br>Há uma só energia: a barra no topo. Cada ação gasta <b>10</b>; andar e fazer turnos também gastam. Recupera a <b>comer</b>, a <b>descansar</b> e a <b>dormir em casa</b> (de 8 em 8 minutos). Fechar o ano também te dá energia nova.</p>
   <p><b>🪪 Documentos</b><br>Aos 18, para emprego com contrato, carta de condução e crédito precisas do <b>BI</b>. Trata no <b>SIAC (Mutamba)</b>.</p>
   <p><b>🧭 O teu caminho</b><br>Aos 16 escolhes: <b>universidade</b> (exame de acesso na pública ou propinas na privada), <b>curso técnico</b> ou <b>ir trabalhar</b>. A média e a área do médio contam!</p>
-  <p><b>💼 Profissões</b><br>Cada emprego tem requisitos reais: idade, escolaridade, curso, carta, cadastro limpo… Trabalha bem para seres promovido(a) — nas grandes empresas (Kitanda Super, Mbote Telecom, Banco Palanca, Mulemba Petróleos) podes chegar a <b>CEO</b>.</p>
+  <p><b>💼 Profissões</b><br>Cada emprego tem requisitos reais: idade, escolaridade, curso, carta, cadastro limpo… Trabalha bem para seres promovido(a) — nas grandes empresas (Kitanda Super, DarkCell, Banco Palanca, Mulemba Petróleos) podes chegar a <b>CEO</b>.</p>
   <p><b>👑 Império</b><br>Na <b>Torre Empresarial</b> abres empresas, contratas funcionários, abres filiais e fundas o teu <b>Grupo Empresarial</b>. Em <b>Terrenos & Obras</b> compras terrenos, constróis prédios e vives das rendas.</p>
   <p><b>🗺️ Angola inteira</b><br>Nasces numa província aleatória — cada uma das 21 tem a sua própria cidade com hospital, banco, mercado, universidade, esquadra e porto/aeroporto. Luanda é a maior de todas: Marginal, Baixa, Mutamba, Ilha, Kilamba, Talatona, musseques e Viana. Aos 18 podes mudar-te de província (mapa no telemóvel).</p>
   <p><b>🏠 Vida adulta</b><br>Arrenda ou compra casa (crédito habitação), faz o alembamento, tem filhos, abre negócios, investe e cuida da saúde. Tudo tem consequências.</p>
@@ -377,6 +377,7 @@ function familiaUI() {
   if (G.amigos.length) h += list([...G.amigos.map((f, i) => relItem(f.g === 'M' ? '🧑🏿' : '👩🏿', esc(f.nome), `${f.idade} anos${f.rico ? ' · família influente 🤫' : ''}`, f.rel,
     chip('Sair (10 mil)', `friendOut(${i})`) + (G.idade >= 18 ? chip('Pedir cunha', `askCunha(${i})`) : '')))]);
   h += sec('Amor');
+  if (typeof divorcioUI === 'function') h += divorcioUI();
   if (G.parceiro) {
     const p = G.parceiro, lbl = p.casado ? (p.g === 'F' ? 'Esposa' : 'Marido') : (p.g === 'F' ? 'Namorada' : 'Namorado');
     const btns = chip('Sair juntos (15 mil)', 'dateTime()') + (!p.juntos && !p.casado ? chip('🏠 Morar juntos', 'moveIn()') : '') +
@@ -537,6 +538,23 @@ function meusImoveisHTML() {
   }));
 }
 /* Centro Habitacional — todas as casas num só sítio, do bairro pobre ao bairro rico */
+function moveisUI() {
+  let h = energyBar();
+  if (!casaPropriaOuArrendada()) {
+    return h + noteBox('🏚️ <b>Ainda não tens casa.</b> As casas são entregues vazias — primeiro arrenda ou compra uma casa na tab 🏘️ Casas, e depois volta aqui para a mobilar ao teu gosto.', true)
+      + list([btnItem('🏘️', 'Ver casas', 'Arrendar ou comprar', '', "setTab('casas')")]);
+  }
+  const mv = G.moveis || [], k = cid().custo;
+  h += noteBox(`🏠 <b>${moradaTxt()}</b> · ${mv.length ? `móveis: <b>${mv.length}/${MOVEIS.length}</b>` : '<b>vazia!</b> Começa pelo colchão e pelo fogão.'}<br>🚚 Entrega e montagem incluídas. Os móveis ficam na casa mesmo que te mudes de visual.`);
+  if (!mv.length) h += noteBox('📦 A tua casa está vazia: dormir no chão cansa e dá cabo da saúde, e sem fogão não podes cozinhar.', true);
+  h += sec('Mobília & electrodomésticos');
+  h += list(MOVEIS.map(M => {
+    const tenho = mv.includes(M.id), preco = precoMovel(M);
+    return btnItem(M.ico, M.t, M.d + (tenho ? ' · <b>✅ em casa</b>' : ''), tenho ? '✅' : kzShort(preco), `buyMovel('${M.id}')`, tenho || G.dinheiro < preco);
+  }));
+  if (mv.length >= 5) h += noteBox('✨ A tua casa está bem mobilada: dormir em casa dá +felicidade extra.');
+  return h;
+}
 function imobUI() {
   let h = energyBar();
   const P = cid(), Zm = zonaCasa(typeof casaZona === 'function' ? casaZona() : 'bairro');
@@ -620,7 +638,7 @@ const PANELS = {
   escola:  { ico: '🎓', t: 'Escola & Universidade', sub: 'Primária, secundário, universidade e cursos', tabs: [['est', '📚 Estudos', estudosUI], ['uni', '🏛️ Universidade', uniUI], ['tec', '🛠️ Técnicos & Carta', tecnicoUI]] },
   mercado: { ico: '🧺', t: 'Mercado do Roque', sub: 'Biscates, negócios e roupa', tabs: [['m', '🧺 Mercado', mercadoAtiv], ['neg', '🏪 Negócios', negociosUI], ['bout', '🛍️ Loja de Roupa', boutiqueUI]] },
   banco:   { ico: '🏦', t: 'Banco Palanca', sub: 'Conta, crédito e stand', tabs: [['c', '🏦 Conta', contaUI], ['loja', '🚗 Stand & Loja', lojaUI]] },
-  imobiliaria: { ico: '🏘️', t: 'Imobiliária', sub: 'Centro Habitacional · casas e as 21 províncias', tabs: [['casas', '🏘️ Casas', imobUI], ['cid', '🗺️ Províncias', cidadesUI]] },
+  imobiliaria: { ico: '🏘️', t: 'Imobiliária', sub: 'Centro Habitacional · casas e as 21 províncias', tabs: [['casas', '🏘️ Casas', imobUI], ['moveis', '🪑 Móveis', moveisUI], ['cid', '🗺️ Províncias', cidadesUI]] },
   clinica: { ico: '🏥', t: 'Clínica Bem-Estar', sub: 'Saúde em primeiro lugar', body: clinicaUI },
   igreja:  { ico: '⛪', t: 'Igreja', sub: 'Fé, comunidade e boas ações', body: () => energyBar() + ativList(['igreja', 'voluntario']) + list([btnItem('🤝', 'Conhecer pessoas da paróquia', 'Fazer amigos', '', "makeFriend('na igreja')", G.idade < 5)]) },
   ginasio: { ico: '🏋️', t: 'Ginásio & Campo', sub: 'Corpo são, mente sã', body: () => energyBar() + noteBox(`🏀 Treinos acumulados: <b>${G.treinos}</b> (o desporto profissional pede 6+ e saúde 80+)`) + ativList(['ginasio', 'basquete', 'futebol', 'salao']) },

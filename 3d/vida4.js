@@ -661,7 +661,7 @@ async function v4Kz(val) {
   if (!confirm(`Enviar ${kz(v)} a ${nick}?`)) return;
   const r = await vrApi('social', { op: 'kz', fid: P.id, v });
   if (!r.ok) return toast('🚫 ' + r.erro);
-  G.dinheiro -= v; addLog(`💸 Enviaste ${kzShort(v)} a <b>${esc(nick)}</b> pelo Mbote Kumbu. ` + fx({ karma: v >= 20000 ? 2 : 1 }), 'good');
+  G.dinheiro -= v; addLog(`💸 Enviaste ${kzShort(v)} a <b>${esc(nick)}</b> pelo DarkCell Money. ` + fx({ karma: v >= 20000 ? 2 : 1 }), 'good');
   toast(`💸 ${kzShort(v)} enviados a <b>${esc(nick)}</b>.`); try { SND.play('coin'); } catch (e) { }
   save(); refresh(); v4PfView('main');
 }
@@ -745,7 +745,7 @@ function v4Event(e) {
   const ban = (ico, de, txt, id) => { if (typeof p2Banner === 'function') p2Banner(ico, de, txt, () => id && v4Perfil(id)); else toast(`${ico} <b>${esc(de)}</b> ${esc(txt)}`); };
   switch (e.t) {
     case 'social': { const A = V4_ACOES[e.a]; if (!A) return true; fx(A.rfx); ban(A.ico, e.de, A.rx + ' · toca para ver o perfil', e.id); save(); refresh(); return true; }
-    case 'kz': { const v = Math.max(0, Math.min(5000000, +e.v || 0)); G.dinheiro += v; addLog(`💸 <b>${esc(e.de)}</b> enviou-te ${kzShort(v)} pelo Mbote Kumbu.`, 'gold'); ban('💸', e.de, `enviou-te ${kzShort(v).replace(/<[^>]+>/g, '')}`, e.id); try { SND.play('coin'); } catch (x) { } save(); refresh(); return true; }
+    case 'kz': { const v = Math.max(0, Math.min(5000000, +e.v || 0)); G.dinheiro += v; addLog(`💸 <b>${esc(e.de)}</b> enviou-te ${kzShort(v)} pelo DarkCell Money.`, 'gold'); ban('💸', e.de, `enviou-te ${kzShort(v).replace(/<[^>]+>/g, '')}`, e.id); try { SND.play('coin'); } catch (x) { } save(); refresh(); return true; }
     case 'presente': {
       const g = V4_GIFTS.find(x => x.id === e.g) || { ico: '🎁', t: 'um presente', fx: { felicidade: 3 } };
       let extra = '';
