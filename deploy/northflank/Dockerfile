@@ -23,6 +23,6 @@ RUN find /app/3d /app/img /app/index.html /app/proxima-encarnacao.html -type f \
  && mkdir -p /app/data /tmp/nginx \
  && useradd -r -u 10001 jogo && chown -R jogo /app/data /tmp/nginx
 
-USER jogo
+# corre como root: os volumes montados em /app/data (Northflank) pertencem a root e o SQLite precisa de escrever lá
 EXPOSE 8080 8101 8102 8103 8104
 ENTRYPOINT ["/usr/bin/tini", "--", "/app/deploy/northflank/entrypoint.sh"]

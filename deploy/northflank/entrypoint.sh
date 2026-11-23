@@ -2,6 +2,7 @@
 # Escolhe o papel do contentor (ver Dockerfile). Tudo configurado por variáveis de ambiente.
 set -e
 cd /app
+mkdir -p /app/data /tmp/nginx 2>/dev/null || true   # o volume montado pode tapar a pasta criada no build
 case "${PE_ROLE:-game}" in
   game)
     exec python3 /app/deploy/northflank/launcher.py
