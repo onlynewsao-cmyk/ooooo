@@ -1939,6 +1939,38 @@ const zonaCasa = id => ZONAS_CASA.find(z => z.id === id) || ZONAS_CASA[2];
 const precoCasa = C => Math.round(C.preco * cid().custo / 50000) * 50000; // o preço muda com a cidade
 const nivelCidade = P => P.custo >= .9 ? 'rica' : P.custo >= .75 ? 'media' : 'pobre';
 const casaT = id => CASAS.find(c => c.id === id);
+
+/* ---------------- MÓVEIS (a casa compra-se vazia — mobilar é contigo) ---------------- */
+const MOVEIS = [
+  { id: 'colchao', t: 'Colchão', ico: '🛏️', p: 25000, d: 'Dormir em casa sem ser no chão frio' },
+  { id: 'cama', t: 'Cama com colchão', ico: '🛏️', p: 180000, d: 'Dormir a sério: energia no máximo e +saúde' },
+  { id: 'mesa', t: 'Mesa e cadeiras', ico: '🪑', p: 85000, d: 'Refeições sentado(a), receber visitas' },
+  { id: 'fogao', t: 'Fogão a gás', ico: '🍳', p: 130000, d: 'Cozinhar em casa — a comida mais barata' },
+  { id: 'geladeira', t: 'Geladeira', ico: '🧊', p: 260000, d: 'Comida guardada: acordas com menos fome' },
+  { id: 'sofa', t: 'Sofá', ico: '🛋️', p: 210000, d: 'Descansar, ver TV e receber kambas' },
+  { id: 'tv', t: 'TV LED', ico: '📺', p: 280000, d: 'Ver a novela da Kalemba TV e o futebol (+felicidade)' },
+  { id: 'som', t: 'Aparelho de som', ico: '🔊', p: 150000, d: 'Kizomba em casa (+felicidade)' },
+  { id: 'guardaroupa', t: 'Guarda-roupa', ico: '🚪', p: 190000, d: 'Guardar a roupa: trocar de look em casa' },
+  { id: 'candeeiro', t: 'Candeeiros', ico: '💡', p: 35000, d: 'Casa iluminada e acolhedora' },
+  { id: 'tapete', t: 'Tapetes', ico: '🟥', p: 45000, d: 'Casa com cara de lar' },
+  { id: 'pc', t: 'Computador portátil', ico: '💻', p: 520000, d: 'Estudar e trabalhar melhor em casa' },
+];
+const movelT = id => MOVEIS.find(m => m.id === id);
+const precoMovel = M => Math.round(M.p * cid().custo / 1000) * 1000;
+const temMovel = id => (G.moveis || []).includes(id);
+const casaPropriaOuArrendada = () => G && (G.casa.tipo === 'propria' || G.casa.tipo === 'arrendada');
+function buyMovel(id) {
+  const M = movelT(id); if (!M) return;
+  if (!casaPropriaOuArrendada()) return toast('🏚️ Precisas de uma casa (própria ou arrendada) para ter móveis. Vai à Imobiliária!');
+  G.moveis = G.moveis || [];
+  if (G.moveis.includes(id)) return toast('Já tens isto em casa.');
+  if (!pay(precoMovel(M))) return;
+  G.moveis.push(id);
+  if (typeof IV_CACHE !== 'undefined') Object.keys(IV_CACHE).forEach(k => { if (k.startsWith('casa:')) delete IV_CACHE[k]; });
+  const t = `🪑 <b>${M.t}</b> entregue em tua casa! ` + fx({ felicidade: 2 });
+  addLog(t, 'good'); toast('🪑 ' + M.t + ' entregue! Entra em casa para veres.'); save(); refresh();
+  if (typeof inInt !== 'undefined' && inInt && inInt.loc === 'casa' && typeof ivExit === 'function' && typeof ivEnter === 'function') { ivExit(true); setTimeout(() => ivEnter('casa'), 60); }
+}
 const BENS = [
   // Telemóveis
   { id: 'tel1', cat: 'Telemóveis', t: 'Tijolinho 105 (básico)', ico: '📞', p: 15000, tel: 1, d: 'Chamadas, SMS, rádio e jogo da cobrinha' },
@@ -2033,7 +2065,7 @@ function newLife() {
     edu: 0, estudo: null, area: null, curso: null, cursosFeitos: [], tecnicos: [], mestrado: false, notaMedia: 0, notas: [],
     carta: false, cadastro: false, treinos: 0,
     emprego: null, historico: [], reformado: false,
-    casa: rua ? { tipo: 'rua' } : { tipo: 'pais' }, origem: rua ? 'rua' : 'familia', fundo, imoveis: [], bens: [], negocios: [],
+    casa: { tipo: 'rua' }, origem: rua ? 'rua' : 'familia', fundo, imoveis: [], bens: [], negocios: [], moveis: [], telNum: null,
     tel: 0, seg: 0, posts: 0, verificado: false,
     pai, mae, irmaos, amigos: [], parceiro: null, filhos: [], ex: 0,
     roupa: null, roupas: ['casual', 'luanda', 'bata'],
@@ -2048,6 +2080,7 @@ function newLife() {
   } else {
     addLog(`👶 Nasceste em <b>${G.cidade.mun}, ${prov.n}</b>, numa <b>${cls.t.toLowerCase()}</b>. Chamam-te <b>${nome}</b>.`, 'gold');
     addLog(`O teu pai é ${pai.vivo ? pai.prof.toLowerCase() : 'ausente'} e a tua mãe é ${mae.prof.toLowerCase()}. És filho(a) único(a).`);
+    addLog('🏚️ Aos 16 anos saíste de casa dos teus pais para fazeres a tua vida: <b>estás na rua</b> — dormes em passeios e no Abrigo da Missão. Trabalha, poupa e arrenda um quarto ou compra a tua casa (Imobiliária). Os teus pais estão a uma chamada de distância.', 'bad');
   }
   if (ci >= 3) addLog(`🍀 <b>Sorte rara!</b> Só ${cls.w} em cada 100 pessoas nascem numa ${cls.t.toLowerCase()} — e o fundo acaba: trabalhar continua a ser o caminho.`, 'gold');
   if (fundo) addLog(`💳 A tua família abriu-te uma conta com <b>${kzShort(fundo.total)}</b>. Recebes até ${kzShort(fundo.anual)} por ano enquanto durar — quando acabar, é contigo. Trabalhar continua a ser o caminho.`, 'gold');
@@ -2091,6 +2124,8 @@ function infancia(cls, ci, tal, prov) {
 }
 
 /* ---------------- NÚCLEO ---------------- */
+// DarkCell: ao entrar, se já tens telemóvel mas ainda não tens número, atribui um.
+setTimeout(() => { try { if (typeof G !== 'undefined' && G && G.tel > 0 && !G.telNum && typeof telNovo === 'function') telNovo(); } catch (e) { } }, 4000);
 function addLog(txt, cls = '') {
   let y = G.log[G.log.length - 1];
   if (!y || y.idade !== G.idade) { y = { idade: G.idade, ano: G.ano, e: [] }; G.log.push(y); }
@@ -2518,10 +2553,47 @@ function adopt() {
 function kidSchool(i, tipo) { G.filhos[i].escola = tipo; addLog(`🏫 ${G.filhos[i].nome.split(' ')[0]} vai para a escola ${tipo === 'privada' ? 'privada (1,5M/ano)' : 'pública'}.`); save(); refresh(); }
 function kidTime(i) { doAct(0, () => { const f = G.filhos[i]; f.rel = clamp(f.rel + 10); return `Passaste tempo com ${f.nome.split(' ')[0]}. ${f.idade < 12 ? 'Jogaram à bola no quintal.' : 'Tiveram uma boa conversa sobre a vida.'} ` + fx({ felicidade: R(4, 8), karma: 2 }); }, 'love'); }
 function breakUp() {
-  const p = G.parceiro; if (!confirm((p.casado ? 'Divorciar-te de ' : 'Terminar com ') + p.nome + '?')) return;
+  const p = G.parceiro; if (!confirm((p.casado ? 'Divorciar-te de ' : 'Terminar com ') + p.nome + '?' + (p.casado ? '\n⚖️ Divórcio: os bens são partilhados 50/50 (dinheiro, casa, móveis).' : ''))) return;
   let t = `💔 ${p.casado ? 'Divorciaste-te de' : 'Terminaste com'} ${p.nome}. `;
-  if (p.casado && G.dinheiro > 0) { const m = Math.round(G.dinheiro * .5); G.dinheiro -= m; t += `Na partilha de bens perdeste ${kzShort(m)}. `; }
+  if (p.casado) {
+    if (G.dinheiro > 0) { const m = Math.round(G.dinheiro * .5); G.dinheiro -= m; t += `Na partilha de bens perdeste ${kzShort(m)} em dinheiro. `; }
+    if (G.casa.tipo === 'propria' && G.casa.idx != null && G.imoveis[G.casa.idx]) {
+      if (chance(.5)) {
+        const iv = G.imoveis.splice(G.casa.idx, 1)[0];
+        const c = casaT(iv.id);
+        G.casa = { tipo: 'arrendada', id: c.id }; G.moveis = [];
+        t += `A casa (${c.t}) ficou para ${p.nome.split(' ')[0]} e voltaste para uma casa arrendada, sem mobília. `;
+      } else t += `A casa ficou contigo, mas pagaste a parte dele(a) na partilha. `;
+    } else if (G.moveis && G.moveis.length) {
+      const perde = G.moveis.filter(() => chance(.5));
+      if (perde.length) { G.moveis = G.moveis.filter(m => !perde.includes(m)); t += `Ele(a) levou ${perde.length === 1 ? '1 móvel' : perde.length + ' móveis'}. `; }
+    }
+    const fmen = G.filhos.filter(f => f.idade < 18);
+    if (fmen.length && G.casa.tipo !== 'rua') {
+      const nomeMenor = fmen[0].nome.split(' ')[0];
+      G.divorcio = { nome: p.nome, pensao: fmen.length, filho: nomeMenor, total: 0, desde: G.ano };
+      t += `⚖️ O tribunal decidiu: os filhos ficam contigo e ${p.nome.split(' ')[0]} paga assistência todo o mês (DarkCell Money). `;
+    }
+  }
   G.parceiro = null; G.ex++; addLog(t + fx({ felicidade: -12 }), 'bad'); save(); refresh();
+}
+
+// Pensão de alimentos: o ex paga 1×/dia se ainda não pagou este dia
+function divorcioUI() {
+  const d = G.divorcio; if (!d) return '';
+  if (G.stats.felicidade < 50) d.lastE = d.lastE || 0;
+  const pend = d.lastP !== v6Hoje();
+  return `<div class="card" style="border-color:#e74c3c55"><b>⚖️ Divórcio de ${esc(d.nome)}</b><br><span class="dim">${d.filho} e ${d.pensao > 1 ? `mais ${d.pensao - 1} filho(s)` : '1 filho'} ficaram contigo. Total recebido: ${kzShort(d.total)}.</span><br>${pend ? `<button class="pbtn" onclick="divorcioCobrar()">💸 Pedir assistência do dia</button>` : `<span class="dim">✅ Assistência de hoje já entrou na DarkCell Money.</span>`}</div>`;
+}
+function divorcioCobrar() {
+  const d = G.divorcio; if (!d || d.lastP === v6Hoje()) return toast('Já recebeste a assistência de hoje.');
+  d.lastP = v6Hoje();
+  const base = 8000 * d.pensao * (cid().custo || 1) * (1 + (G.ano - (d.desde || G.ano)) * .06);
+  const v = Math.max(2000, Math.round(base * R(50, 110) / 100));
+  d.total += v; G.dinheiro += v;
+  (G.inbox = G.inbox || []).unshift({ key: 'ex', de: d.nome + ' (ex)', txt: `Transferência DarkCell Money: ${kz(v)} para a assistência ${d.pensao > 1 ? 'das' : 'da'} nossa${d.pensao > 1 ? 's' : ''} criança${d.pensao > 1 ? 's' : ''}.`, ano: G.ano, lida: false });
+  addLog(`💸 ${d.nome.split(' ')[0]} enviou ${kz(v)} pela DarkCell Money (assistência de ${d.pensao > 1 ? d.pensao + ' filhos' : '1 filho'}). ` + fx({ felicidade: 2 }), 'good');
+  save(); refresh();
 }
 
 /* ---------------- CASAS ---------------- */
@@ -2605,6 +2677,7 @@ function buyBem(id) {
   if (!pay(B.p)) return;
   if (B.tel) { G.bens = G.bens.filter(b => !bemT(b).tel); G.tel = B.tel; }
   G.bens.push(id);
+  if (B.tel && typeof telNovo === 'function') setTimeout(telNovo, 400);
   after(`🛍️ Compraste: <b>${B.t}</b>! ` + fx(B.ef || {}), 'good', 'cheer');
 }
 function sellBem(id) { const B = bemT(id); const v = Math.round(B.p * .55); if (!confirm(`Vender ${B.t} por ${kz(v)}?`)) return; G.bens = G.bens.filter(b => b !== id); if (B.tel) G.tel = 0; G.dinheiro += v; addLog(`Vendeste ${B.t} por ${kzShort(v)}.`); save(); refresh(); }
@@ -2693,12 +2766,16 @@ function genInbox() {
   if (G.parceiro && chance(.8)) m(n1(G.parceiro.nome) + ' 💕', '💕', pick(['Bom dia, meu amor ☀️', 'Hoje à noite jantamos fora? 🍷', 'Tenho saudades tuas 🥺', 'Onde estás? Não respondes...']), 'par');
   G.amigos.slice(0, 3).forEach((f, i) => { if (chance(.5)) m(n1(f.nome), '🧑🏿', pick(['Mano, bora à farra sábado? 🎶', 'Viste o vídeo que te mandei? 😂', 'Preciso de um favor... liga-me', 'Bwé de tempo que não nos vemos!']), 'a' + i); });
   if (G.emprego && chance(.4)) m('Chefe', '💼', pick(['Reunião amanhã às 8h em ponto.', 'Bom trabalho este mês 👏', 'Preciso do relatório até sexta.']), 'chefe');
-  if (chance(.6)) m('Mbote Telecom', '📶', pick(['Ativa já o pacote 5G Ilimitado por 9.900 Kz!', 'Recebeste 500 MB de bónus 🎁', 'O teu saldo está a acabar. Recarrega já.']), 'unitel');
+  if (chance(.6)) m('DarkCell', '📶', pick(['Semana Bwé: chamadas e SMS à vontade por 9.900 Kz!', 'Recebeste 500 MB de bónus 🎁', 'O teu saldo está a acabar. Recarrega já.']), 'darkcell');
   if (G.seg > 5000 && chance(.6)) m('Marca parceira', '🤝', `Olá! Adorávamos colaborar contigo (${numShort(G.seg)} seguidores). Interessado(a)?`, 'marca');
   if (G.inbox.length > 40) G.inbox.length = 40;
 }
 function sendMsg(key) {
   if (G.tel < 1) return toast('📵 Não tens telemóvel.');
+  if (key[0] === 'p') {   // jogador real (rede DarkCell)
+    if (typeof smsNovoPara === 'function') smsNovoPara(key.slice(1));
+    return;
+  }
   G.msgAno = G.msgAno || {};
   const p = key === 'pai' || key === 'mae' ? G[key] : key === 'par' ? G.parceiro : key[0] === 'a' ? G.amigos[+key.slice(1)] : key[0] === 'i' ? G.irmaos[+key.slice(1)] : null;
   if (!p) return;
@@ -5757,7 +5834,7 @@ function showHelp() {
   <p><b>⚡ Energia</b><br>Há uma só energia: a barra no topo. Cada ação gasta <b>10</b>; andar e fazer turnos também gastam. Recupera a <b>comer</b>, a <b>descansar</b> e a <b>dormir em casa</b> (de 8 em 8 minutos). Fechar o ano também te dá energia nova.</p>
   <p><b>🪪 Documentos</b><br>Aos 18, para emprego com contrato, carta de condução e crédito precisas do <b>BI</b>. Trata no <b>SIAC (Mutamba)</b>.</p>
   <p><b>🧭 O teu caminho</b><br>Aos 16 escolhes: <b>universidade</b> (exame de acesso na pública ou propinas na privada), <b>curso técnico</b> ou <b>ir trabalhar</b>. A média e a área do médio contam!</p>
-  <p><b>💼 Profissões</b><br>Cada emprego tem requisitos reais: idade, escolaridade, curso, carta, cadastro limpo… Trabalha bem para seres promovido(a) — nas grandes empresas (Kitanda Super, Mbote Telecom, Banco Palanca, Mulemba Petróleos) podes chegar a <b>CEO</b>.</p>
+  <p><b>💼 Profissões</b><br>Cada emprego tem requisitos reais: idade, escolaridade, curso, carta, cadastro limpo… Trabalha bem para seres promovido(a) — nas grandes empresas (Kitanda Super, DarkCell, Banco Palanca, Mulemba Petróleos) podes chegar a <b>CEO</b>.</p>
   <p><b>👑 Império</b><br>Na <b>Torre Empresarial</b> abres empresas, contratas funcionários, abres filiais e fundas o teu <b>Grupo Empresarial</b>. Em <b>Terrenos & Obras</b> compras terrenos, constróis prédios e vives das rendas.</p>
   <p><b>🗺️ Angola inteira</b><br>Nasces numa província aleatória — cada uma das 21 tem a sua própria cidade com hospital, banco, mercado, universidade, esquadra e porto/aeroporto. Luanda é a maior de todas: Marginal, Baixa, Mutamba, Ilha, Kilamba, Talatona, musseques e Viana. Aos 18 podes mudar-te de província (mapa no telemóvel).</p>
   <p><b>🏠 Vida adulta</b><br>Arrenda ou compra casa (crédito habitação), faz o alembamento, tem filhos, abre negócios, investe e cuida da saúde. Tudo tem consequências.</p>
@@ -5878,6 +5955,7 @@ function familiaUI() {
   if (G.amigos.length) h += list([...G.amigos.map((f, i) => relItem(f.g === 'M' ? '🧑🏿' : '👩🏿', esc(f.nome), `${f.idade} anos${f.rico ? ' · família influente 🤫' : ''}`, f.rel,
     chip('Sair (10 mil)', `friendOut(${i})`) + (G.idade >= 18 ? chip('Pedir cunha', `askCunha(${i})`) : '')))]);
   h += sec('Amor');
+  if (typeof divorcioUI === 'function') h += divorcioUI();
   if (G.parceiro) {
     const p = G.parceiro, lbl = p.casado ? (p.g === 'F' ? 'Esposa' : 'Marido') : (p.g === 'F' ? 'Namorada' : 'Namorado');
     const btns = chip('Sair juntos (15 mil)', 'dateTime()') + (!p.juntos && !p.casado ? chip('🏠 Morar juntos', 'moveIn()') : '') +
@@ -6038,6 +6116,23 @@ function meusImoveisHTML() {
   }));
 }
 /* Centro Habitacional — todas as casas num só sítio, do bairro pobre ao bairro rico */
+function moveisUI() {
+  let h = energyBar();
+  if (!casaPropriaOuArrendada()) {
+    return h + noteBox('🏚️ <b>Ainda não tens casa.</b> As casas são entregues vazias — primeiro arrenda ou compra uma casa na tab 🏘️ Casas, e depois volta aqui para a mobilar ao teu gosto.', true)
+      + list([btnItem('🏘️', 'Ver casas', 'Arrendar ou comprar', '', "setTab('casas')")]);
+  }
+  const mv = G.moveis || [], k = cid().custo;
+  h += noteBox(`🏠 <b>${moradaTxt()}</b> · ${mv.length ? `móveis: <b>${mv.length}/${MOVEIS.length}</b>` : '<b>vazia!</b> Começa pelo colchão e pelo fogão.'}<br>🚚 Entrega e montagem incluídas. Os móveis ficam na casa mesmo que te mudes de visual.`);
+  if (!mv.length) h += noteBox('📦 A tua casa está vazia: dormir no chão cansa e dá cabo da saúde, e sem fogão não podes cozinhar.', true);
+  h += sec('Mobília & electrodomésticos');
+  h += list(MOVEIS.map(M => {
+    const tenho = mv.includes(M.id), preco = precoMovel(M);
+    return btnItem(M.ico, M.t, M.d + (tenho ? ' · <b>✅ em casa</b>' : ''), tenho ? '✅' : kzShort(preco), `buyMovel('${M.id}')`, tenho || G.dinheiro < preco);
+  }));
+  if (mv.length >= 5) h += noteBox('✨ A tua casa está bem mobilada: dormir em casa dá +felicidade extra.');
+  return h;
+}
 function imobUI() {
   let h = energyBar();
   const P = cid(), Zm = zonaCasa(typeof casaZona === 'function' ? casaZona() : 'bairro');
@@ -6121,7 +6216,7 @@ const PANELS = {
   escola:  { ico: '🎓', t: 'Escola & Universidade', sub: 'Primária, secundário, universidade e cursos', tabs: [['est', '📚 Estudos', estudosUI], ['uni', '🏛️ Universidade', uniUI], ['tec', '🛠️ Técnicos & Carta', tecnicoUI]] },
   mercado: { ico: '🧺', t: 'Mercado do Roque', sub: 'Biscates, negócios e roupa', tabs: [['m', '🧺 Mercado', mercadoAtiv], ['neg', '🏪 Negócios', negociosUI], ['bout', '🛍️ Loja de Roupa', boutiqueUI]] },
   banco:   { ico: '🏦', t: 'Banco Palanca', sub: 'Conta, crédito e stand', tabs: [['c', '🏦 Conta', contaUI], ['loja', '🚗 Stand & Loja', lojaUI]] },
-  imobiliaria: { ico: '🏘️', t: 'Imobiliária', sub: 'Centro Habitacional · casas e as 21 províncias', tabs: [['casas', '🏘️ Casas', imobUI], ['cid', '🗺️ Províncias', cidadesUI]] },
+  imobiliaria: { ico: '🏘️', t: 'Imobiliária', sub: 'Centro Habitacional · casas e as 21 províncias', tabs: [['casas', '🏘️ Casas', imobUI], ['moveis', '🪑 Móveis', moveisUI], ['cid', '🗺️ Províncias', cidadesUI]] },
   clinica: { ico: '🏥', t: 'Clínica Bem-Estar', sub: 'Saúde em primeiro lugar', body: clinicaUI },
   igreja:  { ico: '⛪', t: 'Igreja', sub: 'Fé, comunidade e boas ações', body: () => energyBar() + ativList(['igreja', 'voluntario']) + list([btnItem('🤝', 'Conhecer pessoas da paróquia', 'Fazer amigos', '', "makeFriend('na igreja')", G.idade < 5)]) },
   ginasio: { ico: '🏋️', t: 'Ginásio & Campo', sub: 'Corpo são, mente sã', body: () => energyBar() + noteBox(`🏀 Treinos acumulados: <b>${G.treinos}</b> (o desporto profissional pede 6+ e saúde 80+)`) + ativList(['ginasio', 'basquete', 'futebol', 'salao']) },
@@ -6467,11 +6562,12 @@ const PHONE_VIEWS = {
 
   mensagens: () => {
     if (chatKey) return chatView(chatKey);
-    const cs = contacts(), extra = [['chefe', '💼', 'Chefe'], ['unitel', '📶', 'Mbote Telecom'], ['marca', '🤝', 'Marca parceira']].filter(([k]) => (G.inbox || []).some(m => m.key === k));
-    const all = [...cs.map(c => ({ key: c.key, ico: c.ico, nome: c.nome })), ...extra.map(([key, ico, nome]) => ({ key, ico, nome }))];
+    const cs = contacts(), extra = [['chefe', '💼', 'Chefe'], ['darkcell', '📶', 'DarkCell'], ['unitel', '📶', 'DarkCell'], ['marca', '🤝', 'Marca parceira']].filter(([k]) => (G.inbox || []).some(m => m.key === k));
+    const jogs = smsThreads().map(j => ({ key: 'p' + j.num, ico: '📶', nome: j.nome + ' · ' + fmtTel(j.num) }));
+    const all = [...jogs, ...cs.map(c => ({ key: c.key, ico: c.ico, nome: c.nome })), ...extra.map(([key, ico, nome]) => ({ key, ico, nome }))];
     const rows = all.map(c => { const ms = (G.inbox || []).filter(m => m.key === c.key); const last = ms[0]; const un = ms.filter(m => !m.lida).length; return { c, last, un }; })
       .sort((a, b) => (b.un - a.un) || ((b.last ? 1 : 0) - (a.last ? 1 : 0)));
-    return apHead('Fala Já', 'Conversas', '<span style="font-size:20px">📷</span>') + `<div class="clist">${rows.map(({ c, last, un }) => `<button class="crow" onclick="chatKey='${c.key}';renderPhone()"><div class="cav">${c.ico}</div><div class="cinfo"><b>${esc(c.nome)}</b><span>${last ? esc(last.txt) : 'Toca para conversar'}</span></div>${un ? `<span class="unb">${un}</span>` : ''}</button>`).join('')}</div>`;
+    return apHead('Fala Já', 'Conversas', `<button style="background:none;border:0;font-size:20px;cursor:pointer" onclick="smsNovo()" title="SMS a um número">✉️＋</button>`) + `<div class="clist">${rows.map(({ c, last, un }) => `<button class="crow" onclick="chatKey='${c.key}';renderPhone()"><div class="cav">${c.ico}</div><div class="cinfo"><b>${esc(c.nome)}</b><span>${last ? esc(last.txt) : 'Toca para conversar'}</span></div>${un ? `<span class="unb">${un}</span>` : ''}</button>`).join('')}</div>`;
   },
 
   bwe: () => {
@@ -6570,7 +6666,7 @@ const PHONE_VIEWS = {
       ['⚽ Leões da Ilha conquistam mais uma Liga Mwangolé', '🏀 Águias do Kilamba vencem a final do campeonato de basquetebol', '⚽ Palancas Negras apurados para o CAN'][hh % 3],
       ['🚇 Obras do metro de superfície de Luanda avançam', '🛣️ Nova estrada liga Luanda a Catete', '✈️ Novo aeroporto internacional recebe mais voos'][(hh >>> 3) % 3],
       ['🔌 ENDE anuncia cortes de energia programados', '🌧️ Chuvas fortes causam inundações em vários bairros', '🛢️ Preço do petróleo sobe e anima a economia'][(hh >>> 5) % 3],
-      ['📱 Mbote Telecom lança rede 5G em mais províncias', '💻 Startups angolanas atraem investimento estrangeiro', '🎓 UAN abre novas vagas para Medicina'][(hh >>> 7) % 3],
+      ['📱 DarkCell cobre mais províncias com 5G', '💻 Startups angolanas atraem investimento estrangeiro', '🎓 UAN abre novas vagas para Medicina'][(hh >>> 7) % 3],
     ];
     if (G.stats.fama >= 25) news.unshift(`⭐ ${G.nome} é uma das figuras mais faladas de ${G.cidade.prov}!`);
     if (G.negocios.length) news.push(`🏪 Pequenos negócios crescem em ${G.cidade.mun}`);
@@ -6612,16 +6708,104 @@ const PHONE_VIEWS = {
 function nokiaScreen() {
   const it = (t, f) => `<button class="nk" onclick="${f}">${t}</button>`;
   const hd = t => `<div class="nkh">${t}</div>`;
-  if (phoneApp === 'lock') return `<div class="nkl"><div class="nkt">${nowTxt()}</div><div>${G.cidade.mun}</div>${unread() ? `<div style="margin-top:14px">✉ ${unread()} mensagem(ns) nova(s)</div>` : ''}<div class="nkm">Toca em <b>Menu</b> para desbloquear</div></div>`;
-  if (phoneApp === 'home') return hd('Menu') + it('📇 Contactos', "phoneApp='telefone';renderPhone()") + it(`✉ Mensagens${unread() ? ' (' + unread() + ')' : ''}`, "phoneApp='mensagens';renderPhone()") + it('💰 Mbote Kumbu', "phoneApp='nkmoney';renderPhone()") + it('📻 Rádio FM', 'listenMusic()') + it('🐍 Cobrinha', "playGame('cobra')") + it('📊 A minha vida', "phoneApp='nkvida';renderPhone()") + it('⚙ Definições', "phoneApp='definicoes';renderPhone()");
-  if (phoneApp === 'telefone') return hd('Contactos') + contacts().map(c => `<div class="nkr"><span>${esc(c.nome.split(' ')[0])}</span>${c.call ? `<button onclick="callPerson('${c.key}')">Ligar</button>` : ''}<button onclick="sendMsg('${c.key}')">SMS</button></div>`).join('');
+  if (phoneApp === 'lock') return `<div class="nkl"><div class="nkt">${nowTxt()}</div><div>DarkCell · ${G.cidade.mun}</div>${unread() ? `<div style="margin-top:14px">✉ ${unread()} mensagem(ns) nova(s)</div>` : ''}<div class="nkm">Toca em <b>Menu</b> para desbloquear</div></div>`;
+  if (phoneApp === 'home') return hd('Menu') + it('📇 Contactos', "phoneApp='telefone';renderPhone()") + it(`✉ Mensagens${unread() ? ' (' + unread() + ')' : ''}`, "phoneApp='mensagens';renderPhone()") + it('💰 DarkCell Money', "phoneApp='nkmoney';renderPhone()") + it('📻 Rádio FM', 'listenMusic()') + it('🐍 Cobrinha', "playGame('cobra')") + it('📊 A minha vida', "phoneApp='nkvida';renderPhone()") + it('⚙ Definições', "phoneApp='definicoes';renderPhone()");
+  if (phoneApp === 'telefone') { const jogs = smsThreads(); return hd('Contactos') + contacts().map(c => `<div class="nkr"><span>${esc(c.nome.split(' ')[0])}</span>${c.call ? `<button onclick="callPerson('${c.key}')">Ligar</button>` : ''}<button onclick="sendMsg('${c.key}')">SMS</button></div>`).join('') + (jogs.length ? hd('Jogadores (DarkCell)') : '') + jogs.map(j => `<div class="nkr"><span>${esc(j.nome.split(' ')[0])}</span><button onclick="smsNovoPara('${j.num}')">SMS</button></div>`).join('') + it('＋ SMS a número novo', 'smsNovo()'); }
   if (phoneApp === 'mensagens') { (G.inbox || []).forEach(m => m.lida = true); return hd('Mensagens') + ((G.inbox || []).slice(0, 12).map(m => `<div class="nkmsg"><b>${esc(m.de)}:</b> ${esc(m.txt)}</div>`).join('') || '<div class="nkmsg">Sem mensagens.</div>'); }
-  if (phoneApp === 'nkmoney') return hd('Mbote Kumbu') + `<div class="nkmsg">Saldo: <b>${kz(G.dinheiro)}</b></div>` + (G.mae.vivo ? it('Enviar dinheiro à mãe', "helpParent('mae')") : '') + (G.pai.vivo ? it('Enviar dinheiro ao pai', "helpParent('pai')") : '');
+  if (phoneApp === 'nkmoney') return hd('DarkCell Money') + `<div class="nkmsg">Saldo: <b>${kz(G.dinheiro)}</b></div>` + (G.mae.vivo ? it('Enviar dinheiro à mãe', "helpParent('mae')") : '') + (G.pai.vivo ? it('Enviar dinheiro ao pai', "helpParent('pai')") : '');
   if (phoneApp === 'nkvida') return hd(esc(G.nome)) + Object.keys(LABEL).map(k => `<div class="nkr"><span>${LABEL[k]}</span><b>${G.stats[k]}</b></div>`).join('');
   if (phoneApp === 'definicoes') return hd('Definições') + it(plus18() ? '+18: Ligado' : '+18: Desligado', 'toggle18()') + it('Créditos', 'closePhone();showCredits()') + it('Terminar sessão', 'closePhone();doLogout()');
   return hd('...');
 }
 function nokiaKey(k) { if (k === 'menu') { phoneApp = 'home'; renderPhone(); } else if (k === 'back') { if (phoneApp === 'home' || phoneApp === 'lock') closePhone(); else { phoneApp = 'home'; renderPhone(); } } }
+
+/* ---------------- DARKCELL: número próprio e SMS entre jogadores ---------------- */
+const fmtTel = n => !n ? '' : String(n).replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3');
+function telNum() {
+  if (!G.telNum) {
+    const base = String((typeof USER !== 'undefined' && USER ? USER.id : 0) || Date.now()).replace(/\D/g, '') || '1';
+    G.telNum = '95' + String(1000000 + (parseInt(base, 10) * 7919) % 9000000);
+  }
+  return G.telNum;
+}
+async function telReg(tent) {   // regista o número na rede (para outros jogadores te encontrarem)
+  if (typeof Acc === 'undefined' || !Acc.online || !G || !G.tel || !G.telNum) return;
+  try {
+    const r = await fetch('/api/tel/reg', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + Acc.token }, body: JSON.stringify({ num: G.telNum }) });
+    if (r.status === 409 && !tent) { G.telNum = '95' + String(1000000 + Math.floor(Math.random() * 9000000)); return telReg(1); }
+  } catch (e) { }
+}
+function telNovo() {   // ao comprar telemóvel (ou ao entrar com um sem número)
+  if (!G || !G.tel) return;
+  const novo = !G.telNum;
+  telNum();
+  if (novo) {
+    (G.inbox = G.inbox || []).unshift({ key: 'darkcell', de: 'DarkCell', txt: `📶 Bem-vindo(a) à DarkCell! O teu número é ${fmtTel(G.telNum)}. Partilha-o com os teus kambas e troquem SMS de verdade. Oferta de boas-vindas: 500 Kz de saldo.`, ano: G.ano, lida: false });
+    toast(`📶 DarkCell: o teu número é ${fmtTel(G.telNum)}!`); save();
+  }
+  telReg();
+}
+function smsThreads() {   // conversas com jogadores reais (chave 'p'+número no inbox)
+  const th = {};
+  (G.inbox || []).forEach(m => {
+    if (!m.key || m.key[0] !== 'p') return;
+    const num = m.key.slice(1);
+    if (!th[num]) th[num] = { num, nome: (G.telNomes || {})[num] || num, last: null, un: 0 };
+    if (!m.out && m.de && m.de !== 'Eu') th[num].nome = m.de;
+    if (m.out && m.pnome) th[num].nome = m.pnome;
+    if (!m.lida) th[num].un++;
+    if (!th[num].last) th[num].last = m;
+  });
+  return Object.values(th).sort((a, b) => (b.un - a.un) || ((b.last ? 1 : 0) - (a.last ? 1 : 0)));
+}
+async function smsNovo() {
+  if (G.tel < 1) return toast('📵 Não tens telemóvel.');
+  if (typeof Acc === 'undefined' || !Acc.online) return toast('📶 SMS entre jogadores precisa de internet (modo online).');
+  const num = (prompt(`📶 DarkCell — número do jogador (o teu é ${fmtTel(telNum())}):`) || '').replace(/\D/g, '');
+  if (!num) return;
+  try {
+    const r = await fetch('/api/tel/quem', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + Acc.token }, body: JSON.stringify({ num }) });
+    const d = await r.json();
+    if (!r.ok) return toast('📵 ' + (d.erro || 'Número não encontrado.'));
+    if (d.eu) return toast('😄 Esse é o teu próprio número!');
+    G.telNomes = G.telNomes || {}; G.telNomes[num] = d.nome; save();
+    chatKey = 'p' + num; renderPhone();
+  } catch (e) { toast('📶 Sem rede DarkCell. Tenta outra vez.'); }
+}
+function smsNovoPara(num) {   // fluxo simples (tijolinho)
+  const nome = (G.telNomes || {})[num] || num;
+  const txt = (prompt(`💬 SMS para ${nome} (${fmtTel(num)}):`) || '').trim();
+  if (txt) smsSendTxt(num, txt).then(ok => { if (ok) toast(`💬 SMS enviado a ${nome}.`); });
+}
+async function smsSendTxt(num, txt) {
+  if (G.tel < 1) { toast('📵 Não tens telemóvel.'); return false; }
+  if (typeof Acc === 'undefined' || !Acc.online) { toast('📶 SMS entre jogadores precisa de internet.'); return false; }
+  txt = (txt || '').trim().slice(0, 140); if (!txt) return false;
+  try {
+    const r = await fetch('/api/tel/msg', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + Acc.token }, body: JSON.stringify({ para: num, txt, meu: telNum() }) });
+    let d = {}; try { d = await r.json(); } catch (e) { }
+    if (!r.ok) { toast('📵 ' + (d.erro || 'Falha ao enviar.')); return false; }
+    (G.inbox = G.inbox || []).unshift({ key: 'p' + num, de: 'Eu', pnome: (G.telNomes || {})[num] || num, txt, ano: G.ano, lida: true, out: true });
+    G.inbox = G.inbox.slice(0, 80);
+    save(); updateBadge();
+    return true;
+  } catch (e) { toast('📶 Sem rede DarkCell. Tenta outra vez.'); return false; }
+}
+async function smsSend(num) {
+  const inp = document.getElementById('smsIn');
+  const txt = (inp && inp.value || '').trim(); if (!txt) return;
+  if (await smsSendTxt(num, txt)) { renderPhone(true); setTimeout(() => { const i = document.getElementById('smsIn'); if (i) i.focus(); }, 60); }
+}
+function smsThread(num) {
+  G.telNomes = G.telNomes || {};
+  const ms = (G.inbox || []).filter(m => m.key === 'p' + num).slice().reverse();
+  ms.forEach(m => { m.lida = true; if (!m.out && m.de && m.de !== 'Eu') G.telNomes[num] = m.de; if (m.out && m.pnome) G.telNomes[num] = m.pnome; });
+  setTimeout(updateBadge, 0); save();
+  const nome = G.telNomes[num] || fmtTel(num);
+  return `<div class="aphead chat"><button onclick="phoneBack()">‹</button><div class="cav sm">📶</div><div style="flex:1;min-width:0"><h3>${esc(nome)}</h3><div class="apsub">DarkCell ${fmtTel(num)}</div></div></div>
+    <div class="chatbg">${ms.map(m => m.out ? `<div class="bub out">${esc(m.txt)}<small>✓✓</small></div>` : `<div class="bub in">${esc(m.txt)}<small>${m.ano}</small></div>`).join('') || '<div class="apnote" style="text-align:center">Ainda não há mensagens.<br>Diz mbote! 👋</div>'}</div>
+    <div style="display:flex;gap:6px;padding:8px;background:#101018"><input id="smsIn" maxlength="140" placeholder="Escreve um SMS…" style="flex:1;padding:10px 12px;border-radius:20px;border:1px solid #333;background:#1a1a24;color:#fff" onkeydown="if(event.key==='Enter')smsSend('${num}')"><button class="pbtn" style="width:auto;padding:0 16px;margin:0" onclick="smsSend('${num}')">➤</button></div>`;
+}
 
 /* ---------------- CONTACTOS / CHAT ---------------- */
 function contacts() {
@@ -6635,11 +6819,25 @@ function contacts() {
 function personByKey(k) { return k === 'pai' || k === 'mae' ? G[k] : k === 'par' ? G.parceiro : k[0] === 'a' ? G.amigos[+k.slice(1)] : k[0] === 'i' ? G.irmaos[+k.slice(1)] : null; }
 function callPerson(k) {
   const p = personByKey(k); if (!p) return;
+  if (k === 'pai' || k === 'mae') {   // 1 chamada por dia a cada um — com recompensa
+    const hoje = new Date().toDateString();
+    G.telDia = G.telDia && G.telDia.d === hoje ? G.telDia : { d: hoje };
+    if (G.telDia[k]) return toast(`📞 Já ligaste ${k === 'mae' ? 'à tua mãe' : 'ao teu pai'} hoje. Volta a ligar amanhã!`);
+    G.telDia[k] = 1;
+    doAct(0, () => {
+      p.rel = clamp(p.rel + R(8, 14));
+      let extra = '';
+      if (chance(.4)) { const v = R(2000, 12000) * (['rica', 'elite'].includes(G.classe) ? 8 : G.classe === 'media' ? 3 : 1); G.dinheiro += v; extra = ` E mandou-te <b>${kz(v)}</b> pelo DarkCell Money! 💸`; }
+      return `📞 Ligaste ${k === 'mae' ? 'à tua mãe' : 'ao teu pai'}. ${pick(['Falaram mais de uma hora!', 'Contou-te as novidades do bairro todas.', 'Disse que tens de comer bem e aparecer para almoçar.', 'Perguntou se já tens casa — mentiste um bocadinho.', 'Riram-se bwé ao telefone.'])}${extra} ` + fx({ felicidade: R(3, 6), karma: 1 });
+    }, 'think');
+    return;
+  }
   doAct(0, () => { p.rel = clamp(p.rel + R(6, 12)); return `📞 Ligaste a ${p.nome.split(' ')[0]}. ${pick(['Falaram mais de uma hora!', 'Riram-se bwé ao telefone.', 'Contaram as novidades todas.', 'A chamada caiu duas vezes, mas valeu a pena.'])} ` + fx({ felicidade: R(2, 5), karma: 1 }); }, 'think');
 }
 function chatView(k) {
+  if (k && k[0] === 'p') return smsThread(k.slice(1));
   const p = personByKey(k);
-  const nome = p ? p.nome : { chefe: 'Chefe', unitel: 'Mbote Telecom', marca: 'Marca parceira' }[k] || k;
+  const nome = p ? p.nome : { chefe: 'Chefe', unitel: 'DarkCell', darkcell: 'DarkCell', marca: 'Marca parceira' }[k] || k;
   const ms = (G.inbox || []).filter(m => m.key === k).slice().reverse();
   ms.forEach(m => m.lida = true); setTimeout(updateBadge, 0);
   G.msgAno = G.msgAno || {};
@@ -6647,7 +6845,7 @@ function chatView(k) {
   if (p) quick = G.msgAno[k] ? '<div class="apnote">Já falaste este ano. Liga para fortalecer mais a relação.</div>' : `<button class="pbtn" onclick="sendMsg('${k}');renderPhone(true)">${pick(['❤️ Responder com carinho', '😂 Mandar um meme', '👋 Perguntar como está'])}</button>`;
   else if (k === 'marca') quick = G.seg > 5000 && !G.msgAno.marca ? `<button class="pbtn" onclick="acceptBrand()">🤝 Aceitar parceria (+${kzShort(Math.round(G.seg * 6))})</button>` : '';
   else if (k === 'chefe' && G.emprego && !G.msgAno.chefe) quick = `<button class="pbtn" onclick="G.msgAno.chefe=1;G.emprego.desemp=clamp(G.emprego.desemp+3);toast('👍 O chefe gostou da tua prontidão.');save();renderPhone(true)">👍 Ok chefe, conte comigo!</button>`;
-  else if (k === 'unitel' && !G.msgAno.unitel) quick = `<button class="pbtn" onclick="if(pay(9900)){G.msgAno.unitel=1;fx({felicidade:1});toast('📶 Pacote 5G ilimitado ativado!');save();refresh();}">📶 Ativar 5G ilimitado (9.900 Kz)</button>`;
+  else if ((k === 'darkcell' || k === 'unitel') && !G.msgAno.darkcell) quick = `<button class="pbtn" onclick="if(pay(9900)){G.msgAno.darkcell=1;fx({felicidade:1});toast('📶 DarkCell: Semana Bwé ativada — chamadas e SMS à vontade!');save();refresh();}">📶 Ativar Semana Bwé (9.900 Kz)</button>`;
   return `<div class="aphead chat"><button onclick="phoneBack()">‹</button><div class="cav sm">${p ? (k === 'par' ? '💕' : '🧑🏿') : '🏢'}</div><div style="flex:1;min-width:0"><h3>${esc(nome)}</h3><div class="apsub">${p ? 'online' : 'conta verificada'}</div></div><span>📞</span></div>
     <div class="chatbg">${ms.map(m => `<div class="bub in">${esc(m.txt)}<small>${m.ano}</small></div>`).join('') || '<div class="apnote" style="text-align:center">Ainda não há mensagens.</div>'}${p && G.msgAno[k] ? '<div class="bub out">Também te adoro ❤️ Falamos em breve!<small>✓✓</small></div>' : ''}</div>${quick}`;
 }
@@ -6723,8 +6921,8 @@ const CORP_JOBS = [
   { id: 'c_retalho', t: 'Grande Retalho (Kitanda Super)', ico: '🛒', cat: 'Carreira Empresarial', sal: 1300000, req: { idade: 16 },
     niv: ['Operador(a) de Loja', 'Supervisor(a)', 'Gerente de Loja', 'Gerente Regional', 'Diretor(a) de Operações', 'CEO da Cadeia'], mult: [1, 1.5, 2.4, 4, 7, 14],
     nivReq: { 2: { edu: 3 }, 3: { inteligencia: 50 }, 4: { edu: 4 }, 5: { edu: 4, inteligencia: 70 } } },
-  { id: 'c_telecom', t: 'Telecomunicações (Mbote Telecom)', ico: '📶', cat: 'Carreira Empresarial', sal: 1800000, req: { idade: 18, edu: 3 },
-    niv: ['Consultor(a) de Vendas', 'Coordenador(a) de Equipa', 'Gestor(a) de Área', 'Diretor(a) de Marketing', 'Administrador(a)', 'CEO da Mbote Telecom'], mult: [1, 1.6, 2.6, 4.4, 7.5, 15],
+  { id: 'c_telecom', t: 'Telecomunicações (DarkCell)', ico: '📶', cat: 'Carreira Empresarial', sal: 1800000, req: { idade: 18, edu: 3 },
+    niv: ['Consultor(a) de Vendas', 'Coordenador(a) de Equipa', 'Gestor(a) de Área', 'Diretor(a) de Marketing', 'Administrador(a)', 'CEO da DarkCell'], mult: [1, 1.6, 2.6, 4.4, 7.5, 15],
     nivReq: { 2: { edu: 4 }, 4: { inteligencia: 65 }, 5: { inteligencia: 72, fama: 10 } } },
   { id: 'c_banca', t: 'Banca Comercial (Banco Palanca)', ico: '🏦', cat: 'Carreira Empresarial', sal: 2600000, req: { idade: 18, edu: 3, limpo: true }, outfit: 'executivo',
     niv: ['Assistente de Balcão', 'Gestor(a) de Clientes', 'Gerente de Agência', 'Diretor(a) Comercial', 'Administrador(a) Executivo(a)', 'CEO do Banco'], mult: [1, 1.6, 2.6, 4.4, 7.5, 15],
@@ -7822,9 +8020,119 @@ const IV_CASA = {
   },
 };
 
+
+/* ---------- A MINHA CASA: começa VAZIA — os móveis são comprados pelo jogador ---------- */
+const IV_TIER_WH = { simples: [12, 9], bairro: [14, 10], apto: [16, 11], luxo: [20, 14] };
+function ivColchao(x, z, ry) {
+  ivGrp(x, z, ry, () => {
+    ivB(1.5, .2, 2.5, '#8a8f80', 0, .1, 0);
+    ivB(1.3, .08, 1.5, new T.MeshStandardMaterial({ map: waxTex(['#c8102e', '#ffcb00', '#1d1d1d', '#f2f2f2']) }), 0, .22, .35);
+    ivB(.7, .12, .4, '#f4f4f4', 0, .22, -.85);
+  });
+}
+function ivCama(x, z, ry) {
+  ivGrp(x, z, ry, () => {
+    ivB(1.9, .32, 2.6, '#6b4a2a', 0, .16, 0);
+    ivB(1.8, .24, 2.5, '#f4f1ea', 0, .42, 0);
+    ivB(1.7, .1, 1.4, new T.MeshStandardMaterial({ map: waxTex(['#1f63c9', '#ffcb00', '#f2f2f2', '#c8102e']) }), 0, .54, .4);
+    ivB(.75, .13, .45, '#ffffff', -.45, .54, -.9); ivB(.75, .13, .45, '#ffffff', .45, .54, -.9);
+    ivB(1.9, 1, .1, '#6b4a2a', 0, .5, -1.32);
+  });
+}
+function ivFogao(x, z, ry) {
+  ivGrp(x, z, ry, () => {
+    ivB(.9, .85, .65, '#d9d9de', 0, .42, 0, { metalness: .3, roughness: .4 });
+    ivB(.8, .03, .55, '#222222', 0, .86, 0);
+    [[-.2, -.13], [.2, -.13], [-.2, .13], [.2, .13]].forEach(([a, b]) => ivC(.09, .09, .02, '#0a0a0a', a, .88, b, 10));
+    ivB(.66, .38, .03, '#1a1a1a', 0, .34, .34);
+    ivB(.3, .12, .24, '#8a8a8a', -.1, .95, 0);
+  });
+}
+function ivGeladeira(x, z, ry) {
+  ivGrp(x, z, ry, () => {
+    ivB(.8, 1.9, .7, '#f4f4f4', 0, .95, 0, { roughness: .3, metalness: .2 });
+    ivB(.05, .55, .05, '#999999', .3, 1.15, .37);
+    ivB(.78, .03, .68, '#cccccc', 0, 1.25, 0);
+  });
+}
+function ivSomCasa(x, z, ry) {
+  ivGrp(x, z, ry, () => {
+    ivB(.32, .75, .32, '#161616', -.55, .37, 0); ivB(.32, .75, .32, '#161616', .55, .37, 0);
+    ivB(.55, .28, .32, '#242424', 0, .5, 0); ivB(.45, .13, .02, '#3a86ff', 0, .5, .17);
+  });
+}
+function ivCasaVazia(D, tier) {
+  tier = IV_TIER_WH[tier] ? tier : 'bairro';
+  const [W, H] = IV_TIER_WH[tier];
+  const M = (G && G.moveis) || [];
+  const tem = id => M.includes(id);
+  if (tier === 'simples') { ivRoom(D, { w: 12, d: 9, h: 3.6, ftex: ivFloorTex('cement', '#8f857a', '#000'), frep: 3, fr: 1, wall: '#6fa8a0', wains: '#4a7f78', wainsH: .9, trim: '#3a5a55', bg: '#141210', dist: 12.5, door: '#3a6aa8', doorFrame: '#5a3a1e' }); ivWindow(D, 'back', -3.8, 1.3, 1.4, 1.1, 'bairro', '#5a3a1e'); }
+  else if (tier === 'bairro') { ivRoom(D, { w: 14, d: 10, h: 3.8, ftex: ivFloorTex('tile', '#eadfcb', '#d6c6aa'), frep: 2.4, fr: .4, wall: '#f2e6c8', wains: '#c9a77a', trim: '#8a6a48', bg: '#16120e', dist: 13.5 }); ivWindow(D, 'back', 4.6, 1.2, 1.8, 1.5, 'bairro', '#f4f1ea'); }
+  else if (tier === 'apto') { ivRoom(D, { w: 16, d: 11, h: 4, ftex: ivFloorTex('wood', '#c49a6c', '#000'), frep: 4, fr: .5, wall: '#f4f1ec', trim: '#9a8a78', bg: '#101418', dist: 14.5, door: '#3d5a73' }); ivWindow(D, 'back', 2.6, .9, 3.6, 2.6, 'city', '#2a2a2a'); }
+  else { ivRoom(D, { w: 20, d: 14, h: 5, ftex: ivFloorTex('marble', '#f4f0e9', '#ddd5c8'), frep: 5, fr: .12, fm: .1, wall: '#f7f4ef', trim: '#c9a227', bg: '#0e1216', dist: 17, door: '#2a2a2a' }); ivGlassWall(D, 'pool', '#c9a227'); }
+  IVP = D.st;
+  if (!M.length) {
+    // casa acabada de comprar: vazia, com as caixas da mudança
+    ivB(.6, .5, .6, '#a87f4f', W * .12, .25, H * .16); ivB(.5, .45, .5, '#96703f', W * .12 + .8, .22, H * .16 - .2); ivB(.5, .4, .5, '#b08a55', W * .12 + .35, .68, H * .16, null, false);
+    ivCol(D, W * .12 + .3, H * .16, 1.4, 1.2);
+    ivB(.5, .04, .3, '#7a6a55', -W * .1, .02, H * .2, null, false);   // tapete velho enrolado
+  }
+  const ax = (fx, fz) => [W * fx, -H * fz];
+  if (tem('cama')) { const [x, z] = ax(.34, .36); ivCama(x, z, 0); ivCol(D, x, z, 2, 2.7); }
+  else if (tem('colchao')) { const [x, z] = ax(.34, .36); ivColchao(x, z, 0); ivCol(D, x, z, 1.6, 2.5); }
+  if (tem('sofa')) { const [x, z] = ax(-.16, .16); ivSofa(x, z, Math.PI, tier === 'luxo' ? '#f4f1ea' : tier === 'apto' ? '#7a8794' : '#a3482a', Math.min(3.2, W * .22)); ivCol(D, x, z, Math.min(3.4, W * .24), 1); }
+  if (tem('tv')) { const [x, z] = ax(-.16, .44); ivB(2.2, .55, .5, tier === 'simples' ? '#6b4a2a' : '#1d1d1d', x, 0, z); ivTV(x, .68, z - .12, 0, tier === 'luxo' ? 2.6 : 1.5); ivCol(D, x, z, 2.3, .6); }
+  if (tem('mesa')) { const [x, z] = ax(.26, .24); ivTable(x, z, Math.min(2.4, W * .16), 1, .76, tier === 'simples' ? '#7a5236' : '#6b4423'); ivChair(x - .6, z - .75, 0, '#7a5236'); ivChair(x + .6, z - .75, 0, '#7a5236'); ivChair(x, z + .75, Math.PI, '#7a5236'); ivCol(D, x, z, 2.4, 1.8); }
+  if (tem('fogao')) { const [x, z] = ax(-.44, .42); ivFogao(x, z, 0); ivCol(D, x, z, 1, .8); }
+  if (tem('geladeira')) { const [x, z] = ax(-.44, .28); ivGeladeira(x, z, 0); ivCol(D, x, z, .9, .8); }
+  if (tem('guardaroupa')) { const [x, z] = ax(.465, .3); ivWardrobe(x, z, -Math.PI / 2, Math.min(2.4, H * .22), 2.3, tier === 'luxo' ? '#1d1d1d' : '#8a5a3a'); ivCol(D, x, z, .7, 2.4); }
+  if (tem('som')) { const [x, z] = ax(-.42, -.34); ivSomCasa(x, z, Math.PI); ivCol(D, x, z, 1.4, .5); }
+  if (tem('tapete')) ivRug(0, -H * .06, Math.min(4.6, W * .32), Math.min(3.2, H * .3), null, ivRugTex(tier === 'luxo' ? '#1d1d1d' : '#8a1a2a', '#ffcb00', tier === 'luxo' ? '#c9a227' : '#1d1d1d'));
+  if (tem('candeeiro')) ivLampF(-W * .45, H * .36);
+  if (tem('pc')) { const [x, z] = ax(-.44, -.22); ivTable(x, z, .75, 1.2, .76, '#6b4423'); ivLaptop(x, .77, z, Math.PI / 2); ivChair(x + .75, z, -Math.PI / 2, '#3d5a73'); ivCol(D, x, z, 1.5, 1.3); }
+  if (tem('candeeiro') || tier !== 'simples') ivPlant(W * .46, H * .4, 1);
+  ivLights(D, { hi: tem('candeeiro') ? .72 : .58, ki: .6, points: [[0, 3, -1, tem('candeeiro') ? '#ffe6c0' : '#d9c9a8', .8, 10]] });
+  const ST = {
+    simples: { main: [-1, -1.1, 0, [-1, -3.5, 1.6, 1.4, 1.2]], fam: [2.4, -1, Math.PI, [2.4, -2.2, 1.5, 1, 1.2]], roupa: [-4.4, -2.6, -Math.PI / 2, [-5.7, -2.6, .4, 2.6, 1.8]], diario: [4.8, -1.4, Math.PI, [4.8, -3.3, 1.9, 2, .8]] },
+    bairro: { main: [-2.6, -3.4, 0, [-2.6, -2, 3, 2.6, 1.4]], fam: [3, -.3, Math.PI, [3, -2, 2, 1.8, 1]], roupa: [5.4, -3.2, Math.PI / 2, [6.6, -3.2, .7, 2.1, 2.3]], diario: [-5.1, 2.1, -Math.PI / 2, [-6.4, 2.1, .8, 1.3, 1]] },
+    apto: { main: [-3.6, -3.9, 0, [-3.6, -2.2, 3.4, 2.4, 1.3]], fam: [2.8, 1, Math.PI, [2.8, -.8, 2.6, 2, 1]], roupa: [6.3, -1.2, Math.PI / 2, [7.6, -1.2, .7, 2.3, 2.4]], diario: [-6.2, 1.4, -Math.PI / 2, [-7.5, 1.4, .8, 1.5, 1]] },
+    luxo: { main: [-4, -4.6, 0, [-4, -2.4, 4, 2.6, 1.3]], fam: [4.5, 1, Math.PI, [4.5, -1.2, 4.2, 2.3, 1]], roupa: [8.2, -4, Math.PI / 2, [9.6, -4, .7, 3.1, 2.6]], diario: [-7.6, 2.4, -Math.PI / 2, [-9.1, 2.4, 1.8, 2, 1]] },
+  };
+  ivCasaStations(D, ST[tier]);
+  if (G && G.parceiro && G.parceiro.juntos && tem('sofa')) { const [x, z] = ax(-.16, .16); ivNPC(D, x, z, Math.PI, { mode: 'sit', seat: .48, fem: G.parceiro.g === 'F' }); }
+}
+
+/* ---------- Abrigo da Missão (quando não tens casa) ---------- */
+function ivAbrigo(D) {
+  ivRoom(D, { w: 13, d: 9, h: 3.4, ftex: ivFloorTex('cement', '#7f7a70', '#000'), frep: 3, fr: 1, wall: '#8a9a8a', wains: '#5a6a5a', wainsH: 1, trim: '#3a4a3a', bg: '#121410', dist: 12.5, door: '#4a6a4a', doorFrame: '#3a3a2a' });
+  ivWindow(D, 'back', -3, 1.4, 1.4, 1, 'bairro', '#4a4a3a'); ivWindow(D, 'back', 3, 1.4, 1.4, 1, 'bairro', '#4a4a3a');
+  IVP = D.st;
+  for (let i = 0; i < 3; i++) {
+    const bx = -4 + i * 2.6;
+    ivGrp(bx, -2.8, 0, () => {
+      ivB(1.4, .3, 2.2, '#4a5a6a', 0, .15, 0);
+      ivB(1.3, .12, 2.1, '#7a8a9a', 0, .36, 0);
+      ivB(1.2, .08, 1.2, '#a34a3a', 0, .42, .3);
+    });
+    ivCol(D, bx, -2.8, 1.5, 2.3);
+  }
+  ivTable(3.8, -3.2, 1.6, .9, .76, '#5a4a3a'); ivCol(D, 3.8, -3.2, 1.7, 1);
+  ivB(.4, .3, .3, '#c8b090', 3.8, .78, -3.2, null, false);
+  ivB(.5, .2, .35, '#d9d9de', 3.2, .76, -3.4, null, false);
+  ivLights(D, { hi: .62, ki: .55, points: [[0, 2.9, -1, '#ffe6c0', .8, 9]] });
+  ivStation(D, { x: 0, z: -.6, ry: 0, tab: 'main', ico: '🏚️', label: 'Abrigo da Missão', hit: [0, -2.2, 2.6, 1.6, 1.2] });
+  ivStation(D, { x: 3.8, z: -1.6, ry: Math.PI, tab: 'fam', ico: '🍲', label: 'Sopa dos pobres', hit: [3.8, -3.2, 1.8, 1.2, 1] });
+  ivNPC(D, -1.4, -2.8, 0, { mode: 'sit' }); ivNPC(D, 4.4, -3.4, Math.PI, { mode: 'idle', fem: true });
+}
+
 function ivBuild(id, key) {
   const D = ivNew(id);
-  if (id === 'casa') IV_CASA[key.split(':')[1]](D); else IV_ROOMS[id](D);
+  if (id === 'casa') {
+    const p = key.split(':');
+    if (p[1] === 'minha') ivCasaVazia(D, p[2]);       // casa própria/arrendada: começa vazia, mostra os móveis comprados
+    else if (p[1] === 'abrigo') ivAbrigo(D);          // sem casa: Abrigo da Missão
+    else IV_CASA[p[2] || 'bairro'](D);                // casa dos pais: mobilada pela família
+  } else IV_ROOMS[id](D);
   ivFinish(D);
   D.hall = { x: 0, z: D.d / 2 - 1.3 };
   return D;
@@ -7836,9 +8144,15 @@ function ivBuild(id, key) {
 const IV_IDS = ['casa', 'empresa', 'banco', 'emprego', 'escola', 'clinica', 'igreja', 'ginasio', 'shopping', 'farra', 'obras', 'imobiliaria', 'cela'];
 function ivBase(D) { return D.dist * (camera.aspect < .8 ? 1.5 : 1); }
 function ivNight() { return Math.sin(dayT * Math.PI * 2 - Math.PI / 2) < -.05; }
+function ivCasaKey() {
+  if (!G) return 'casa:pais:bairro';
+  if (G.casa.tipo === 'rua') return 'casa:abrigo';
+  if (G.casa.tipo === 'propria' || G.casa.tipo === 'arrendada') return 'casa:minha:' + ivCasaTier() + ':' + (G.moveis || []).slice().sort().join('.');
+  return 'casa:pais:' + ivCasaTier();
+}
 function ivEnter(id) {
   const L = LOC_POS[id]; if (!L || !player) return openPanel(id);
-  const key = id === 'casa' ? 'casa:' + ivCasaTier() : id;
+  const key = id === 'casa' ? ivCasaKey() : id;
   const f = $('#fade'); f.innerHTML = `<div><small>A entrar em…</small><b style="font-size:34px">${L.ico} ${L.n}</b></div>`; f.classList.add('on'); uiBlocked = true; autoGo = null;
   closePanel(); if (typeof closePhone === 'function') closePhone();
   setTimeout(() => {
@@ -7856,7 +8170,7 @@ function ivEnter(id) {
     ivCamSnap();
     f.classList.remove('on'); uiBlocked = false;
     const st = D.stations[0]; ivGo = { path: [D.hall, st], st, t: 0, stuck: 0 };
-    toast(id === 'casa' ? (G.casa && G.casa.tipo === 'rua' ? '🏚️ Abrigo da Missão: sopa, banho e uma cama. Trabalha para sair da rua!' : '🏠 Estás em casa. Toca nos móveis para descansar, ver TV ou falar com a família.') : `${L.ico} Bem-vindo(a) a ${L.n}! Toca nos balcões para falar com as pessoas.`);
+    toast(id === 'casa' ? (G.casa && G.casa.tipo === 'rua' ? '🏚️ Abrigo da Missão: sopa, banho e uma cama. Trabalha para sair da rua!' : G.casa.tipo === 'pais' ? '👨‍👩‍👧 Casa dos teus pais — aqui tens tudo, mas a independência é lá fora.' : !(G.moveis || []).length ? '🏠 A tua casa está VAZIA! Vai à Imobiliária → 🪑 Móveis para mobilar (colchão, fogão, TV…).' : '🏠 Estás em casa. Toca nos móveis para descansar, ver TV ou falar com a família.') : `${L.ico} Bem-vindo(a) a ${L.n}! Toca nos balcões para falar com as pessoas.`);
   }, 380);
 }
 function ivExit(instant) {
@@ -7992,7 +8306,7 @@ function ivTap(id) {
 (function ivHook() {
   const _openLoc = openLocation;
   openLocation = function (id) {
-    if (inInt) { if (id === inInt.loc && (id !== 'casa' || IV_CACHE['casa:' + ivCasaTier()] === inInt)) return openPanel(id); ivExit(true); }
+    if (inInt) { if (id === inInt.loc && (id !== 'casa' || IV_CACHE[ivCasaKey()] === inInt)) return openPanel(id); ivExit(true); }
     if (IV_IDS.includes(id) && mode === 'game' && player && worldScene && G) {
       if (G.preso > 0 && id !== 'cela') return toast('🔒 Estás preso(a)! Não podes sair da cela.');
       return ivEnter(id);
@@ -8107,7 +8421,7 @@ function angolaApp() { return angolaMapHTML() + angCardHTML(); }
 </script>
 <script>/* =========================================================
    PRÓXIMA ENCARNAÇÃO — Telemóvel 2.0
-   Barra de estado real, apps novas (Mbote, Calculadora, Relógio,
+   Barra de estado real, apps novas (DarkCell, Calculadora, Relógio,
    Notas, Lanterna) e apps antigas com muito mais conteúdo.
    ========================================================= */
 const P2 = {
@@ -8159,7 +8473,7 @@ function p2Bar() {
 (function () {
   const at = APPS.findIndex(a => a.id === 'vida');
   APPS.splice(at, 0,
-    { id: 'mbote', ico: '📶', t: 'Mbote', bg: 'linear-gradient(#ff9f1c,#e85d04)', tel: 2 },
+    { id: 'darkcell', ico: '📶', t: 'DarkCell', bg: 'linear-gradient(#ff9f1c,#b3261e)', tel: 2 },
     { id: 'calc', ico: '🧮', t: 'Calculadora', bg: 'linear-gradient(#3a3a40,#121214)', tel: 2 },
     { id: 'relogio', ico: '⏰', t: 'Relógio', bg: 'linear-gradient(#2b2b30,#000)', tel: 2 },
     { id: 'notas', ico: '📝', t: 'Notas', bg: 'linear-gradient(#ffe066,#f4b400)', tel: 2 },
@@ -8224,9 +8538,9 @@ function p2Reply(k, txt) {
   const t = (txt || '').toLowerCase(), kind = p2Kind(k), me = p2N1(G.nome);
   const has = re => re.test(t);
   if (kind === 'chefe') return pick(['Ok. Amanhã às 8h no escritório.', 'Recebido. Foca-te nos resultados.', 'Fala comigo depois da reunião.', has(/aumento|salario|salário/) ? 'Aumento só com resultados. Vamos ver no fim do ano.' : 'Certo, obrigado pela mensagem.']);
-  if (kind === 'unitel') return pick(['Mbote Telecom: a tua mensagem foi recebida. Ativa o pacote Ilimitado 5G na app Mbote!', 'Obrigado por escolheres a Mbote Telecom. Mais rede, mais Angola! 📶']);
+  if (kind === 'unitel' || kind === 'darkcell') return pick(['DarkCell: a tua mensagem foi recebida. Ativa a Semana Bwé na app DarkCell!', 'Obrigado por escolheres a DarkCell. Mais rede, mais Angola! 📶']);
   if (kind === 'marca') return pick(['Ótimo! A nossa equipa vai enviar a proposta. 🤝', 'Adoramos o teu conteúdo! Continua a publicar.']);
-  if (has(/\b(ol[aá]|oi|bom dia|boa tarde|boa noite|mbote|tudo bem|como est[aá]s|wi)\b/)) return kind === 'pais' ? pick([`Olá ${me}! Estou bem, graças a Deus. E tu, já comeste? 🍲`, 'Oi filho(a)! Por aqui tudo bem. Tens saudades da comida da mãe? 😄']) : kind === 'par' ? pick(['Oi amor 🥰 Estava agora a pensar em ti!', 'Olá meu bem ❤️ Como foi o teu dia?']) : pick(['Mbote mano! Tudo fixe, e contigo? 😎', 'Ei! Bwé de tempo, tudo bem?', 'Oi! Tudo tranquilo por aqui.']);
+  if (has(/\b(ol[aá]|oi|bom dia|boa tarde|boa noite|mbote|tudo bem|como est[aá]s|wi)\b/)) return kind === 'pais' ? pick([`Olá ${me}! Estou bem, graças a Deus. E tu, já comeste? 🍲`, 'Oi filho(a)! Por aqui tudo bem. Tens saudades da comida da mãe? 😄']) : kind === 'par' ? pick(['Oi amor 🥰 Estava agora a pensar em ti!', 'Olá meu bem ❤️ Como foi o teu dia?']) : pick(['Mbote mano! Tudo fixe, e contigo? 😎', 'Ei! Bwé de tempo, tudo bem?', 'Oi! Tudo tranquilo por aqui.']) /* mbote=gíria */;
   if (has(/dinheiro|kumbu|kz|emprest|ajud|transfer/)) {
     if (kind === 'pais') { const p = personByKey(k); G.msgAno = G.msgAno || {}; if (p && p.rel > 60 && !G.msgAno['kz_' + k] && G.dinheiro < 500000) { G.msgAno['kz_' + k] = 1; G.dinheiro += 10000; setTimeout(() => { toast('💸 ' + p2N1(p.nome) + ' transferiu-te 10 mil Kz pelo Palanca Pay.'); save(); refresh(); }, 300); return 'Mandei-te 10 mil pelo Palanca Pay. Não gastes em farra! 😅'; } return 'Filho(a), a situação não está fácil… mas reza e trabalha que Deus abre portas 🙏'; }
     return pick(['Epá, estou mal de kumbu também 😅', 'Só no fim do mês, mano.', 'Quanto? Hmm… deixa ver 🤔']);
@@ -8276,15 +8590,16 @@ function p2Bub(m, i) {
   return `<div class="bub ${cls}">${esc(m.txt)}${tick}</div>`;
 }
 chatView = function (k) {
+  if (k && k[0] === 'p' && typeof smsThread === 'function') return smsThread(k.slice(1));
   const p = personByKey(k);
-  const nome = p ? p.nome : { chefe: 'Chefe', unitel: 'Mbote Telecom', marca: 'Marca parceira' }[k] || k;
+  const nome = p ? p.nome : { chefe: 'Chefe', unitel: 'DarkCell', darkcell: 'DarkCell', marca: 'Marca parceira' }[k] || k;
   const ms = (G.inbox || []).filter(m => m.key === k).slice().reverse();
   ms.forEach(m => m.lida = true); setTimeout(updateBadge, 0);
   G.msgAno = G.msgAno || {};
   let quick = '';
   if (k === 'marca') quick = G.seg > 5000 && !G.msgAno.marca ? `<button class="pbtn" onclick="acceptBrand()">🤝 Aceitar parceria (+${kzShort(Math.round(G.seg * 6))})</button>` : '';
   else if (k === 'chefe' && G.emprego && !G.msgAno.chefe) quick = `<button class="pbtn" onclick="G.msgAno.chefe=1;G.emprego.desemp=clamp(G.emprego.desemp+3);toast('👍 O chefe gostou da tua prontidão.');save();renderPhone(true)">👍 Ok chefe, conte comigo!</button>`;
-  else if (k === 'unitel' && G.pacoteAno !== G.ano) quick = `<button class="pbtn" onclick="phoneOpen('mbote')">📶 Abrir a app Mbote</button>`;
+  else if ((k === 'unitel' || k === 'darkcell') && G.pacoteAno !== G.ano) quick = `<button class="pbtn" onclick="phoneOpen('darkcell')">📶 Abrir a app DarkCell</button>`;
   const online = p ? (P2.typing === k ? '<span class="typing">a escrever…</span>' : (phHash(k + G.ano) % 3 ? 'online' : 'visto por último hoje')) : 'conta verificada ✔';
   const conv = p2Chat(k);
   return `<div class="aphead chat"><button onclick="phoneBack()">‹</button><div class="cav sm">${p ? (k === 'par' ? '💕' : (p.g === 'F' || k === 'mae' ? '👩🏿' : '🧑🏿')) : '🏢'}</div><div style="flex:1;min-width:0"><h3>${esc(nome)}</h3><div class="apsub">${online}</div></div>${p ? `<button class="chcall" onclick="callPerson('${k}')" aria-label="Ligar">📞</button>` : ''}</div>
@@ -8366,17 +8681,18 @@ function p2Pac(id) {
   if (id === 'ilim') { G.pacoteAno = G.ano; fx({ felicidade: 1 }); } else G.dadosCap = (G.dadosCap || 2048) + P.mb;
   toast(`📶 Pacote ${P.t} ativado!`); SND.play('good'); save(); refresh(); renderPhone(true);
 }
-PHONE_VIEWS.mbote = () => {
+PHONE_VIEWS.darkcell = () => {
   const ilim = G.pacoteAno === G.ano, cap = G.dadosCap || 2048, used = Math.min(cap, G.dadosMB || 0), s = p2Sig();
   const pct = ilim ? 100 : Math.max(0, 100 - used / cap * 100);
   const nv = nivelCidade(cid());
-  return apHead('Mbote', 'Mbote Telecom · a tua rede', `<span class="aibadge" style="background:#e85d04">${p2Net(s)}</span>`)
+  return apHead('DarkCell', 'DarkCell · a tua rede', `<span class="aibadge" style="background:#b3261e">${p2Net(s)}</span>`)
     + `<div class="mbring" style="--p:${pct}"><div><b>${ilim ? '∞' : ((cap - used) / 1024).toFixed(1) + ' GB'}</b><small>${ilim ? 'Ilimitado 5G' : 'dados restantes'}</small></div></div>`
     + `<div class="grid2p"><div><small>Rede em ${esc(G.cidade.mun)}</small><b>${p2SigSVG(s)} ${['', 'Fraca', 'Razoável', 'Boa', 'Excelente'][s]}</b></div><div><small>Usados este ano</small><b>${((G.dadosMB || 0) / 1024).toFixed(2)} GB</b></div></div>`
+    + `<div class="apnote" style="text-align:center">📞 O teu número DarkCell: <b>${typeof fmtTel === 'function' ? fmtTel(G.telNum || '—') : (G.telNum || '—')}</b> · partilha com outros jogadores para receberes SMS!</div>`
     + (nv === 'pobre' && !ilim ? '<div class="apwarn">📶 A rede é fraca nas províncias pobres. O Ilimitado 5G melhora o sinal.</div>' : '')
     + (!ilim && used >= cap ? '<div class="apwarn">⚠️ Ficaste sem dados! Compra um pacote.</div>' : '')
     + `<div class="apsec">Pacotes</div><div class="list">${P2_PAC.map(P => btnItem(P.id === 'ilim' ? '🚀' : '📶', P.t + (P.id === 'ilim' && ilim ? ' <span class="tag">ativo</span>' : ''), P.d, P.p.toLocaleString('pt-PT') + ' Kz', `p2Pac('${P.id}')`, P.id === 'ilim' && ilim)).join('')}</div>`
-    + `<div class="apsec">Mbote Kumbu</div><div class="list">${G.mae.vivo ? btnItem('💸', 'Enviar dinheiro à mãe', 'Transferência por telemóvel', '', "helpParent('mae')") : ''}${G.pai.vivo ? btnItem('💸', 'Enviar dinheiro ao pai', 'Transferência por telemóvel', '', "helpParent('pai')") : ''}${btnItem('📞', 'Liga-me grátis', 'Manda um "liga-me" a um amigo', 'Grátis', "toast('📲 Mandaste um liga-me. Agora espera sentado(a) 😂')")}</div>`;
+    + `<div class="apsec">DarkCell Money</div><div class="list">${G.mae.vivo ? btnItem('💸', 'Enviar dinheiro à mãe', 'Transferência por telemóvel', '', "helpParent('mae')") : ''}${G.pai.vivo ? btnItem('💸', 'Enviar dinheiro ao pai', 'Transferência por telemóvel', '', "helpParent('pai')") : ''}${btnItem('📞', 'Liga-me grátis', 'Manda um "liga-me" a um amigo', 'Grátis', "toast('📲 Mandaste um liga-me. Agora espera sentado(a) 😂')")}</div>`;
 };
 
 /* =========================================================
@@ -8633,7 +8949,7 @@ function p2News() {
       tab('🏀', sel(['Angola conquista mais um Afrobasket', 'Águias do Kilamba campeões de basquetebol', 'Jovem de Cabinda assina por clube europeu'], 'f'), 'O basquetebol continua a ser o orgulho do desporto angolano.'),
     ]],
     ['Tecnologia', [
-      tab('📶', sel(['Mbote Telecom leva o 5G a mais províncias', 'Céu Net chega às aldeias do interior', 'Palanca Pay ultrapassa 5 milhões de utilizadores'], 'g'), 'A cobertura de rede é cada vez melhor, mas as províncias do interior ainda pedem mais antenas.'),
+      tab('📶', sel(['DarkCell leva o 5G a mais províncias', 'DarkCell Money já tem 2 milhões de carteiras', 'Palanca Pay ultrapassa 5 milhões de utilizadores'], 'g'), 'A cobertura de rede é cada vez melhor, mas as províncias do interior ainda pedem mais antenas.'),
       tab('💻', sel(['Startups angolanas atraem investimento estrangeiro', 'Jovens programadores criam app de kandongueiros', 'Universidade Pública de Luanda abre curso de IA'], 'h'), 'O ecossistema tecnológico de Luanda nunca esteve tão animado.'),
     ]],
     [P.n, [
@@ -8827,7 +9143,7 @@ function p2RandomNotif() {
     () => { const V = P2_KV[R(0, P2_KV.length - 1)]; return ['🎵', 'Kuia', `@${V.u} publicou: ${V.c}`, () => { P2.kuiaIdx = P2_KV.indexOf(V); p2OpenApp('kuia'); }]; },
     () => ['🛵', 'Txova', pick(['Fome? Muamba com entrega grátis hoje! 🍲', 'Pizza familiar com 20% de desconto 🍕', 'O teu restaurante favorito está aberto']), () => p2OpenApp('tupuca')],
     () => ['📰', 'Notícias', strip(p2News()[R(0, 3)][1][0]?.t || 'Últimas notícias de Angola'), () => { P2.newsOpen = null; p2OpenApp('noticias'); }],
-    () => ['📶', 'Mbote Telecom', G.pacoteAno === G.ano ? 'Obrigado por usares o Ilimitado 5G 🚀' : 'Ativa o Ilimitado 5G e tem rede em todo o lado!', () => p2OpenApp('mbote')],
+    () => ['📶', 'DarkCell', (G.telNum ? 'Número: ' + (typeof fmtTel === 'function' ? fmtTel(G.telNum) : G.telNum) + ' · ' : '') + (G.pacoteAno === G.ano ? 'Semana Bwé ativa 🚀' : 'Ativa a Semana Bwé e tem rede em todo o lado!'), () => p2OpenApp('darkcell')],
     () => { const T = SND.RADIO.TRACKS[R(0, SND.RADIO.TRACKS.length - 1)]; return ['🎶', 'Kizomba FM', `A tocar agora: ${T.t} — ${T.a}`, () => p2OpenApp('musica')]; },
     G.passos > 5000 && !G.metaPassos ? (() => ['👟', 'Saúde', `Já deste ${Math.round(G.passos).toLocaleString('pt-PT')} passos. Faltam ${(10000 - Math.round(G.passos)).toLocaleString('pt-PT')} para a meta!`, () => p2OpenApp('saude')]) : null,
     G.mercado ? (() => ['📈', 'Invest AO', `Bolsa de Luanda ${G.mercado.bodiva >= 0 ? 'em alta' : 'em queda'}: ${G.mercado.bodiva >= 0 ? '+' : ''}${Math.round(G.mercado.bodiva * 100)}%`, () => p2OpenApp('investir')]) : null,
@@ -9592,7 +9908,7 @@ function mpBuildUI() {
   hud.appendChild(live);
   if (localStorage.getItem('pe3d_livemin') === '1') live.classList.add('min');
   const bar = document.createElement('div'); bar.id = 'mpBar'; bar.className = 'hidden';
-  const quick = ['Olá a todos! 👋', 'Mbote, kambas!', 'Bora à farra? 🎶', 'Kkkk 😂', 'Fixe!', 'Onde estão?', 'Quem quer trabalhar comigo? 💼', 'Boa noite 🌙'];
+  const quick = ['Olá a todos! 👋', 'DarkCell, kambas!', 'Bora à farra? 🎶', 'Kkkk 😂', 'Fixe!', 'Onde estão?', 'Quem quer trabalhar comigo? 💼', 'Boa noite 🌙'];
   bar.innerHTML = `<div class="mpq">${quick.map(q => `<button type="button" onclick="mpSend(${JSON.stringify(q).replace(/"/g, '&quot;')})">${q}</button>`).join('')}</div><form id="mpForm"><button type="button" id="mpScope" onclick="mpSetScope()"></button><input id="mpIn" data-noic maxlength="120" autocomplete="off" enterkeyhint="send" placeholder="Diz algo a todos os jogadores…"><span id="mpCnt">0/120</span><button type="submit" aria-label="Enviar"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button><button type="button" class="mpx" onclick="mpClose()" aria-label="Fechar">✕</button></form><div id="mpWarn"></div>`;
   document.body.appendChild(bar);
   const inp = bar.querySelector('#mpIn');
@@ -9952,7 +10268,7 @@ const LV_ST = [
   { id: 'semba', n: 'Rádio Semba Kota', f: '88.3', g: ['semba'], c1: '#f4a261', c2: '#6b2c00', dj: ['Kota Mabanza', 'Mestre Kituxi', 'Dona Rebita', 'Kota Marçal'], pr: ['Bom Dia Kota', 'Semba e Saudade', 'Rebita da Tarde', 'Serão dos Kotas'] },
   { id: 'mix', n: 'Mwangolé Mix', f: '91.7', g: ['kizomba', 'semba', 'kuduro', 'afrohouse'], c1: '#4cc9f0', c2: '#1d3557', dj: ['Djeny Bwé', 'Nelo K', 'Lurdes Mix', 'DJ Kianda'], pr: ['Despertar Angola', 'Top Mwangolé', 'Mix da Tarde', 'Noite Mwangolé'] },
 ];
-const LV_ADS = ['Kitanda Super: tudo mais barato, todos os dias!', 'Banco Palanca: o teu dinheiro em boas mãos.', 'Mbote Telecom: Ilimitado 5G por apenas 9.900 Kz!', 'Txova: a fome não espera, a Txova também não!', 'Kianda Mall: as melhores lojas num só lugar.', 'Kandonga: chega lá mais rápido e mais barato!', 'Céu Net: internet até na lavra.', 'Mulemba Petróleos: energia que move Angola.', 'Casa Já: a casa dos teus sonhos à distância de um toque.'];
+const LV_ADS = ['Kitanda Super: tudo mais barato, todos os dias!', 'Banco Palanca: o teu dinheiro em boas mãos.', 'DarkCell: Semana Bwé — chamadas e SMS à vontade por 9.900 Kz!', 'Txova: a fome não espera, a Txova também não!', 'Kianda Mall: as melhores lojas num só lugar.', 'Kandonga: chega lá mais rápido e mais barato!', 'Céu Net: internet até na lavra.', 'Mulemba Petróleos: energia que move Angola.', 'Casa Já: a casa dos teus sonhos à distância de um toque.'];
 const LV_LOC = ['Bom dia, boa tarde, boa noite Angola! Estás a ouvir {n}, {f} FM!', 'Manda a tua dedicatória pela app de Rádio e ouve o teu nome no ar!', 'Hora certa em Luanda: {hora}. Bwé de música a seguir!', 'Um abraço a todos os jogadores ligados agora: {online} na cidade!', 'Trânsito: muita fila na Marginal e no Kilamba. Vai de Kandonga!', 'Tempo: calor em Luanda, cacimbo no Huambo. Bebe água, kamba!', 'Não mexe no botão! {n}, a rádio que não pára.'];
 const lvProg = st => { const h = new Date(LIVE.now() * 1000).getHours(); const i = h < 6 ? 3 : h < 12 ? 0 : h < 15 ? 1 : h < 20 ? 2 : 3; return { pr: st.pr[i], dj: st.dj[i] }; };
 const LV_SCHED = {};
@@ -10356,7 +10672,7 @@ const MU_AV = 160; // z da Avenida dos Transportes
    ========================================================= */
 const AD_BASE = [
   { marca: 'Kitanda Super', t: 'Tudo mais barato!', s: 'Arroz, óleo e fuba com 20% de desconto', cta: 'Todos os dias', cor: '#e63946', ico: 'shopping-cart', tpl: 'promo' },
-  { marca: 'Mbote Telecom', t: 'Ilimitado 5G', s: 'Fala e navega sem parar por 9.900 Kz', cta: 'Marca *123#', cor: '#ff7a1a', ico: 'signal', tpl: 'classico' },
+  { marca: 'DarkCell', t: 'Semana Bwé', s: 'Chamadas e SMS à vontade por 9.900 Kz', cta: 'Marca *123#', cor: '#ff7a1a', ico: 'signal', tpl: 'classico' },
   { marca: 'Banco Palanca', t: 'O teu futuro começa aqui', s: 'Abre conta grátis na app Palanca Pay', cta: 'Palanca Pay', cor: '#0d2a4a', ico: 'landmark', tpl: 'minimal' },
   { marca: 'Txova', t: 'A fome não espera', s: 'Comida quente à tua porta em 30 minutos', cta: 'Pede já', cor: '#2a9d8f', ico: 'utensils', tpl: 'classico' },
   { marca: 'Kandonga', t: 'Chega lá mais rápido', s: 'Viagens seguras pela cidade inteira', cta: 'Abre a app', cor: '#ffcb00', ico: 'car-taxi-front', tpl: 'promo' },
@@ -12082,7 +12398,16 @@ function vrEvent(e) {
   else if (e.t === 'alerta') {
     VR.alertas.push(Object.assign({ at: performance.now() }, e)); VR.alertas = VR.alertas.slice(-8);
     toast(`🚨 Alerta à polícia: <b>${esc(e.de)}</b> — ${esc(e.tn)} ${vrStars(e.wl)}`); if (typeof SND !== 'undefined') SND.play('notif');
-  } else if (e.t === 'pedido') { toast(`🤝 <b>${esc(e.de)}</b> quer ser teu kamba! Abre Cidade → Amigos.`); VR.fetchT.amigos = 0; vrBadge(true); }
+  } else if (e.t === 'sms') {
+    G.telNomes = G.telNomes || {}; if (e.num) G.telNomes[e.num] = e.de;
+    (G.inbox = G.inbox || []).unshift({ key: 'p' + (e.num || '?'), de: e.de || 'DarkCell', txt: String(e.txt || '').slice(0, 140), ano: G.ano, lida: false });
+    G.inbox = G.inbox.slice(0, 80);
+    flash(`💬 SMS de <b>${esc(e.de || '?')}</b>: ${esc(String(e.txt || '').slice(0, 50))}`);
+    if (typeof SND !== 'undefined') SND.play('notif');
+    save(); if (typeof updateBadge === 'function') updateBadge();
+    if (typeof phoneApp !== 'undefined' && phoneApp && typeof renderPhone === 'function') renderPhone(true);
+  }
+  else if (e.t === 'pedido') { toast(`🤝 <b>${esc(e.de)}</b> quer ser teu kamba! Abre Cidade → Amigos.`); VR.fetchT.amigos = 0; vrBadge(true); }
   else if (e.t === 'amigo_ok') { toast(`🤝 Tu e <b>${esc(e.de)}</b> agora são kambas!`); VR.fetchT.amigos = 0; }
   else if (e.t === 'grupo_entrou') { toast(`👥 ${esc(e.de)} entrou no teu grupo!`); VR.fetchT.grupo = 0; }
   else if (e.t === 'expulso') { addLog(`👥 Foste expulso(a) do grupo ${esc(e.g)}.`, 'bad'); v.gtag = v.gtipo = null; VR.grupo = null; }
@@ -12270,6 +12595,7 @@ async function vrPolOp(op, extra) {
 function vrComer(id) {
   const F = VR_FOOD.find(f => f[0] === id), v = vrG(); if (!F) return;
   if (F[7] && !vrNearLoc(F[7], 34)) return toast(`📍 Isto só existe perto de: ${LOC_POS[F[7]].n}.`);
+  if (F[0] === 'casa' && G.casa && (G.casa.tipo === 'propria' || G.casa.tipo === 'arrendada') && !(G.moveis || []).includes('fogao')) return toast('🍳 Não tens fogão! Compra um na Imobiliária → 🪑 Móveis para cozinhares em casa.');
   if (vrPreso()) return toast('🔒 Na cadeia comes o que te dão.');
   if (!pay(F[4])) return;
   v.fome = Math.min(100, v.fome + F[5]); v.energia = Math.min(100, v.energia + F[6]);
@@ -12286,7 +12612,21 @@ function vrDormir(sesta) {
       v.energia = Math.min(100, v.energia + 30); v.fome = Math.max(0, v.fome - 5);
       if (Math.random() < .3 && G.dinheiro > 0) { const p = Math.round(G.dinheiro * (.05 + Math.random() * .1)); G.dinheiro -= p; addLog(`😴 Fizeste uma sesta no jardim e acordaste sem ${kz(p)} na carteira. <i>Razão: dormir na rua é arriscado.</i>`, 'bad'); }
       else toast('😴 Sesta feita: +30 de energia.');
-    } else { v.energia = 100; v.fome = Math.max(0, v.fome - 12); addLog('🌙 Dormiste em casa e acordaste com a energia no máximo. ' + fx({ saude: 2, felicidade: 1 })); if (typeof dayT !== 'undefined') dayT = .3; }
+    } else {
+      const minha = G.casa && (G.casa.tipo === 'propria' || G.casa.tipo === 'arrendada');
+      const mv = G.moveis || [];
+      if (minha && !mv.includes('cama') && !mv.includes('colchao')) {
+        v.energia = Math.min(100, v.energia + 45); v.fome = Math.max(0, v.fome - 8);
+        addLog('🌙 Dormiste no chão frio da tua casa vazia e acordaste todo(a) dorido(a). <i>Compra pelo menos um colchão (Imobiliária → 🪑 Móveis).</i> ' + fx({ saude: -1, felicidade: -2 }), 'bad');
+      } else if (minha && !mv.includes('cama')) {
+        v.energia = Math.min(100, v.energia + 75); v.fome = Math.max(0, v.fome - 10 - (mv.includes('geladeira') ? 4 : 0));
+        addLog('🌙 Dormiste no colchão no chão. Dá para descansar, mas uma cama a sério era outra coisa. ' + fx({ saude: 1 })); 
+      } else {
+        v.energia = 100; v.fome = Math.max(0, v.fome - 12 - (mv.includes('geladeira') ? 6 : 0));
+        addLog('🌙 Dormiste bem na tua cama e acordaste com a energia no máximo. ' + fx({ saude: 2, felicidade: 1 + (mv.length >= 5 ? 1 : 0) }));
+      }
+      if (typeof dayT !== 'undefined') dayT = .3;
+    }
     save(); refresh(); vrHud();
   }, 1300);
 }
@@ -15287,7 +15627,7 @@ async function v4Kz(val) {
   if (!confirm(`Enviar ${kz(v)} a ${nick}?`)) return;
   const r = await vrApi('social', { op: 'kz', fid: P.id, v });
   if (!r.ok) return toast('🚫 ' + r.erro);
-  G.dinheiro -= v; addLog(`💸 Enviaste ${kzShort(v)} a <b>${esc(nick)}</b> pelo Mbote Kumbu. ` + fx({ karma: v >= 20000 ? 2 : 1 }), 'good');
+  G.dinheiro -= v; addLog(`💸 Enviaste ${kzShort(v)} a <b>${esc(nick)}</b> pelo DarkCell Money. ` + fx({ karma: v >= 20000 ? 2 : 1 }), 'good');
   toast(`💸 ${kzShort(v)} enviados a <b>${esc(nick)}</b>.`); try { SND.play('coin'); } catch (e) { }
   save(); refresh(); v4PfView('main');
 }
@@ -15371,7 +15711,7 @@ function v4Event(e) {
   const ban = (ico, de, txt, id) => { if (typeof p2Banner === 'function') p2Banner(ico, de, txt, () => id && v4Perfil(id)); else toast(`${ico} <b>${esc(de)}</b> ${esc(txt)}`); };
   switch (e.t) {
     case 'social': { const A = V4_ACOES[e.a]; if (!A) return true; fx(A.rfx); ban(A.ico, e.de, A.rx + ' · toca para ver o perfil', e.id); save(); refresh(); return true; }
-    case 'kz': { const v = Math.max(0, Math.min(5000000, +e.v || 0)); G.dinheiro += v; addLog(`💸 <b>${esc(e.de)}</b> enviou-te ${kzShort(v)} pelo Mbote Kumbu.`, 'gold'); ban('💸', e.de, `enviou-te ${kzShort(v).replace(/<[^>]+>/g, '')}`, e.id); try { SND.play('coin'); } catch (x) { } save(); refresh(); return true; }
+    case 'kz': { const v = Math.max(0, Math.min(5000000, +e.v || 0)); G.dinheiro += v; addLog(`💸 <b>${esc(e.de)}</b> enviou-te ${kzShort(v)} pelo DarkCell Money.`, 'gold'); ban('💸', e.de, `enviou-te ${kzShort(v).replace(/<[^>]+>/g, '')}`, e.id); try { SND.play('coin'); } catch (x) { } save(); refresh(); return true; }
     case 'presente': {
       const g = V4_GIFTS.find(x => x.id === e.g) || { ico: '🎁', t: 'um presente', fx: { felicidade: 3 } };
       let extra = '';
@@ -16646,7 +16986,7 @@ const V6_AGUA = {
 };
 const V6_COZ = { gas: { ico: '🔥', t: 'Botija de gás 12 kg', m: 7500, d: 'Limpo e rápido.' }, carvao: { ico: '🪵', t: 'Carvão e fogareiro', m: 5500, d: 'Mais barato, mas o fumo faz mal à saúde.' } };
 const V6_TV = [{ ico: '📺', t: 'Sem TV paga', m: 0, d: 'Só os canais abertos.' }, { ico: '📡', t: 'Kianda TV Satélite · Básico', m: 9000, d: 'Novelas, notícias e desenhos animados.' }, { ico: '⚽', t: 'Kianda TV Satélite · Premium', m: 25000, d: 'Girabola em direto, filmes e futebol europeu.' }];
-const V6_NET = [{ ico: '📶', t: 'Só dados no telemóvel', m: 0, d: 'Pacotes da Mbote quando dá.' }, { ico: '📡', t: 'Router 4G Mbote', m: 15000, d: 'Internet em casa para estudar e trabalhar.' }, { ico: '🌐', t: 'Fibra Kianda Net', m: 35000, d: 'Rápida e estável: aulas online e trabalho remoto (+inteligência).' }];
+const V6_NET = [{ ico: '📶', t: 'Só dados no telemóvel', m: 0, d: 'Pacotes da DarkCell quando dá.' }, { ico: '📡', t: 'Router 4G DarkCell', m: 15000, d: 'Internet em casa para estudar e trabalhar.' }, { ico: '🌐', t: 'Fibra Kianda Net', m: 35000, d: 'Rápida e estável: aulas online e trabalho remoto (+inteligência).' }];
 const v6Indep = () => ['arrendada', 'propria'].includes(G.casa.tipo);
 function v6Contas() {
   const v = v6G(), c = v.casa, L = [];
@@ -17541,7 +17881,7 @@ const V6_RT = [
       ['Ligar tu e pôr em alta voz', 'Esperto', () => 'Ligaste tu e passaste a chamada em alta voz. Ele desistiu logo… ' + fx({ inteligencia: 1 })],
       ['Dizer que não', '', () => 'Seguiste caminho com o telefone bem guardado.'],
     ] }) },
-  { w: 1, cond: () => G.tel >= 1 && G.idade >= 16, ev: () => ({ ico: '✉️', t: 'SMS: "Parabéns, ganhou!"', txt: () => 'SMS de um número estranho: "PARABÉNS! Ganhou 5.000.000 Kz na promoção Mbote. Para levantar envie 5.000 Kz de saldo para este número."', ch: [
+  { w: 1, cond: () => G.tel >= 1 && G.idade >= 16, ev: () => ({ ico: '✉️', t: 'SMS: "Parabéns, ganhou!"', txt: () => 'SMS de um número estranho: "PARABÉNS! Ganhou 5.000.000 Kz na promoção DarkCell. Para levantar envie 5.000 Kz de saldo para este número."', ch: [
       ['Mandar os 5.000 Kz', '5 milhões!', () => v6Pay(5000, '🤦 Mandaste… e o número desapareceu. Era burla, claro. ' + fx({ felicidade: -5, inteligencia: 1 }))],
       ['Apagar e bloquear', 'Já conheces essa', () => '🛡️ Burla clássica. Bloqueado! ' + fx({ inteligencia: 1 })],
       ['Responder a gozar', '', () => '😂 Respondeste "manda tu primeiro". Nunca mais escreveram. ' + fx({ felicidade: 2 })],
@@ -18330,7 +18670,7 @@ function gmEnd(id, r, o) {
     else txt = `⚽ Perdeste nos penáltis (${r.gm}-${r.go}) contra ${o.opp}. ` + fx({ felicidade: 1 + bon });
   } else if (id === 'freefire') {
     if (o.torneio) {
-      if (r.booyah) { const p = R(120000, 480000); txt = `🏆 Ganhaste o torneio Mbote eSports com ${r.kills} abates! Prémio: ${kz(p)}. ` + fx({ dinheiro: p, fama: R(2, 5), felicidade: 10 }); }
+      if (r.booyah) { const p = R(120000, 480000); txt = `🏆 Ganhaste o torneio DarkCell eSports com ${r.kills} abates! Prémio: ${kz(p)}. ` + fx({ dinheiro: p, fama: R(2, 5), felicidade: 10 }); }
       else txt = `🎮 Torneio: ficaste em #${r.rank} com ${r.kills} abates. Para a próxima! ` + fx({ felicidade: 1 });
     } else if (r.booyah) { G.gmW.freefire = (G.gmW.freefire || 0) + 1; txt = `🔥 BOOYAH! ${r.kills} abates (${r.heads} headshots). ` + fx({ felicidade: 7 + bon }); extra = 'torneio'; }
     else txt = `🎮 Ficaste em #${r.rank} com ${r.kills} abates. ` + fx({ felicidade: 2 + bon, saude: -1 });
@@ -18346,7 +18686,7 @@ function gmEnd(id, r, o) {
   after(txt, '', id === 'xadrez' ? 'think' : 'cheer');
   const host = document.getElementById('gmHost'); if (!host) return;
   host.insertAdjacentHTML('beforeend', `<div class="gmres"><p>${txt.replace(/<[^>]+>/g, '')}</p>
-    ${extra === 'torneio' ? `<button class="pbtn" onclick="gmTorneio()">🏆 Entrar no torneio Mbote eSports (5.000 Kz)</button>` : ''}
+    ${extra === 'torneio' ? `<button class="pbtn" onclick="gmTorneio()">🏆 Entrar no torneio DarkCell eSports (5.000 Kz)</button>` : ''}
     <button class="pbtn" onclick="dvClose();gmStart('${id}',{dev:'${o.cons ? 'tv' : ''}'||undefined})">Jogar outra vez (1 energia)</button><button class="pbtn ghost" onclick="dvClose()">Sair</button></div>`);
 }
 function gmTorneio() {
@@ -18679,7 +19019,7 @@ const LP = { win: null };
 function lpOpen() {
   if (!G.bens.includes('portatil')) return toast('💻 Ainda não tens portátil (450.000 Kz na loja de tecnologia).');
   const apps = [['free', '💼', 'Freelance'], ['aulas', '🎓', 'Aula Online'], ['jogos', '🎮', 'Jogos'], ['news', '📰', 'Notícias'], ['fin', '📊', 'Finanças'], ['mus', '🎵', 'Música']];
-  dvOpen('laptop', '💻 Portátil · Kianda OS', `<div class="lpscr"><div class="lpdesk">${apps.map(([k, i, t]) => `<button onclick="lpApp('${k}')"><i>${i}</i><span>${t}</span></button>`).join('')}</div><div class="lpwin hidden" id="lpWin"><div class="lpwt"><b id="lpWT"></b><button onclick="lpApp(null)">✕</button></div><div class="lpwb" id="lpWB"></div></div><div class="lptask"><span>⊞ Kianda OS</span><span>${G.bens.includes('starlink') ? '🛰️ Céu Net' : '📶 Mbote 4G'}</span><span id="lpClock">${nowTxt()}</span></div></div>`);
+  dvOpen('laptop', '💻 Portátil · Kianda OS', `<div class="lpscr"><div class="lpdesk">${apps.map(([k, i, t]) => `<button onclick="lpApp('${k}')"><i>${i}</i><span>${t}</span></button>`).join('')}</div><div class="lpwin hidden" id="lpWin"><div class="lpwt"><b id="lpWT"></b><button onclick="lpApp(null)">✕</button></div><div class="lpwb" id="lpWB"></div></div><div class="lptask"><span>⊞ Kianda OS</span><span>${G.bens.includes('starlink') ? '🛰️ Céu Net' : '📶 DarkCell 4G'}</span><span id="lpClock">${nowTxt()}</span></div></div>`);
   DV.t = setInterval(() => { const c = document.getElementById('lpClock'); if (c) c.textContent = nowTxt(); }, 5000);
 }
 function lpApp(k) {
