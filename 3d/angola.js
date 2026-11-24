@@ -57,9 +57,11 @@ function angolaMapHTML() {
   ord.forEach(P => { const g = G0.p[P.n]; let x = g.x, y = g.y, a = 'middle';
     if (P.n === 'Luanda') { x -= 8; a = 'end'; } if (P.n === 'Ícolo e Bengo') { y += 6; x += 4; } if (P.n === 'Cabinda') { x -= 4; a = 'end'; }
     s += `<text x="${x}" y="${y}" text-anchor="${a}" class="${P.n === sel ? 'sel' : ''}">${ANG_CURTO[P.n] || P.n}</text>`; });
-  const gc = G0.p[cur]; if (gc) s += `<g class="pin" transform="translate(${gc.x},${gc.y - 16})"><path d="M0,12 C-9,0 -9,-12 0,-12 C9,-12 9,0 0,12Z"/><circle r="3.6" cy="-3"/></g>`;
+  const home = (typeof G !== 'undefined' && G && G.visitando) ? G.visitando.prov : cur;
+  const gc = G0.p[home]; if (gc) s += `<g class="pin" transform="translate(${gc.x},${gc.y - 16})"><path d="M0,12 C-9,0 -9,-12 0,-12 C9,-12 9,0 0,12Z"/><circle r="3.6" cy="-3"/></g>`;
+  if (home !== cur) { const gv = G0.p[cur]; if (gv) s += `<g class="pin vis" transform="translate(${gv.x},${gv.y - 16})"><path d="M0,12 C-9,0 -9,-12 0,-12 C9,-12 9,0 0,12Z"/><circle r="3.6" cy="-3"/></g>`; }
   s += '</svg>';
-  s += `<div class="angleg">${Object.entries(ANG_NIVEL).map(([k, t]) => `<span><i style="background:${ANG_COR[k]}"></i>${t.replace('Província ', '')}</span>`).join('')}<span><i class="me"></i>Vives aqui</span></div>`;
+  s += `<div class="angleg">${Object.entries(ANG_NIVEL).map(([k, t]) => `<span><i style="background:${ANG_COR[k]}"></i>${t.replace('Província ', '')}</span>`).join('')}<span><i class="me"></i>A tua casa</span>${home !== cur ? '<span><i class="aq"></i>Estás aqui (visita)</span>' : ''}</div>`;
   return s;
 }
 function angCardHTML() {
@@ -70,13 +72,12 @@ function angCardHTML() {
     if (G.visitando) h += noteBox(`🧳 Estás de <b>visita</b> — a tua casa fica em ${G.visitando.mun} (${G.visitando.prov}). Passeia à vontade!`) + `<div class="btns" style="margin:8px 0">${chip(`🏠 Voltar para casa · ${G.visitando.prov}`, 'voltarParaCasa()', false)}</div>`;
     else h += noteBox(`📍 Vives aqui, em <b>${G.cidade.mun}</b>. Toca numa instituição para ires lá.`);
   } else {
-    const b = Math.round(12000 * P.custo), a = Math.round(45000 * P.custo);
+    const ctx = (typeof panelId !== 'undefined' && panelId) || '';
     let v = '';
     if (G.visitando) v += `<span class="t2">🧳 Estás de viagem — volta primeiro a casa para viajares de novo.</span>`;
-    else {
-      v += chip(`🚌 Visitar de autocarro · ${kzShort(b)}`, `viajarPara('${P.n}','bus')`, G.dinheiro < b);
-      v += chip(`✈️ Visitar de avião · ${kzShort(a)}`, `viajarPara('${P.n}','aviao')`, G.dinheiro < a);
-    }
+    else if (ctx === 'aeroporto') { const p = viajarPreco(P.n, 'aviao'); v += chip(`✈️ Voar para ${P.n} e ficar · ${kzShort(p)}`, `viajarPara('${P.n}','aviao')`, G.dinheiro < p); }
+    else if (ctx === 'estacao') { const p = viajarPreco(P.n, 'bus'); v += chip(`🚌 Autocarro para ${P.n} · ${kzShort(p)}`, `viajarPara('${P.n}','bus')`, G.dinheiro < p); }
+    else v += `<span class="t2">🧳 Para visitar: apanha o 🚌 autocarro na <b>Estação</b> (separador Interprovincial) ou voa ✈️ no <b>Aeroporto</b> (separador Visitar &amp; Ficar).</span>`;
     v += G.idade >= 18 ? chip(`📦 Mudar-me de vez · 150 mil`, `moveCity('${P.n}')`, G.dinheiro < 150000) : '<span class="t2">Só podes mudar de província a partir dos 18 anos.</span>';
     h += `<div class="btns" style="margin:8px 0">${v}</div>`;
   }
@@ -89,7 +90,7 @@ function angCardHTML() {
 /* separador "Províncias" da Imobiliária e app "Angola" do telemóvel */
 function angCidadesUI() {
   let h = energyBar();
-  h += noteBox(`🗺️ Toca numa província para a conheceres — podes <b>visitar</b> de autocarro 🚌 ou avião ✈️ (e voltar quando quiseres) ou <b>mudar-te de vez</b> 📦. Nas províncias ricas tudo é mais caro mas ganha-se mais; nas pobres tudo é barato mas os salários são baixos.`);
+  h += noteBox(`🗺️ Toca numa província para a conheceres. Para a <b>visitares</b>, vai à <b>Estação</b> 🚌 ou ao <b>Aeroporto</b> ✈️ — ou <b>muda-te de vez</b> 📦. Nas províncias ricas tudo é mais caro mas ganha-se mais; nas pobres tudo é barato mas os salários são baixos.`);
   h += angolaMapHTML() + angCardHTML();
   return h;
 }

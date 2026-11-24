@@ -576,9 +576,11 @@ body.panel-open .hint{display:none}
 .angmap text{font:700 10px system-ui,sans-serif;fill:#fff;paint-order:stroke;stroke:rgba(0,0,0,.65);stroke-width:2.6px;pointer-events:none}
 .angmap text.sel{fill:#ffd60a;font-size:12px}
 .angmap .pin path{fill:#ff3b5c;stroke:#fff;stroke-width:1.6}.angmap .pin circle{fill:#fff}
+.angmap .pin.vis path{fill:#2ab0d8}
 .angleg{display:flex;flex-wrap:wrap;gap:4px 12px;justify-content:center;font-size:11.5px;opacity:.9;margin-bottom:8px}
 .angleg span{display:flex;align-items:center;gap:5px}.angleg i{width:11px;height:11px;border-radius:3px;display:inline-block}
 .angleg i.me{background:#ff3b5c;border-radius:50% 50% 50% 0;transform:rotate(-45deg)}
+.angleg i.aq{background:#2ab0d8;border-radius:50% 50% 50% 0;transform:rotate(-45deg)}
 .angstats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:8px 0}
 .angstats div{background:rgba(127,127,127,.13);border-radius:10px;padding:6px 8px;min-width:0}
 .angstats small{display:block;font-size:10.5px;opacity:.7}.angstats b{font-size:12.5px;display:block;overflow-wrap:anywhere}
@@ -2658,17 +2660,25 @@ function moveToParents() {
   G.casa = { tipo: 'pais' }; if (G.parceiro) G.parceiro.juntos = false;
   addLog('🏠 Voltaste para casa dos pais. ' + fx({ felicidade: G.idade > 25 ? -6 : 0 })); save(); refresh();
 }
+/* distâncias aproximadas por estrada a partir de Luanda (as rotas irradiam da capital) */
+const ANG_KM = { 'Luanda': 0, 'Ícolo e Bengo': 70, 'Bengo': 80, 'Cuanza Norte': 250, 'Uíge': 330, 'Malanje': 380, 'Cuanza Sul': 380, 'Zaire': 470, 'Benguela': 540, 'Cabinda': 560, 'Huambo': 600, 'Bié': 720, 'Lunda Norte': 860, 'Huíla': 860, 'Namibe': 900, 'Cunene': 950, 'Lunda Sul': 990, 'Cubango': 1050, 'Moxico': 1250, 'Moxico Leste': 1450, 'Cuando': 1500 };
+/* escala coerente com o resto do jogo: comboio 18 Kz/km < autocarro 30 Kz/km < avião ~110 Kz/km (bate com os voos nacionais do aeroporto) */
+function viajarPreco(prov, meio) {
+  const km = ANG_KM[prov] || 500;
+  return meio === 'aviao' ? Math.max(40000, Math.round(km * 110 / 1000) * 1000) : Math.max(3000, Math.round(km * 30 / 100) * 100);
+}
+function viajarHoras(prov, meio) { const km = ANG_KM[prov] || 500; return Math.max(1, Math.round(meio === 'aviao' ? km / 750 + .5 : km / 60)); }
 /* visitar outra província e voltar (a tua casa fica à tua espera) */
 function viajarPara(prov, meio) {
   if (G.visitando) return toast('🧳 Já estás de viagem! Volta primeiro a casa (mapa → a tua província).');
   const P = PROVINCIAS.find(p => p.n === prov); if (!P || P.n === G.cidade.prov) return;
-  const preco = meio === 'aviao' ? Math.round(45000 * cid().custo) : Math.round(12000 * cid().custo);
+  const preco = viajarPreco(P.n, meio);
   doAct(preco, () => {
     G.visitando = { prov: G.cidade.prov, mun: G.cidade.mun };
     G.cidade = { prov: P.n, mun: pick(P.m) };
     setTimeout(() => { if (typeof provSync === 'function') provSync('aeroporto'); }, 700);
     if (typeof SND !== 'undefined') SND.play(meio === 'aviao' ? 'whoosh' : 'car');
-    return `${meio === 'aviao' ? '✈️ Voaste' : '🚌 Viajaste de autocarro'} para <b>${G.cidade.mun}, ${P.n}</b>! Estás de visita — passeia, tira selfies e come o prato da terra. A tua casa fica em ${G.visitando.mun} (${G.visitando.prov}). ` + fx({ felicidade: 6 });
+    return `${meio === 'aviao' ? '✈️ Voaste' : '🚌 Viajaste de autocarro'} para <b>${G.cidade.mun}, ${P.n}</b> (${(ANG_KM[P.n] || 500)} km · ~${viajarHoras(P.n, meio)} h)! Estás de visita — passeia, tira selfies e come o prato da terra. A tua casa fica em ${G.visitando.mun} (${G.visitando.prov}). ` + fx({ felicidade: 6 });
   }, 'cheer');
 }
 function voltarParaCasa() {
@@ -2682,6 +2692,7 @@ function voltarParaCasa() {
 }
 function moveCity(prov) {
   if (!adulto()) return toast('Só podes mudar de província aos 18.');
+  if (G.visitando) return toast('🏠 Volta primeiro a casa para tratares da mudança.');
   const P = PROVINCIAS.find(p => p.n === prov); if (!P || P.n === G.cidade.prov) return;
   doAct(150000, () => {
     G.cidade = { prov: P.n, mun: pick(P.m) };
@@ -8475,9 +8486,11 @@ function angolaMapHTML() {
   ord.forEach(P => { const g = G0.p[P.n]; let x = g.x, y = g.y, a = 'middle';
     if (P.n === 'Luanda') { x -= 8; a = 'end'; } if (P.n === 'Ícolo e Bengo') { y += 6; x += 4; } if (P.n === 'Cabinda') { x -= 4; a = 'end'; }
     s += `<text x="${x}" y="${y}" text-anchor="${a}" class="${P.n === sel ? 'sel' : ''}">${ANG_CURTO[P.n] || P.n}</text>`; });
-  const gc = G0.p[cur]; if (gc) s += `<g class="pin" transform="translate(${gc.x},${gc.y - 16})"><path d="M0,12 C-9,0 -9,-12 0,-12 C9,-12 9,0 0,12Z"/><circle r="3.6" cy="-3"/></g>`;
+  const home = (typeof G !== 'undefined' && G && G.visitando) ? G.visitando.prov : cur;
+  const gc = G0.p[home]; if (gc) s += `<g class="pin" transform="translate(${gc.x},${gc.y - 16})"><path d="M0,12 C-9,0 -9,-12 0,-12 C9,-12 9,0 0,12Z"/><circle r="3.6" cy="-3"/></g>`;
+  if (home !== cur) { const gv = G0.p[cur]; if (gv) s += `<g class="pin vis" transform="translate(${gv.x},${gv.y - 16})"><path d="M0,12 C-9,0 -9,-12 0,-12 C9,-12 9,0 0,12Z"/><circle r="3.6" cy="-3"/></g>`; }
   s += '</svg>';
-  s += `<div class="angleg">${Object.entries(ANG_NIVEL).map(([k, t]) => `<span><i style="background:${ANG_COR[k]}"></i>${t.replace('Província ', '')}</span>`).join('')}<span><i class="me"></i>Vives aqui</span></div>`;
+  s += `<div class="angleg">${Object.entries(ANG_NIVEL).map(([k, t]) => `<span><i style="background:${ANG_COR[k]}"></i>${t.replace('Província ', '')}</span>`).join('')}<span><i class="me"></i>A tua casa</span>${home !== cur ? '<span><i class="aq"></i>Estás aqui (visita)</span>' : ''}</div>`;
   return s;
 }
 function angCardHTML() {
@@ -8488,13 +8501,12 @@ function angCardHTML() {
     if (G.visitando) h += noteBox(`🧳 Estás de <b>visita</b> — a tua casa fica em ${G.visitando.mun} (${G.visitando.prov}). Passeia à vontade!`) + `<div class="btns" style="margin:8px 0">${chip(`🏠 Voltar para casa · ${G.visitando.prov}`, 'voltarParaCasa()', false)}</div>`;
     else h += noteBox(`📍 Vives aqui, em <b>${G.cidade.mun}</b>. Toca numa instituição para ires lá.`);
   } else {
-    const b = Math.round(12000 * P.custo), a = Math.round(45000 * P.custo);
+    const ctx = (typeof panelId !== 'undefined' && panelId) || '';
     let v = '';
     if (G.visitando) v += `<span class="t2">🧳 Estás de viagem — volta primeiro a casa para viajares de novo.</span>`;
-    else {
-      v += chip(`🚌 Visitar de autocarro · ${kzShort(b)}`, `viajarPara('${P.n}','bus')`, G.dinheiro < b);
-      v += chip(`✈️ Visitar de avião · ${kzShort(a)}`, `viajarPara('${P.n}','aviao')`, G.dinheiro < a);
-    }
+    else if (ctx === 'aeroporto') { const p = viajarPreco(P.n, 'aviao'); v += chip(`✈️ Voar para ${P.n} e ficar · ${kzShort(p)}`, `viajarPara('${P.n}','aviao')`, G.dinheiro < p); }
+    else if (ctx === 'estacao') { const p = viajarPreco(P.n, 'bus'); v += chip(`🚌 Autocarro para ${P.n} · ${kzShort(p)}`, `viajarPara('${P.n}','bus')`, G.dinheiro < p); }
+    else v += `<span class="t2">🧳 Para visitar: apanha o 🚌 autocarro na <b>Estação</b> (separador Interprovincial) ou voa ✈️ no <b>Aeroporto</b> (separador Visitar &amp; Ficar).</span>`;
     v += G.idade >= 18 ? chip(`📦 Mudar-me de vez · 150 mil`, `moveCity('${P.n}')`, G.dinheiro < 150000) : '<span class="t2">Só podes mudar de província a partir dos 18 anos.</span>';
     h += `<div class="btns" style="margin:8px 0">${v}</div>`;
   }
@@ -8507,7 +8519,7 @@ function angCardHTML() {
 /* separador "Províncias" da Imobiliária e app "Angola" do telemóvel */
 function angCidadesUI() {
   let h = energyBar();
-  h += noteBox(`🗺️ Toca numa província para a conheceres — podes <b>visitar</b> de autocarro 🚌 ou avião ✈️ (e voltar quando quiseres) ou <b>mudar-te de vez</b> 📦. Nas províncias ricas tudo é mais caro mas ganha-se mais; nas pobres tudo é barato mas os salários são baixos.`);
+  h += noteBox(`🗺️ Toca numa província para a conheceres. Para a <b>visitares</b>, vai à <b>Estação</b> 🚌 ou ao <b>Aeroporto</b> ✈️ — ou <b>muda-te de vez</b> 📦. Nas províncias ricas tudo é mais caro mas ganha-se mais; nas pobres tudo é barato mas os salários são baixos.`);
   h += angolaMapHTML() + angCardHTML();
   return h;
 }
@@ -12262,6 +12274,23 @@ function vhLinhaUI() {
     + noteBox('💡 Sabias que? O comboio que vês a chegar à plataforma aqui fora chega à mesma hora para todos os jogadores online.');
 }
 
+/* ---------- viagens interprovinciais (ida: ficas a visitar a província) ---------- */
+function vhInterUI(meio) {
+  const bus = meio === 'bus';
+  let h = noteBox(bus
+    ? '🚌 <b>Terminal interprovincial</b>: autocarros para todas as províncias. O bilhete é de <b>ida</b> — ficas a visitar a província e a tua casa espera por ti. Voltas pelo mapa Angola (🏠) ou aqui.'
+    : '✈️ <b>Palanca Airlines</b>: voa para outra província e <b>fica</b> lá a visitar (bilhete de ida). Para passeios de ida-e-volta no mesmo dia usa o separador ✈️ Nacionais.');
+  if (G.visitando) {
+    return h + noteBox(`🧳 Estás de <b>visita</b> — a tua casa fica em ${G.visitando.mun} (${G.visitando.prov}).`)
+      + `<div class="btns" style="margin:8px 0">${chip(`🏠 Voltar para casa · ${G.visitando.prov}`, 'voltarParaCasa()', false)}</div>`;
+  }
+  h += sec(bus ? '🚌 Autocarros (30 Kz/km)' : '✈️ Voos (preço por distância)') + list(PROVINCIAS.filter(p => p.n !== G.cidade.prov).map(P => {
+    const km = ANG_KM[P.n] || 500, p = viajarPreco(P.n, meio);
+    return btnItem(bus ? '🚌' : '✈️', `${P.n}`, `${P.cap} · ${km} km · ~${viajarHoras(P.n, meio)} h · ${P.eco}`, kzShort(p), `viajarPara('${P.n}','${meio}')`, G.dinheiro < p);
+  }));
+  return h;
+}
+
 /* ---------- aeroporto ---------- */
 function vhTier(mi) { return mi >= 20000 ? ['Ouro', '#ffcb00', .2] : mi >= 5000 ? ['Prata', '#c0c7d0', .1] : ['Azul', '#2ab0d8', 0]; }
 function vhFlyPrice(d, cls) { const m = TR_CLS_V.find(c => c[0] === cls)[2], t = vhTier(vhG().mi || 0); return Math.round(d.p * m * (1 - t[2]) / 1000) * 1000; }
@@ -12311,8 +12340,8 @@ Object.assign(PANELS, {
   stand: { ico: '🚗', t: 'Stand Auto Kianda', sub: 'Carros novos e usados · test-drive · oficina', tabs: [['carros', '🚗 Carros', vhShop('carro')], ['passeios', '🛣️ Passeios', () => vhRoadUI('carro')], ['oficina', '🔧 Oficina', () => vhOficinaUI('carro')]] },
   motos: { ico: '🏍️', t: 'Moto Bwé', sub: 'Scooters, motos e superdesportivas', tabs: [['motos', '🏍️ Motos', vhShop('moto')], ['passeios', '🛣️ Passeios', () => vhRoadUI('moto')], ['oficina', '🔧 Oficina', () => vhOficinaUI('moto')]] },
   bikes: { ico: '🚲', t: 'Pedala Angola', sub: 'Bicicletas, aluguer, passeios e desafios', tabs: [['bikes', '🚲 Bicicletas', vhShop('bike')], ['passeios', '🌳 Passeios', () => vhRoadUI('bike')], ['desafios', '🏆 Desafios', vhDesafiosUI]] },
-  estacao: { ico: '🚆', t: 'Estação Ferroviária de Luanda', sub: 'Ferrovia Kianda · Linha de Luanda', tabs: [['partidas', '🚆 Partidas', vhPartidasUI], ['passe', '🎫 Passes', vhPasseUI], ['info', 'ℹ️ A linha', vhLinhaUI]] },
-  aeroporto: { ico: '✈️', t: 'Aeroporto de Luanda', sub: 'Palanca Airlines · voos nacionais e internacionais', tabs: [['nac', '✈️ Nacionais', () => vhVoosUI(false)], ['int', '🌍 Internacionais', () => vhVoosUI(true)], ['milhas', '🛂 Passaporte & Milhas', vhPassUI]] },
+  estacao: { ico: '🚆', t: 'Estação Ferroviária de Luanda', sub: 'Ferrovia Kianda · Linha de Luanda', tabs: [['partidas', '🚆 Partidas', vhPartidasUI], ['inter', '🚌 Interprovincial', () => vhInterUI('bus')], ['passe', '🎫 Passes', vhPasseUI], ['info', 'ℹ️ A linha', vhLinhaUI]] },
+  aeroporto: { ico: '✈️', t: 'Aeroporto de Luanda', sub: 'Palanca Airlines · voos nacionais e internacionais', tabs: [['nac', '✈️ Nacionais', () => vhVoosUI(false)], ['int', '🌍 Internacionais', () => vhVoosUI(true)], ['visitar', '🧳 Visitar & Ficar', () => vhInterUI('aviao')], ['milhas', '🛂 Passaporte & Milhas', vhPassUI]] },
 });
 
 /* resultado da corrida e do atolar na picada (antes do ecrã de chegada) */
@@ -12351,7 +12380,7 @@ function provNomes(P) {
   return {
     banco: `Banco Palanca · ${P.cap}`, clinica: `Hospital Geral de ${P.cap}`, escola: `Universidade · ${P.cap}`,
     emprego: `Centro de Emprego · ${P.cap}`, mercado: `Mercado Municipal de ${P.cap}`, igreja: `Igreja Matriz de ${P.cap}`,
-    ginasio: `Estádio Provincial`, imobiliaria: `Imobiliária · ${P.cap}`, casa: 'A Minha Casa',
+    ginasio: `Estádio Provincial`, imobiliaria: `Imobiliária · ${P.cap}`, casa: (typeof G !== 'undefined' && G && G.visitando) ? `Pensão Central de ${P.cap}` : 'A Minha Casa',
     aeroporto: P.mar ? `Porto de ${(typeof ANG_PORTO !== 'undefined' && ANG_PORTO[P.n]) || P.cap}` : `Aeroporto de ${P.cap}`,
     cadeia: `Esquadra · ${P.cap}`, cela: 'Cela',
   };

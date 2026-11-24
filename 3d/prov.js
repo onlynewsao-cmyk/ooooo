@@ -15,7 +15,7 @@ function provNomes(P) {
   return {
     banco: `Banco Palanca · ${P.cap}`, clinica: `Hospital Geral de ${P.cap}`, escola: `Universidade · ${P.cap}`,
     emprego: `Centro de Emprego · ${P.cap}`, mercado: `Mercado Municipal de ${P.cap}`, igreja: `Igreja Matriz de ${P.cap}`,
-    ginasio: `Estádio Provincial`, imobiliaria: `Imobiliária · ${P.cap}`, casa: 'A Minha Casa',
+    ginasio: `Estádio Provincial`, imobiliaria: `Imobiliária · ${P.cap}`, casa: (typeof G !== 'undefined' && G && G.visitando) ? `Pensão Central de ${P.cap}` : 'A Minha Casa',
     aeroporto: P.mar ? `Porto de ${(typeof ANG_PORTO !== 'undefined' && ANG_PORTO[P.n]) || P.cap}` : `Aeroporto de ${P.cap}`,
     cadeia: `Esquadra · ${P.cap}`, cela: 'Cela',
   };

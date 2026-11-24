@@ -1060,17 +1060,25 @@ function moveToParents() {
   G.casa = { tipo: 'pais' }; if (G.parceiro) G.parceiro.juntos = false;
   addLog('🏠 Voltaste para casa dos pais. ' + fx({ felicidade: G.idade > 25 ? -6 : 0 })); save(); refresh();
 }
+/* distâncias aproximadas por estrada a partir de Luanda (as rotas irradiam da capital) */
+const ANG_KM = { 'Luanda': 0, 'Ícolo e Bengo': 70, 'Bengo': 80, 'Cuanza Norte': 250, 'Uíge': 330, 'Malanje': 380, 'Cuanza Sul': 380, 'Zaire': 470, 'Benguela': 540, 'Cabinda': 560, 'Huambo': 600, 'Bié': 720, 'Lunda Norte': 860, 'Huíla': 860, 'Namibe': 900, 'Cunene': 950, 'Lunda Sul': 990, 'Cubango': 1050, 'Moxico': 1250, 'Moxico Leste': 1450, 'Cuando': 1500 };
+/* escala coerente com o resto do jogo: comboio 18 Kz/km < autocarro 30 Kz/km < avião ~110 Kz/km (bate com os voos nacionais do aeroporto) */
+function viajarPreco(prov, meio) {
+  const km = ANG_KM[prov] || 500;
+  return meio === 'aviao' ? Math.max(40000, Math.round(km * 110 / 1000) * 1000) : Math.max(3000, Math.round(km * 30 / 100) * 100);
+}
+function viajarHoras(prov, meio) { const km = ANG_KM[prov] || 500; return Math.max(1, Math.round(meio === 'aviao' ? km / 750 + .5 : km / 60)); }
 /* visitar outra província e voltar (a tua casa fica à tua espera) */
 function viajarPara(prov, meio) {
   if (G.visitando) return toast('🧳 Já estás de viagem! Volta primeiro a casa (mapa → a tua província).');
   const P = PROVINCIAS.find(p => p.n === prov); if (!P || P.n === G.cidade.prov) return;
-  const preco = meio === 'aviao' ? Math.round(45000 * cid().custo) : Math.round(12000 * cid().custo);
+  const preco = viajarPreco(P.n, meio);
   doAct(preco, () => {
     G.visitando = { prov: G.cidade.prov, mun: G.cidade.mun };
     G.cidade = { prov: P.n, mun: pick(P.m) };
     setTimeout(() => { if (typeof provSync === 'function') provSync('aeroporto'); }, 700);
     if (typeof SND !== 'undefined') SND.play(meio === 'aviao' ? 'whoosh' : 'car');
-    return `${meio === 'aviao' ? '✈️ Voaste' : '🚌 Viajaste de autocarro'} para <b>${G.cidade.mun}, ${P.n}</b>! Estás de visita — passeia, tira selfies e come o prato da terra. A tua casa fica em ${G.visitando.mun} (${G.visitando.prov}). ` + fx({ felicidade: 6 });
+    return `${meio === 'aviao' ? '✈️ Voaste' : '🚌 Viajaste de autocarro'} para <b>${G.cidade.mun}, ${P.n}</b> (${(ANG_KM[P.n] || 500)} km · ~${viajarHoras(P.n, meio)} h)! Estás de visita — passeia, tira selfies e come o prato da terra. A tua casa fica em ${G.visitando.mun} (${G.visitando.prov}). ` + fx({ felicidade: 6 });
   }, 'cheer');
 }
 function voltarParaCasa() {
@@ -1084,6 +1092,7 @@ function voltarParaCasa() {
 }
 function moveCity(prov) {
   if (!adulto()) return toast('Só podes mudar de província aos 18.');
+  if (G.visitando) return toast('🏠 Volta primeiro a casa para tratares da mudança.');
   const P = PROVINCIAS.find(p => p.n === prov); if (!P || P.n === G.cidade.prov) return;
   doAct(150000, () => {
     G.cidade = { prov: P.n, mun: pick(P.m) };

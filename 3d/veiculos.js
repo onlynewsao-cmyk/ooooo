@@ -844,6 +844,23 @@ function vhLinhaUI() {
     + noteBox('💡 Sabias que? O comboio que vês a chegar à plataforma aqui fora chega à mesma hora para todos os jogadores online.');
 }
 
+/* ---------- viagens interprovinciais (ida: ficas a visitar a província) ---------- */
+function vhInterUI(meio) {
+  const bus = meio === 'bus';
+  let h = noteBox(bus
+    ? '🚌 <b>Terminal interprovincial</b>: autocarros para todas as províncias. O bilhete é de <b>ida</b> — ficas a visitar a província e a tua casa espera por ti. Voltas pelo mapa Angola (🏠) ou aqui.'
+    : '✈️ <b>Palanca Airlines</b>: voa para outra província e <b>fica</b> lá a visitar (bilhete de ida). Para passeios de ida-e-volta no mesmo dia usa o separador ✈️ Nacionais.');
+  if (G.visitando) {
+    return h + noteBox(`🧳 Estás de <b>visita</b> — a tua casa fica em ${G.visitando.mun} (${G.visitando.prov}).`)
+      + `<div class="btns" style="margin:8px 0">${chip(`🏠 Voltar para casa · ${G.visitando.prov}`, 'voltarParaCasa()', false)}</div>`;
+  }
+  h += sec(bus ? '🚌 Autocarros (30 Kz/km)' : '✈️ Voos (preço por distância)') + list(PROVINCIAS.filter(p => p.n !== G.cidade.prov).map(P => {
+    const km = ANG_KM[P.n] || 500, p = viajarPreco(P.n, meio);
+    return btnItem(bus ? '🚌' : '✈️', `${P.n}`, `${P.cap} · ${km} km · ~${viajarHoras(P.n, meio)} h · ${P.eco}`, kzShort(p), `viajarPara('${P.n}','${meio}')`, G.dinheiro < p);
+  }));
+  return h;
+}
+
 /* ---------- aeroporto ---------- */
 function vhTier(mi) { return mi >= 20000 ? ['Ouro', '#ffcb00', .2] : mi >= 5000 ? ['Prata', '#c0c7d0', .1] : ['Azul', '#2ab0d8', 0]; }
 function vhFlyPrice(d, cls) { const m = TR_CLS_V.find(c => c[0] === cls)[2], t = vhTier(vhG().mi || 0); return Math.round(d.p * m * (1 - t[2]) / 1000) * 1000; }
@@ -893,8 +910,8 @@ Object.assign(PANELS, {
   stand: { ico: '🚗', t: 'Stand Auto Kianda', sub: 'Carros novos e usados · test-drive · oficina', tabs: [['carros', '🚗 Carros', vhShop('carro')], ['passeios', '🛣️ Passeios', () => vhRoadUI('carro')], ['oficina', '🔧 Oficina', () => vhOficinaUI('carro')]] },
   motos: { ico: '🏍️', t: 'Moto Bwé', sub: 'Scooters, motos e superdesportivas', tabs: [['motos', '🏍️ Motos', vhShop('moto')], ['passeios', '🛣️ Passeios', () => vhRoadUI('moto')], ['oficina', '🔧 Oficina', () => vhOficinaUI('moto')]] },
   bikes: { ico: '🚲', t: 'Pedala Angola', sub: 'Bicicletas, aluguer, passeios e desafios', tabs: [['bikes', '🚲 Bicicletas', vhShop('bike')], ['passeios', '🌳 Passeios', () => vhRoadUI('bike')], ['desafios', '🏆 Desafios', vhDesafiosUI]] },
-  estacao: { ico: '🚆', t: 'Estação Ferroviária de Luanda', sub: 'Ferrovia Kianda · Linha de Luanda', tabs: [['partidas', '🚆 Partidas', vhPartidasUI], ['passe', '🎫 Passes', vhPasseUI], ['info', 'ℹ️ A linha', vhLinhaUI]] },
-  aeroporto: { ico: '✈️', t: 'Aeroporto de Luanda', sub: 'Palanca Airlines · voos nacionais e internacionais', tabs: [['nac', '✈️ Nacionais', () => vhVoosUI(false)], ['int', '🌍 Internacionais', () => vhVoosUI(true)], ['milhas', '🛂 Passaporte & Milhas', vhPassUI]] },
+  estacao: { ico: '🚆', t: 'Estação Ferroviária de Luanda', sub: 'Ferrovia Kianda · Linha de Luanda', tabs: [['partidas', '🚆 Partidas', vhPartidasUI], ['inter', '🚌 Interprovincial', () => vhInterUI('bus')], ['passe', '🎫 Passes', vhPasseUI], ['info', 'ℹ️ A linha', vhLinhaUI]] },
+  aeroporto: { ico: '✈️', t: 'Aeroporto de Luanda', sub: 'Palanca Airlines · voos nacionais e internacionais', tabs: [['nac', '✈️ Nacionais', () => vhVoosUI(false)], ['int', '🌍 Internacionais', () => vhVoosUI(true)], ['visitar', '🧳 Visitar & Ficar', () => vhInterUI('aviao')], ['milhas', '🛂 Passaporte & Milhas', vhPassUI]] },
 });
 
 /* resultado da corrida e do atolar na picada (antes do ecrã de chegada) */
