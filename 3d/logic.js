@@ -926,6 +926,7 @@ function marry() {
   doAct(c, () => {
     if (p.rel < 60) { G.dinheiro += c; return `A família de ${p.nome.split(' ')[0]} recusou o pedido. A relação precisa de melhorar (60+). ` + fx({ felicidade: -8 }); }
     p.casado = true; p.juntos = G.casa.tipo !== 'pais' && G.casa.tipo !== 'rua';
+    if (typeof newsPub === 'function') newsPub(`💍 ${G.nome} casou com ${p.nome}! A festa foi em ${G.cidade.mun}.`);
     return `💍 ALEMBAMENTO FEITO! Entregaste as grades de cerveja, os panos, o fato do sogro e o envelope (${kzShort(c)}). Estás ${oa(G.genero, 'casado', 'casada')} com ${p.nome}! ` + fx({ felicidade: 20, karma: 4 });
   }, 'love');
 }
@@ -944,6 +945,7 @@ function haveKid() {
     const g = chance(.5) ? 'M' : 'F';
     const f = { nome: pick(g === 'M' ? NOMES_M : NOMES_F), g, idade: 0, rel: 100, escola: 'publica' };
     G.filhos.push(f); p.rel = clamp(p.rel + 8);
+    if (typeof newsPub === 'function') newsPub(`👶 ${oa(G.genero, 'Nasceu o filho de', 'Nasceu a filha de')} ${G.nome}: bem-vindo(a), ${f.nome}!`);
     return `👶 Nasceu ${g === 'M' ? 'o teu filho' : 'a tua filha'} <b>${f.nome}</b>! ` + fx({ felicidade: 20, karma: 3 });
   }, 'love');
 }
@@ -1029,6 +1031,7 @@ function buyHouse(id, credito) {
   const idx = G.imoveis.length - 1;
   if (G.casa.tipo !== 'propria' || casaT(G.imoveis[G.casa.idx].id).preco < C.preco) moveInto(idx, true);
   after(`🏠 Compraste <b>${C.t}</b>${credito ? ' com crédito habitação' : ''}! ` + fx({ felicidade: 15 + C.conforto, fama: C.conforto > 10 ? 5 : 0 }), 'gold', 'cheer');
+  if (typeof newsPub === 'function') newsPub(`🏠 ${G.nome} comprou casa: ${C.t}, em ${G.cidade.mun}. O sonho mwangolé!`);
 }
 function moveInto(idx, silent) {
   if (G.casa.tipo === 'propria' && G.imoveis[G.casa.idx]) G.imoveis[G.casa.idx].mora = false;

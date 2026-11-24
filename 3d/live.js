@@ -34,7 +34,7 @@ const LV_ST = [
   { id: 'mix', n: 'Mwangolé Mix', f: '91.7', g: ['kizomba', 'semba', 'kuduro', 'afrohouse'], c1: '#4cc9f0', c2: '#1d3557', dj: ['Djeny Bwé', 'Nelo K', 'Lurdes Mix', 'DJ Kianda'], pr: ['Despertar Angola', 'Top Mwangolé', 'Mix da Tarde', 'Noite Mwangolé'] },
 ];
 const LV_ADS = ['Kitanda Super: tudo mais barato, todos os dias!', 'Banco Palanca: o teu dinheiro em boas mãos.', 'DarkCell: Semana Bwé — chamadas e SMS à vontade por 9.900 Kz!', 'Txova: a fome não espera, a Txova também não!', 'Kianda Mall: as melhores lojas num só lugar.', 'Kandonga: chega lá mais rápido e mais barato!', 'Céu Net: internet até na lavra.', 'Mulemba Petróleos: energia que move Angola.', 'Casa Já: a casa dos teus sonhos à distância de um toque.'];
-const LV_LOC = ['Bom dia, boa tarde, boa noite Angola! Estás a ouvir {n}, {f} FM!', 'Manda a tua dedicatória pela app de Rádio e ouve o teu nome no ar!', 'Hora certa em Luanda: {hora}. Bwé de música a seguir!', 'Um abraço a todos os jogadores ligados agora: {online} na cidade!', 'Trânsito: muita fila na Marginal e no Kilamba. Vai de Kandonga!', 'Tempo: calor em Luanda, cacimbo no Huambo. Bebe água, kamba!', 'Não mexe no botão! {n}, a rádio que não pára.'];
+const LV_LOC = ['Bom dia, boa tarde, boa noite Angola! Estás a ouvir {n}, {f} FM!', 'Manda a tua dedicatória pela app de Rádio e ouve o teu nome no ar!', 'Hora certa em Luanda: {hora}. Bwé de música a seguir!', 'Um abraço a todos os jogadores ligados agora: {online} na cidade!', 'Trânsito: muita fila na Marginal e no Kilamba. Vai de Kandonga!', 'Tempo: calor em Luanda, cacimbo no Huambo. Bebe água, kamba!', 'Não mexe no botão! {n}, a rádio que não pára.', 'E agora as notícias da cidade: {news}!', 'Olha que isto aconteceu mesmo aqui no jogo: {news}. Bwé, né?', 'Na cidade conta-se que {news}. Nós vamos acompanhando!'];
 const lvProg = st => { const h = new Date(LIVE.now() * 1000).getHours(); const i = h < 6 ? 3 : h < 12 ? 0 : h < 15 ? 1 : h < 20 ? 2 : 3; return { pr: st.pr[i], dj: st.dj[i] }; };
 const LV_SCHED = {};
 function lvSched(st) {
@@ -62,7 +62,7 @@ function lvSegAt(st, T = LIVE.now()) {
 }
 const lvStation = id => LV_ST.find(s => s.id === id);
 function lvBusyUI() { const a = document.activeElement, d = document.getElementById('dedBox'); return (a && /INPUT|TEXTAREA/.test(a.tagName) && a.closest && a.closest('#phBody')) || (d && !d.classList.contains('hidden')); }
-const lvTxt = (t, st) => t.replace('{n}', st.n).replace('{f}', st.f).replace('{hora}', lvClock()).replace('{online}', typeof MP !== 'undefined' ? MP.online : 1);
+const lvTxt = (t, st) => t.replace('{n}', st.n).replace('{f}', st.f).replace('{hora}', lvClock()).replace('{online}', typeof MP !== 'undefined' ? MP.online : 1).replace('{news}', typeof newsLine === 'function' ? newsLine() : 'a cidade não pára');
 function lvTvActive() { return G && (!!LIVE.watch || (phoneApp === 'tv' && lvPhoneTvOk()) || (typeof inInt !== 'undefined' && inInt && inInt.loc === 'casa')); }
 function lvTvCur() { return LIVE.watch || LIVE.tvCh; }
 function lvPhoneTvOk() { return !!(G && G.contas && G.contas.ano === G.ano && (G.contas.pagas || []).includes('tv')); }
@@ -216,6 +216,7 @@ let lvHL = null, lvHLt = 0;
 function lvHeadlines() {
   if (lvHL && performance.now() - lvHLt < 3000) return lvHL;
   const out = [];
+  try { newsReal().forEach(t => out.push(strip(t))); } catch (e) { }
   try { p2News().forEach(([t, a]) => a.forEach(x => out.push(strip(x.t)))); } catch (e) { }
   const m = lvMatchNow(); out.splice(1, 0, `${m.live ? 'Ao vivo' : 'Final'}: ${m.M.A[0]} ${m.s[0]}-${m.s[1]} ${m.M.B[0]}`);
   if (typeof MP !== 'undefined') out.splice(3, 0, `${MP.online} jogador${MP.online > 1 ? 'es' : ''} online agora na cidade`);

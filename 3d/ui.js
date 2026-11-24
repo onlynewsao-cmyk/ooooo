@@ -717,6 +717,7 @@ function die(causa) {
   closePanel(); closePhone(); closeModal(); uiBlocked = true; dying = .001;
   $('#hud').classList.add('hidden'); $('#prompt').classList.add('hidden');
   flash('☠️');
+  if (typeof newsPub === 'function') newsPub(`⚰️ ${G.nome} faleceu aos ${G.idade} anos (${causa}), em ${G.cidade.prov}. Descansa em paz.`);
   setTimeout(() => {
     mode = 'death';
     const S = G.stats;

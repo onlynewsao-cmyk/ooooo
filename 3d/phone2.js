@@ -510,7 +510,17 @@ const P2_EQ = ['Leões da Ilha', 'Águias do Kilamba', 'Palancas do Sul', 'Kiand
 function p2News() {
   const mk = G.mercado, hh = phHash(G.ano + 'n'), P = cid(), sel = (a, s) => a[phHash(G.ano + s) % a.length];
   const tab = (ico, t, b) => ({ ico, t, b });
+  const real = [];
+  if (typeof NEWS !== 'undefined') {
+    NEWS.items.slice(0, 8).forEach((x, i) => real.push(tab('📣', x.t, `Contado por quem viveu: acontecimento real na cidade, há ${Math.max(1, Math.round((Date.now() / 1000 - (x.ts || 0)) / 60))} min.`)));
+    if (NEWS.top.length) real.push(tab('💰', `${NEWS.top[0].n} lidera a lista dos mais ricos`, `O ranking da fortuna da cidade: ${NEWS.top.slice(0, 5).map(x => x.n).join(', ')}. O dinheiro fala alto em Luanda.`));
+    if (NEWS.fam.length && NEWS.fam[0].f >= 20) real.push(tab('⭐', `${NEWS.fam[0].n} é a figura mais falada`, `Com ${NEWS.fam[0].f} de fama, toda a gente conhece ${NEWS.fam[0].n}. ${NEWS.fam.slice(1, 4).map(x => x.n).join(' e ')} também andam nas bocas do povo.`));
+    real.push(tab('🌐', `${NEWS.on || 1} jogador${(NEWS.on || 1) > 1 ? 'es' : ''} online agora na cidade`, 'A cidade está viva: cada pessoa que vês na rua é um jogador real, a viver a própria história.'));
+    NEWS.deds.slice(0, 3).forEach(x => real.push(tab('💌', `${x.nick} dedicou música a ${x.para}`, x.txt ? `“${x.txt}” — ouvido nas rádios da cidade.` : 'Dedicatória ouvida nas rádios da cidade.')));
+  }
   return [
+    ['🇦🇴 Acontecimentos', real.length ? real : [tab('🌱', 'Ainda não há grandes acontecimentos', 'Sê o primeiro a fazer história: casa, compra casa, tem filhos — a cidade fala de ti!')]],
+    ...[
     ['Destaques', [
       G.stats.fama >= 25 ? tab('⭐', `${G.nome} é uma das figuras mais faladas de ${G.cidade.prov}!`, `As redes sociais não param de falar de ${G.nome}. Com ${numShort(G.seg)} seguidores, já é reconhecido(a) nas ruas de ${G.cidade.mun}.`) : null,
       tab('🛣️', sel(['Nova estrada liga Luanda a Catete', 'Obras do metro de superfície de Luanda avançam', 'Novo aeroporto internacional recebe mais voos'], 'a'), 'O Governo garante que as obras vão criar milhares de empregos e reduzir o trânsito nas horas de ponta.'),
@@ -535,7 +545,7 @@ function p2News() {
       tab('📍', `${P.cap}: ${sel(['governo provincial inaugura novo mercado', 'abre nova escola secundária', 'hospital provincial recebe equipamento novo', 'festival cultural junta milhares'], 'i')}`, `A economia de ${P.n} assenta em ${P.eco.toLowerCase()}. ${nivelCidade(P) === 'pobre' ? 'A população pede mais investimento e emprego.' : 'A província continua a atrair investimento.'}`),
       tab('🌤️', `Tempo em ${G.cidade.mun}: ${weather().t.toLowerCase()}, ${weather().temp}°`, 'Previsão para os próximos dias disponível na app Tempo.'),
     ]],
-  ].map(([t, a]) => [t, a.filter(Boolean)]);
+  ].map(([t, a]) => [t, a.filter(Boolean)])];
 }
 function p2NewsTab(i) { P2.newsTab = +i; P2.newsOpen = null; renderPhone(); }
 function p2NewsOpen(i) { P2.newsOpen = i; renderPhone(); }

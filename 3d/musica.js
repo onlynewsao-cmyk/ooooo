@@ -41,6 +41,19 @@ const MZ = (() => {
     { t: 'Batida do Rangel', a: 'DJ Kalibre', g: 'kuduro' },
     { t: 'Mussulo Deep Tribe', a: 'Mukuxi & Lobito', g: 'afrohouse' },
     { t: 'Abraço na Chuva', a: 'Yara Luz', g: 'kizomba' },
+    /* --- leva 2026: mais bwé para a cidade --- */
+    { t: 'Kianda Me Leva', a: 'Nelo Kizomba', g: 'kizomba' },
+    { t: 'Tia do Zango', a: 'Puto Kinaxixi', g: 'kuduro' },
+    { t: 'Semba da Maianga', a: 'Mestre Kituxi', g: 'semba' },
+    { t: 'Vibes do Cacuaco', a: 'DJ Palanca', g: 'afrohouse' },
+    { t: 'Meu Bem de Benguela', a: 'Yola Kianda', g: 'kizomba' },
+    { t: 'Kupapata na Noite', a: 'Kalibre 9', g: 'kuduro' },
+    { t: 'Rebita do Pescador', a: 'Os Kotas do Marçal', g: 'semba' },
+    { t: 'Marginal 4 da Manhã', a: 'Mukuxi & Lobito', g: 'afrohouse' },
+    { t: 'Saudade de Cabinda', a: 'Edu Bem-Vindo', g: 'kizomba' },
+    { t: 'Festa no Kilamba', a: 'Os Kalumbas', g: 'kuduro' },
+    { t: 'Mulemba Vibe', a: 'DJ Lobito', g: 'afrohouse' },
+    { t: 'Amor de Candongueiro', a: 'Djeny Bwé', g: 'semba' },
   ];
 
   /* estilos: andamento, escala, progressões (graus), forma, padrões de bateria */

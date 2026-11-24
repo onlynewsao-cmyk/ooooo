@@ -2523,6 +2523,7 @@ function marry() {
   doAct(c, () => {
     if (p.rel < 60) { G.dinheiro += c; return `A família de ${p.nome.split(' ')[0]} recusou o pedido. A relação precisa de melhorar (60+). ` + fx({ felicidade: -8 }); }
     p.casado = true; p.juntos = G.casa.tipo !== 'pais' && G.casa.tipo !== 'rua';
+    if (typeof newsPub === 'function') newsPub(`💍 ${G.nome} casou com ${p.nome}! A festa foi em ${G.cidade.mun}.`);
     return `💍 ALEMBAMENTO FEITO! Entregaste as grades de cerveja, os panos, o fato do sogro e o envelope (${kzShort(c)}). Estás ${oa(G.genero, 'casado', 'casada')} com ${p.nome}! ` + fx({ felicidade: 20, karma: 4 });
   }, 'love');
 }
@@ -2541,6 +2542,7 @@ function haveKid() {
     const g = chance(.5) ? 'M' : 'F';
     const f = { nome: pick(g === 'M' ? NOMES_M : NOMES_F), g, idade: 0, rel: 100, escola: 'publica' };
     G.filhos.push(f); p.rel = clamp(p.rel + 8);
+    if (typeof newsPub === 'function') newsPub(`👶 ${oa(G.genero, 'Nasceu o filho de', 'Nasceu a filha de')} ${G.nome}: bem-vindo(a), ${f.nome}!`);
     return `👶 Nasceu ${g === 'M' ? 'o teu filho' : 'a tua filha'} <b>${f.nome}</b>! ` + fx({ felicidade: 20, karma: 3 });
   }, 'love');
 }
@@ -2626,6 +2628,7 @@ function buyHouse(id, credito) {
   const idx = G.imoveis.length - 1;
   if (G.casa.tipo !== 'propria' || casaT(G.imoveis[G.casa.idx].id).preco < C.preco) moveInto(idx, true);
   after(`🏠 Compraste <b>${C.t}</b>${credito ? ' com crédito habitação' : ''}! ` + fx({ felicidade: 15 + C.conforto, fama: C.conforto > 10 ? 5 : 0 }), 'gold', 'cheer');
+  if (typeof newsPub === 'function') newsPub(`🏠 ${G.nome} comprou casa: ${C.t}, em ${G.cidade.mun}. O sonho mwangolé!`);
 }
 function moveInto(idx, silent) {
   if (G.casa.tipo === 'propria' && G.imoveis[G.casa.idx]) G.imoveis[G.casa.idx].mora = false;
@@ -6292,6 +6295,7 @@ function die(causa) {
   closePanel(); closePhone(); closeModal(); uiBlocked = true; dying = .001;
   $('#hud').classList.add('hidden'); $('#prompt').classList.add('hidden');
   flash('☠️');
+  if (typeof newsPub === 'function') newsPub(`⚰️ ${G.nome} faleceu aos ${G.idade} anos (${causa}), em ${G.cidade.prov}. Descansa em paz.`);
   setTimeout(() => {
     mode = 'death';
     const S = G.stats;
@@ -8968,7 +8972,17 @@ const P2_EQ = ['Leões da Ilha', 'Águias do Kilamba', 'Palancas do Sul', 'Kiand
 function p2News() {
   const mk = G.mercado, hh = phHash(G.ano + 'n'), P = cid(), sel = (a, s) => a[phHash(G.ano + s) % a.length];
   const tab = (ico, t, b) => ({ ico, t, b });
+  const real = [];
+  if (typeof NEWS !== 'undefined') {
+    NEWS.items.slice(0, 8).forEach((x, i) => real.push(tab('📣', x.t, `Contado por quem viveu: acontecimento real na cidade, há ${Math.max(1, Math.round((Date.now() / 1000 - (x.ts || 0)) / 60))} min.`)));
+    if (NEWS.top.length) real.push(tab('💰', `${NEWS.top[0].n} lidera a lista dos mais ricos`, `O ranking da fortuna da cidade: ${NEWS.top.slice(0, 5).map(x => x.n).join(', ')}. O dinheiro fala alto em Luanda.`));
+    if (NEWS.fam.length && NEWS.fam[0].f >= 20) real.push(tab('⭐', `${NEWS.fam[0].n} é a figura mais falada`, `Com ${NEWS.fam[0].f} de fama, toda a gente conhece ${NEWS.fam[0].n}. ${NEWS.fam.slice(1, 4).map(x => x.n).join(' e ')} também andam nas bocas do povo.`));
+    real.push(tab('🌐', `${NEWS.on || 1} jogador${(NEWS.on || 1) > 1 ? 'es' : ''} online agora na cidade`, 'A cidade está viva: cada pessoa que vês na rua é um jogador real, a viver a própria história.'));
+    NEWS.deds.slice(0, 3).forEach(x => real.push(tab('💌', `${x.nick} dedicou música a ${x.para}`, x.txt ? `“${x.txt}” — ouvido nas rádios da cidade.` : 'Dedicatória ouvida nas rádios da cidade.')));
+  }
   return [
+    ['🇦🇴 Acontecimentos', real.length ? real : [tab('🌱', 'Ainda não há grandes acontecimentos', 'Sê o primeiro a fazer história: casa, compra casa, tem filhos — a cidade fala de ti!')]],
+    ...[
     ['Destaques', [
       G.stats.fama >= 25 ? tab('⭐', `${G.nome} é uma das figuras mais faladas de ${G.cidade.prov}!`, `As redes sociais não param de falar de ${G.nome}. Com ${numShort(G.seg)} seguidores, já é reconhecido(a) nas ruas de ${G.cidade.mun}.`) : null,
       tab('🛣️', sel(['Nova estrada liga Luanda a Catete', 'Obras do metro de superfície de Luanda avançam', 'Novo aeroporto internacional recebe mais voos'], 'a'), 'O Governo garante que as obras vão criar milhares de empregos e reduzir o trânsito nas horas de ponta.'),
@@ -8993,7 +9007,7 @@ function p2News() {
       tab('📍', `${P.cap}: ${sel(['governo provincial inaugura novo mercado', 'abre nova escola secundária', 'hospital provincial recebe equipamento novo', 'festival cultural junta milhares'], 'i')}`, `A economia de ${P.n} assenta em ${P.eco.toLowerCase()}. ${nivelCidade(P) === 'pobre' ? 'A população pede mais investimento e emprego.' : 'A província continua a atrair investimento.'}`),
       tab('🌤️', `Tempo em ${G.cidade.mun}: ${weather().t.toLowerCase()}, ${weather().temp}°`, 'Previsão para os próximos dias disponível na app Tempo.'),
     ]],
-  ].map(([t, a]) => [t, a.filter(Boolean)]);
+  ].map(([t, a]) => [t, a.filter(Boolean)])];
 }
 function p2NewsTab(i) { P2.newsTab = +i; P2.newsOpen = null; renderPhone(); }
 function p2NewsOpen(i) { P2.newsOpen = i; renderPhone(); }
@@ -9232,6 +9246,19 @@ const MZ = (() => {
     { t: 'Batida do Rangel', a: 'DJ Kalibre', g: 'kuduro' },
     { t: 'Mussulo Deep Tribe', a: 'Mukuxi & Lobito', g: 'afrohouse' },
     { t: 'Abraço na Chuva', a: 'Yara Luz', g: 'kizomba' },
+    /* --- leva 2026: mais bwé para a cidade --- */
+    { t: 'Kianda Me Leva', a: 'Nelo Kizomba', g: 'kizomba' },
+    { t: 'Tia do Zango', a: 'Puto Kinaxixi', g: 'kuduro' },
+    { t: 'Semba da Maianga', a: 'Mestre Kituxi', g: 'semba' },
+    { t: 'Vibes do Cacuaco', a: 'DJ Palanca', g: 'afrohouse' },
+    { t: 'Meu Bem de Benguela', a: 'Yola Kianda', g: 'kizomba' },
+    { t: 'Kupapata na Noite', a: 'Kalibre 9', g: 'kuduro' },
+    { t: 'Rebita do Pescador', a: 'Os Kotas do Marçal', g: 'semba' },
+    { t: 'Marginal 4 da Manhã', a: 'Mukuxi & Lobito', g: 'afrohouse' },
+    { t: 'Saudade de Cabinda', a: 'Edu Bem-Vindo', g: 'kizomba' },
+    { t: 'Festa no Kilamba', a: 'Os Kalumbas', g: 'kuduro' },
+    { t: 'Mulemba Vibe', a: 'DJ Lobito', g: 'afrohouse' },
+    { t: 'Amor de Candongueiro', a: 'Djeny Bwé', g: 'semba' },
   ];
 
   /* estilos: andamento, escala, progressões (graus), forma, padrões de bateria */
@@ -9923,6 +9950,64 @@ const RADIO = SND.RADIO;
 })();
 </script>
 <script>/* =========================================================
+   ACONTECIMENTOS REAIS — o que os jogadores fazem vira notícia
+   Alimenta a rádio (locutores), o Telejornal (Kalemba 1) e o
+   Jornal no telemóvel. O servidor guarda as manchetes; aqui
+   buscamos e publicamos.
+   ========================================================= */
+const NEWS = { on: 0, items: [], top: [], fam: [], deds: [], ts: 0 };
+let newsLastPub = 0;
+
+async function newsRefresh(force) {
+  if (typeof Acc === 'undefined' || !Acc.online) return;
+  const now = Date.now();
+  if (!force && now - NEWS.ts < 110000) return;
+  NEWS.ts = now;
+  try {
+    const r = await fetch('/api/news');
+    if (!r.ok) return;
+    const d = await r.json();
+    NEWS.on = d.on || 0;
+    NEWS.items = (d.items || []).slice().reverse();          // mais recentes primeiro
+    NEWS.top = d.top || []; NEWS.fam = d.fam || [];
+    NEWS.deds = (d.deds || []).slice().reverse();
+  } catch (e) { }
+}
+setInterval(() => { try { newsRefresh(); } catch (e) { } }, 120000);
+addEventListener('load', () => setTimeout(() => newsRefresh(true), 5000));
+
+function newsPub(txt) {
+  if (typeof Acc === 'undefined' || !Acc.online || !Acc.token) return;
+  const now = Date.now();
+  if (now - newsLastPub < 300000) return;                    // 1 notícia a cada 5 min por jogador
+  newsLastPub = now;
+  fetch('/api/news/pub', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + Acc.token },
+    body: JSON.stringify({ txt: String(txt).slice(0, 140) })
+  }).catch(() => { });
+  NEWS.ts = 0; setTimeout(() => newsRefresh(true), 5000);
+}
+
+/* uma manchete real para o locutor da rádio ler */
+function newsLine() {
+  if (NEWS.items.length) {
+    const x = NEWS.items[R(0, Math.min(NEWS.items.length, 8) - 1)];
+    return x.t;
+  }
+  if (NEWS.on > 1) return `neste momento há ${NEWS.on} jogadores a viver a vida na cidade`;
+  return 'a cidade está a acordar — entra, faz história e apareces no noticiário';
+}
+
+/* bloco de notícias para o Telejornal e para o Jornal */
+function newsReal() {
+  const out = [];
+  NEWS.items.slice(0, 6).forEach(x => out.push(x.t));
+  if (NEWS.top.length) out.push(`💰 ${NEWS.top[0].n} é o jogador mais rico da cidade${NEWS.top.length > 1 ? `, seguido de ${NEWS.top[1].n}` : ''}`);
+  if (NEWS.fam.length && NEWS.fam[0].f >= 20) out.push(`⭐ ${NEWS.fam[0].n} é a figura mais famosa do momento`);
+  return out;
+}
+</script>
+<script>/* =========================================================
    PRÓXIMA ENCARNAÇÃO — Multijogador + Chat ao vivo
    • Vês os outros jogadores na cidade e dentro dos edifícios
    • O nick aparece por cima de cada personagem
@@ -10349,7 +10434,7 @@ const LV_ST = [
   { id: 'mix', n: 'Mwangolé Mix', f: '91.7', g: ['kizomba', 'semba', 'kuduro', 'afrohouse'], c1: '#4cc9f0', c2: '#1d3557', dj: ['Djeny Bwé', 'Nelo K', 'Lurdes Mix', 'DJ Kianda'], pr: ['Despertar Angola', 'Top Mwangolé', 'Mix da Tarde', 'Noite Mwangolé'] },
 ];
 const LV_ADS = ['Kitanda Super: tudo mais barato, todos os dias!', 'Banco Palanca: o teu dinheiro em boas mãos.', 'DarkCell: Semana Bwé — chamadas e SMS à vontade por 9.900 Kz!', 'Txova: a fome não espera, a Txova também não!', 'Kianda Mall: as melhores lojas num só lugar.', 'Kandonga: chega lá mais rápido e mais barato!', 'Céu Net: internet até na lavra.', 'Mulemba Petróleos: energia que move Angola.', 'Casa Já: a casa dos teus sonhos à distância de um toque.'];
-const LV_LOC = ['Bom dia, boa tarde, boa noite Angola! Estás a ouvir {n}, {f} FM!', 'Manda a tua dedicatória pela app de Rádio e ouve o teu nome no ar!', 'Hora certa em Luanda: {hora}. Bwé de música a seguir!', 'Um abraço a todos os jogadores ligados agora: {online} na cidade!', 'Trânsito: muita fila na Marginal e no Kilamba. Vai de Kandonga!', 'Tempo: calor em Luanda, cacimbo no Huambo. Bebe água, kamba!', 'Não mexe no botão! {n}, a rádio que não pára.'];
+const LV_LOC = ['Bom dia, boa tarde, boa noite Angola! Estás a ouvir {n}, {f} FM!', 'Manda a tua dedicatória pela app de Rádio e ouve o teu nome no ar!', 'Hora certa em Luanda: {hora}. Bwé de música a seguir!', 'Um abraço a todos os jogadores ligados agora: {online} na cidade!', 'Trânsito: muita fila na Marginal e no Kilamba. Vai de Kandonga!', 'Tempo: calor em Luanda, cacimbo no Huambo. Bebe água, kamba!', 'Não mexe no botão! {n}, a rádio que não pára.', 'E agora as notícias da cidade: {news}!', 'Olha que isto aconteceu mesmo aqui no jogo: {news}. Bwé, né?', 'Na cidade conta-se que {news}. Nós vamos acompanhando!'];
 const lvProg = st => { const h = new Date(LIVE.now() * 1000).getHours(); const i = h < 6 ? 3 : h < 12 ? 0 : h < 15 ? 1 : h < 20 ? 2 : 3; return { pr: st.pr[i], dj: st.dj[i] }; };
 const LV_SCHED = {};
 function lvSched(st) {
@@ -10377,7 +10462,7 @@ function lvSegAt(st, T = LIVE.now()) {
 }
 const lvStation = id => LV_ST.find(s => s.id === id);
 function lvBusyUI() { const a = document.activeElement, d = document.getElementById('dedBox'); return (a && /INPUT|TEXTAREA/.test(a.tagName) && a.closest && a.closest('#phBody')) || (d && !d.classList.contains('hidden')); }
-const lvTxt = (t, st) => t.replace('{n}', st.n).replace('{f}', st.f).replace('{hora}', lvClock()).replace('{online}', typeof MP !== 'undefined' ? MP.online : 1);
+const lvTxt = (t, st) => t.replace('{n}', st.n).replace('{f}', st.f).replace('{hora}', lvClock()).replace('{online}', typeof MP !== 'undefined' ? MP.online : 1).replace('{news}', typeof newsLine === 'function' ? newsLine() : 'a cidade não pára');
 function lvTvActive() { return G && (!!LIVE.watch || (phoneApp === 'tv' && lvPhoneTvOk()) || (typeof inInt !== 'undefined' && inInt && inInt.loc === 'casa')); }
 function lvTvCur() { return LIVE.watch || LIVE.tvCh; }
 function lvPhoneTvOk() { return !!(G && G.contas && G.contas.ano === G.ano && (G.contas.pagas || []).includes('tv')); }
@@ -10531,6 +10616,7 @@ let lvHL = null, lvHLt = 0;
 function lvHeadlines() {
   if (lvHL && performance.now() - lvHLt < 3000) return lvHL;
   const out = [];
+  try { newsReal().forEach(t => out.push(strip(t))); } catch (e) { }
   try { p2News().forEach(([t, a]) => a.forEach(x => out.push(strip(x.t)))); } catch (e) { }
   const m = lvMatchNow(); out.splice(1, 0, `${m.live ? 'Ao vivo' : 'Final'}: ${m.M.A[0]} ${m.s[0]}-${m.s[1]} ${m.M.B[0]}`);
   if (typeof MP !== 'undefined') out.splice(3, 0, `${MP.online} jogador${MP.online > 1 ? 'es' : ''} online agora na cidade`);

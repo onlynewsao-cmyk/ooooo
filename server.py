@@ -50,6 +50,9 @@ SEQ = [0]
 TOKC = {}             # token -> (uid, nome, t)
 STRIKES, MUTE, LASTMSG, NICKC = {}, {}, {}, {}
 SMS_T = {}            # uid -> últimos envios de SMS (limite de ritmo)
+NEWS = deque(maxlen=80)    # acontecimentos reais do jogo: {n, t, ts}
+NEWS_T = {}           # uid -> ts da última notícia publicada (1 a cada 5 min)
+LEAD = {}             # uid -> [nome, kz, fama]  (atualizado em cada /api/save)
 MP_TIMEOUT = 25   # rede móvel real tem falhas; só expira quem some mesmo
 PERTO = 35           # metros: alcance do chat "perto"
 DED = deque(maxlen=80)   # dedicatórias nas rádios ao vivo
@@ -1496,6 +1499,17 @@ class H(SimpleHTTPRequestHandler):
             self.path = self.path.split('?')[0]
         if self.path == '/api/ping':
             return self.send_json(200, {'ok': True, 'jogo': 'Próxima Encarnação', 'no': NODE, 'save_s': SAVE_S, 'pm': POLL_MUL})
+        if self.path == '/api/news':
+            now = time.time()
+            with MP_LOCK:
+                on = sum(1 for v in PLAYERS.values() if now - v.get('t', 0) < MP_TIMEOUT)
+                items = [{'n': x['n'], 't': x['t'], 'ts': x['ts']} for x in list(NEWS)[-25:]]
+                deds = [{'nick': x.get('nick'), 'para': x.get('para'), 'txt': x.get('txt')} for x in list(DED)[-6:]]
+            top = sorted(LEAD.values(), key=lambda r: r[1], reverse=True)[:5]
+            fam = sorted(LEAD.values(), key=lambda r: r[2], reverse=True)[:5]
+            return self.send_json(200, {'on': on, 'items': items, 'deds': deds,
+                                        'top': [{'n': r[0], 'kz': r[1]} for r in top if r[1] > 0],
+                                        'fam': [{'n': r[0], 'f': r[2]} for r in fam if r[2] > 0]})
         if self.path == '/api/me':
             with db() as c:
                 u = self.user(c)
@@ -1582,6 +1596,13 @@ class H(SimpleHTTPRequestHandler):
             if sets:
                 with db() as c:
                     c.execute(f"UPDATE users SET {', '.join(sets)} WHERE id=?", (*args, who[0]))
+            try:   # quadro dos mais ricos/famosos para o telejornal e a rádio
+                sv = d.get('save') or {}
+                if isinstance(sv, dict) and ('dinheiro' in sv or 'stats' in sv):
+                    LEAD[who[0]] = [who[1], int(sv.get('dinheiro') or 0) + int(sv.get('poupanca') or 0),
+                                    int((sv.get('stats') or {}).get('fama') or 0)]
+            except Exception:
+                pass
             return self.send_json(200, {'ok': True})
         if p == '/api/ano':   # fechar o ano: o servidor é a autoridade no limite de 3 por dia real
             who = self.mp_uid()
@@ -1696,6 +1717,23 @@ class H(SimpleHTTPRequestHandler):
                     c.execute('UPDATE users SET adulto=? WHERE id=?', (1 if d['adulto'] else 0, u['id']))
                 u = c.execute('SELECT * FROM users WHERE id=?', (u['id'],)).fetchone()
                 return self.send_json(200, {'user': public(u)})
+            if p == '/api/news/pub':
+                who = self.mp_uid()
+                if not who:
+                    return self.send_json(401, {'erro': 'Sessão inválida. Entra outra vez.'})
+                now = time.time()
+                if now - NEWS_T.get(who[0], 0) < 300:
+                    return self.send_json(429, {'erro': 'Notícia publicada há pouco. Espera um bocadinho.'})
+                txt = str(d.get('txt') or '').strip()[:140]
+                limpo, hits, bloq, motivo = filtrar(txt)
+                if bloq:
+                    return self.send_json(400, {'erro': 'Essa notícia não passa no filtro.'})
+                if not limpo:
+                    return self.send_json(400, {'erro': 'Notícia vazia.'})
+                NEWS_T[who[0]] = now
+                with MP_LOCK:
+                    NEWS.append({'n': who[1], 't': limpo, 'ts': now})
+                return self.send_json(200, {'ok': True})
             if p == '/api/tel/reg':
                 # DarkCell: regista o número do jogador para receber SMS (o número vem do save do jogador)
                 num = re.sub(r'[^0-9]', '', str(d.get('num') or ''))
