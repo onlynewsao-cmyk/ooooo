@@ -1,2 +1,8 @@
-# Só é preciso para o modo PostgreSQL (Northflank / produção). Em modo local (SQLite) não há dependências.
+# Dependências da base de dados em produção (Northflank).
+# Em modo local (SQLite) não é preciso instalar nada — usa-se a biblioteca padrão do Python.
+#
+#   DATABASE_URL=postgresql://...   -> PostgreSQL (psycopg2)
+#   MONGODB_URI=mongodb://...       -> MongoDB   (pymongo; dnspython é preciso para ligações mongodb+srv://)
 psycopg2-binary==2.9.10
+pymongo==4.10.1
+dnspython==2.7.0

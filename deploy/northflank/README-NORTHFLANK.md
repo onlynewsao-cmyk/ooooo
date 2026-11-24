@@ -129,9 +129,24 @@ Se correres o script outra vez, os serviços que já existem são **atualizados*
 
 ### 3.5 Domínio
 
-Em **pe-router → Networking → Domains**, liga, por exemplo, `jogar.proximaencarnacao.ao`. O certificado HTTPS é automático.
+Em **pe-router → Networking → Domains**, liga `jogar.proximaencarnacao.ao`. O certificado HTTPS é automático.
 
 Opcional: põe o domínio atrás da Cloudflare (DNS com proxy). O jogo (`/3d/`, `/img/`) fica em cache perto de Angola e o egress do Northflank baixa.
+
+### 3.5b MongoDB (alternativa ao PostgreSQL)
+
+O jogo também guarda tudo em **MongoDB** — é só trocar a variável da base de dados; o código é o mesmo:
+
+1. **Addon → MongoDB**, nome `pe-mongo` (plano com disco persistente e backups diários).
+2. Em **Connection details**, copia o `MONGO_URI` (ou monta a connection string).
+3. Nos serviços do jogo, em vez de `DATABASE_URL`, usa:
+   - `MONGODB_URI=<MONGO_URI>` (aceita `mongodb://…` e `mongodb+srv://…`; também lê `MONGO_URL`, `MONGO_URI` ou `MONGODB_URL`);
+   - opcional: `MONGO_DB=proxima_encarnacao` (nome da base; se o URI já traz o nome no caminho, não é preciso).
+4. Confirma no arranque: o log mostra `base de dados: MongoDB (…)`.
+
+As contas, gravações, sessões, grupos, amigos, anúncios, SMS do DarkCell e o governador ficam em coleções MongoDB (`users`, `sessions`, `grupos`, `amigos`, `ads`, `sms`, `kv`, `evq`, `anos`, `membros`) e **já não se perdem com os redeploys**. Se existirem contas num `data/jogo.db` antigo, migra-as primeiro com `tools/migrar_sqlite_pg.py` para PostgreSQL, ou continua a usar o addon anterior em paralelo só para a migração.
+
+> Não definas `DATABASE_URL` e `MONGODB_URI` ao mesmo tempo: o PostgreSQL tem prioridade.
 
 ### 3.6 Trazer as contas que já existem (SQLite → PostgreSQL)
 
@@ -175,7 +190,9 @@ Para descer, o script avisa que serviços sobram, e apagas esses no painel.
 | `NODES` | todos | total de nós do cluster | 24 / 48 |
 | `PROCS` | todos | nós por serviço do jogo (= vCPUs do plano) | 4 |
 | `GROUP` | jogo | número do serviço (1…G) | 1, 2, 3… |
-| `DATABASE_URL` | jogo | PostgreSQL. Sem esta variável usa SQLite local | `postgresql://…` |
+| `DATABASE_URL` | jogo | PostgreSQL. Sem esta variável usa MongoDB (se `MONGODB_URI` existir) ou SQLite local | `postgresql://…` |
+| `MONGODB_URI` | jogo | MongoDB (alternativa ao PostgreSQL). Também aceita `MONGO_URL`/`MONGO_URI`/`MONGODB_URL` | `mongodb+srv://…` |
+| `MONGO_DB` | jogo | nome da base MongoDB (se o URI não trouxer) | `proxima_encarnacao` |
 | `DB_POOL` | jogo | ligações à BD por nó (nós × pool < max_connections) | 2–3 |
 | `SHARD_CAP` | jogo | jogadores por cidade paralela | 250 |
 | `SAVE_S` | jogo | o cliente grava no servidor no máx. 1×/N s | 30 |

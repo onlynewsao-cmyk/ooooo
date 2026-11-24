@@ -1,0 +1,14 @@
+{
+  "name": "Próxima Encarnação — Jogo de Vida Online",
+  "short_name": "Próxima Encarnação",
+  "description": "Simulador de vida online gratuito feito em Angola: nasce, estuda, trabalha, cria família, viaja pelas 18 províncias e joga com milhares de pessoas.",
+  "lang": "pt-AO",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b0b0d",
+  "theme_color": "#d2122e",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

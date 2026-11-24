@@ -66,8 +66,20 @@ function angCardHTML() {
   const cur = cid(), P = PROVINCIAS.find(p => p.n === (angSelP || cur.n)) || cur, mine = P.n === cur.n, D = ANG_DADOS[P.n] || [0, 0];
   let h = `<div class="zhead" style="--zc:${ANG_COR[nivelCidade(P)]}"><b>${P.mar ? '🌊' : '📍'} ${P.n}</b><span>${ANG_NIVEL[nivelCidade(P)]}</span></div>`;
   h += `<div class="angstats"><div><small>Capital</small><b>${P.cap}</b></div><div><small>População</small><b>${fmtPop(D[0])}</b></div><div><small>Área</small><b>${D[1].toLocaleString('pt-PT')} km²</b></div><div><small>Casas e vida</small><b>${Math.round(P.custo * 100)}%</b></div><div><small>Salários</small><b>${Math.round(P.sal * 100)}%</b></div><div><small>Economia</small><b>${P.eco}</b></div></div>`;
-  if (mine) h += noteBox(`📍 Vives aqui, em <b>${G.cidade.mun}</b>. Toca numa instituição para ires lá.`);
-  else h += `<div class="btns" style="margin:8px 0">${G.idade >= 18 ? chip(`✈️ Mudar-me para ${P.n} · 150 mil`, `moveCity('${P.n}')`, G.dinheiro < 150000) : '<span class="t2">Só podes mudar de província a partir dos 18 anos.</span>'}</div>`;
+  if (mine) {
+    if (G.visitando) h += noteBox(`🧳 Estás de <b>visita</b> — a tua casa fica em ${G.visitando.mun} (${G.visitando.prov}). Passeia à vontade!`) + `<div class="btns" style="margin:8px 0">${chip(`🏠 Voltar para casa · ${G.visitando.prov}`, 'voltarParaCasa()', false)}</div>`;
+    else h += noteBox(`📍 Vives aqui, em <b>${G.cidade.mun}</b>. Toca numa instituição para ires lá.`);
+  } else {
+    const b = Math.round(12000 * P.custo), a = Math.round(45000 * P.custo);
+    let v = '';
+    if (G.visitando) v += `<span class="t2">🧳 Estás de viagem — volta primeiro a casa para viajares de novo.</span>`;
+    else {
+      v += chip(`🚌 Visitar de autocarro · ${kzShort(b)}`, `viajarPara('${P.n}','bus')`, G.dinheiro < b);
+      v += chip(`✈️ Visitar de avião · ${kzShort(a)}`, `viajarPara('${P.n}','aviao')`, G.dinheiro < a);
+    }
+    v += G.idade >= 18 ? chip(`📦 Mudar-me de vez · 150 mil`, `moveCity('${P.n}')`, G.dinheiro < 150000) : '<span class="t2">Só podes mudar de província a partir dos 18 anos.</span>';
+    h += `<div class="btns" style="margin:8px 0">${v}</div>`;
+  }
   h += sec(`As 13 instituições ${provDe(P.n)}`);
   h += list(angInst(P).map((I, i) => mine
     ? btnItem(I.ico, I.t, I.d, I.loc ? 'Ir' : '', `angGo(${i})`)
@@ -77,7 +89,7 @@ function angCardHTML() {
 /* separador "Províncias" da Imobiliária e app "Angola" do telemóvel */
 function angCidadesUI() {
   let h = energyBar();
-  h += noteBox(`🗺️ Toca numa província para veres os números e as suas 13 instituições. Nas províncias ricas tudo é mais caro mas ganha-se mais; nas pobres tudo é barato mas os salários são baixos.`);
+  h += noteBox(`🗺️ Toca numa província para a conheceres — podes <b>visitar</b> de autocarro 🚌 ou avião ✈️ (e voltar quando quiseres) ou <b>mudar-te de vez</b> 📦. Nas províncias ricas tudo é mais caro mas ganha-se mais; nas pobres tudo é barato mas os salários são baixos.`);
   h += angolaMapHTML() + angCardHTML();
   return h;
 }

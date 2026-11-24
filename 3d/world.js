@@ -13,6 +13,23 @@ let mode = 'title';          // title | select | game | death
 let showScene, worldScene, showModels = [], selIndex = 0;
 let player = null, playerPos = new T.Vector3(), playerYaw = 0;
 let camYaw = 0.6, camPitch = 0.38, camDist = (IS_MOBILE ? 11 : 9) * BODY_S;
+/* modos de câmara: perto, normal, longe, aérea */
+const CAM_MODES = [
+  { n: 'Perto', d: 5.5, p: .22 },
+  { n: 'Normal', d: IS_MOBILE ? 11 : 9, p: .38 },
+  { n: 'Longe', d: 17, p: .55 },
+  { n: 'Aérea', d: 26, p: .95 },
+];
+let camMode = (() => { try { return +localStorage.getItem('pe3d_cam') || 1; } catch (e) { return 1; } })();
+camMode = Math.max(0, Math.min(CAM_MODES.length - 1, camMode));
+function camApply() { const m = CAM_MODES[camMode]; camDist = m.d * BODY_S; camPitch = m.p; try { localStorage.setItem('pe3d_cam', camMode); } catch (e) { } }
+function camCycle() {
+  camMode = (camMode + 1) % CAM_MODES.length; camApply();
+  const ic = { Perto: '🎥', Normal: '🎥', Longe: '🎥', 'Aérea': '🚁' }[CAM_MODES[camMode].n] || '🎥';
+  if (typeof toast === 'function') toast(ic + ' Câmara: ' + CAM_MODES[camMode].n);
+  if (typeof SND !== 'undefined') SND.play('flip');
+}
+camApply();
 let uiBlocked = false, nearLoc = null, dayT = 0.32, wTime = 0;
 const keys = {};
 const joy = { x: 0, y: 0, active: false };
@@ -1291,6 +1308,7 @@ function setupInput() {
     if (mode === 'game' && !uiBlocked && (e.code === 'KeyE' || e.code === 'Enter') && nearLoc) openLocation(nearLoc);
     if (mode === 'game' && e.code === 'Escape') { closePanel(); if (typeof closePhone === 'function') closePhone(); }
     if (mode === 'game' && !uiBlocked && e.code === 'KeyT' && typeof openPhone === 'function') openPhone();
+    if (mode === 'game' && !uiBlocked && e.code === 'KeyC') camCycle();
   });
   addEventListener('keyup', e => keys[e.code] = false);
   const cv = renderer.domElement;

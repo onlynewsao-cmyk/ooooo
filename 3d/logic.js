@@ -1060,6 +1060,28 @@ function moveToParents() {
   G.casa = { tipo: 'pais' }; if (G.parceiro) G.parceiro.juntos = false;
   addLog('🏠 Voltaste para casa dos pais. ' + fx({ felicidade: G.idade > 25 ? -6 : 0 })); save(); refresh();
 }
+/* visitar outra província e voltar (a tua casa fica à tua espera) */
+function viajarPara(prov, meio) {
+  if (G.visitando) return toast('🧳 Já estás de viagem! Volta primeiro a casa (mapa → a tua província).');
+  const P = PROVINCIAS.find(p => p.n === prov); if (!P || P.n === G.cidade.prov) return;
+  const preco = meio === 'aviao' ? Math.round(45000 * cid().custo) : Math.round(12000 * cid().custo);
+  doAct(preco, () => {
+    G.visitando = { prov: G.cidade.prov, mun: G.cidade.mun };
+    G.cidade = { prov: P.n, mun: pick(P.m) };
+    setTimeout(() => { if (typeof provSync === 'function') provSync('aeroporto'); }, 700);
+    if (typeof SND !== 'undefined') SND.play(meio === 'aviao' ? 'whoosh' : 'car');
+    return `${meio === 'aviao' ? '✈️ Voaste' : '🚌 Viajaste de autocarro'} para <b>${G.cidade.mun}, ${P.n}</b>! Estás de visita — passeia, tira selfies e come o prato da terra. A tua casa fica em ${G.visitando.mun} (${G.visitando.prov}). ` + fx({ felicidade: 6 });
+  }, 'cheer');
+}
+function voltarParaCasa() {
+  if (!G.visitando) return toast('Já estás em casa.');
+  doAct(0, () => {
+    G.cidade = { prov: G.visitando.prov, mun: G.visitando.mun };
+    G.visitando = null;
+    setTimeout(() => { if (typeof provSync === 'function') provSync('aeroporto'); }, 700);
+    return `🏠 Voltaste a <b>${G.cidade.mun}</b>. Não há nada como a nossa terra! ` + fx({ felicidade: 2 });
+  }, 'cheer');
+}
 function moveCity(prov) {
   if (!adulto()) return toast('Só podes mudar de província aos 18.');
   const P = PROVINCIAS.find(p => p.n === prov); if (!P || P.n === G.cidade.prov) return;

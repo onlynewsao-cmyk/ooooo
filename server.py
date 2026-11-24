@@ -1567,10 +1567,10 @@ class H(SimpleHTTPRequestHandler):
         if self.path.startswith('/api/'):
             return self.send_json(404, {'erro': 'Rota desconhecida'})
         low = self.path.split('?')[0].lower()
-        if not (low in ('/', '') or low.startswith(('/3d/', '/img/')) or low == '/3d' or low in ('/index.html', '/proxima-encarnacao-standalone.html', '/proxima-encarnacao.html', '/proxima-encarnacao-3d-standalone.html', '/favicon.ico')) or '..' in low or '/.' in low:
+        if not (low in ('/', '') or low.startswith(('/3d/', '/img/')) or low == '/3d' or low in ('/index.html', '/proxima-encarnacao-standalone.html', '/proxima-encarnacao.html', '/proxima-encarnacao-3d-standalone.html', '/favicon.ico', '/favicon.svg', '/robots.txt', '/sitemap.xml', '/manifest.webmanifest')) or '..' in low or '/.' in low:
             return self.send_json(404, {'erro': 'Não encontrado'})
         if self.path.split('?')[0] in ('/', ''):
-            self.send_response(302); self.send_header('Location', '/3d/'); self.send_header('Content-Length', '0'); self.end_headers(); return
+            self.path = '/index.html'   # a página inicial é a landing (SEO); o jogo fica em /3d/
         if self.static_gz():
             return
         return super().do_GET()
