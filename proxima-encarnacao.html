@@ -1965,8 +1965,8 @@ const temMovel = id => (G.moveis || []).includes(id);
 /* Comprar à distância custa mais do que ir à loja: entrega/tratamento cobra taxa.
    Na loja (perto ou dentro) paga-se o preço normal. */
 const naLoja = id => typeof vrNearLoc === 'function' ? vrNearLoc(id, 34) : true;
-const DIST_TAXA = { movel: .15, bem: .10, casa: .04 };
-const DIST_MIN = { movel: 5000, bem: 3000, casa: 15000 };
+const DIST_TAXA = { movel: .15, bem: .10, casa: .04, comida: .20 };
+const DIST_MIN = { movel: 5000, bem: 3000, casa: 15000, comida: 1000 };
 function taxaDist(tipo, v) { const t = Math.max(DIST_MIN[tipo], Math.round(v * DIST_TAXA[tipo] / 1000) * 1000); return tipo === 'casa' ? Math.min(500000, t) : t; }
 const casaPropriaOuArrendada = () => G && (G.casa.tipo === 'propria' || G.casa.tipo === 'arrendada');
 function buyMovel(id) {
@@ -2109,6 +2109,17 @@ function newLife() {
   addLog(`🎓 Terminaste a escola aos 16 anos com média de <b>${G.notaMedia} valores</b>. Agora decides: universidade, curso técnico ou trabalhar.`, 'gold');
   if (kb > 0) addLog(`✨ O bom karma da vida passada acompanha-te (+${kb}).`, 'good');
   if (kb < 0) addLog(`⚠️ O karma da vida passada pesa sobre ti (${kb}).`, 'bad');
+  // 👑 a conta do Criador joga com a coroa: casa, carro e pé-de-meia para testar tudo sem grind
+  if (typeof USER !== 'undefined' && USER && USER.adm) {
+    G.dev = true;
+    G.dinheiro += 5000000;
+    G.imoveis.push({ id: 'vivenda', valor: precoCasa(casaT('vivenda')) });
+    moveInto(G.imoveis.length - 1, true);
+    G.moveis = ['cama2', 'arcond', 'fogao', 'geladeira', 'sofa', 'tv', 'mesa', 'guardaroupa'];
+    G.bens.push('carro'); G.tel = 4; G.carta = true;
+    G.stats.fama = Math.max(G.stats.fama, 5);
+    addLog('👑 <b>És o Criador do Próxima Encarnação!</b> A cidade recebe-te de braços abertos: vivenda mobilada em Talatona, carro, Lumi 17 Pro Max e um pé-de-meia de 5M Kz — para experimentares tudo sem grind. Os jogadores veem a tua coroa na cidade e o painel de administração está no Menu (☰).', 'gold');
+  }
   save();
   return { prov, cls, tal, pai, mae, irmaos, inf, rua, fundo };
 }
@@ -2227,9 +2238,11 @@ function buyOutfit(id) {
   if (G.roupas.includes(id)) return;
   if (id === 'executivo' && G.edu < 4 && G.dinheiro < 20000000) return toast('A boutique só vende o fato a licenciados ou a quem tem 20M Kz.');
   if (G.idade < 13 && !OUTFITS[id].kid) return toast('Ainda és muito novo(a) para essa roupa (13+).');
-  if (!canAct()) return; if (!pay(SHOP_OUTFITS[id])) return; G.acoes--;
+  if (!canAct()) return;
+  const taxaRoupa = naLoja('mercado') ? 0 : taxaDist('bem', SHOP_OUTFITS[id]);
+  if (!pay(SHOP_OUTFITS[id] + taxaRoupa)) return; G.acoes--;
   unlockOutfit(id); G.roupa = id; fx({ aparencia: 3, felicidade: 3 });
-  after(`🛍️ Compraste ${OUTFITS[id].t}.`, 'good', 'cheer'); if (typeof checkPlayerLook === 'function') checkPlayerLook();
+  after(`🛍️ Compraste ${OUTFITS[id].t}.${taxaRoupa ? ` <i>(à distância: +${kzShort(taxaRoupa)} de entrega — na Loja de Roupa do Mercado é ao preço normal)</i>` : ''}`, 'good', 'cheer'); if (typeof checkPlayerLook === 'function') checkPlayerLook();
 }
 
 /* ---------------- ESCOLA ---------------- */
@@ -5951,7 +5964,7 @@ function statusTxt() {
 function refresh() {
   if (!G || !$('#hName')) return;
   $('#hAvatar').src = myShot() || imgSrc(G.avatar.base);
-  $('#hName').textContent = G.nome;
+  $('#hName').textContent = (G.dev ? '👑 ' : '') + G.nome;
   $('#hSub').textContent = statusTxt();
   const m = $('#hMoney'); m.textContent = kzShort(G.dinheiro); m.classList.toggle('neg', G.dinheiro < 0);
   $('#hAge').textContent = `${G.idade} anos · ${G.ano}`;
@@ -6266,12 +6279,13 @@ function fillLooks() {
 }
 function boutiqueUI() {
   setTimeout(fillLooks, 0);
-  const cur = curOutfit();
-  let h = energyBar() + noteBox('🛍️ <b>Loja de Roupa</b> · Estilos novos dão <b>aparência</b> e mudam o teu visual no mundo 3D. O que compras fica no guarda-roupa (Casa).');
+  const cur = curOutfit(), lojaR = naLoja('mercado');
+  let h = energyBar() + noteBox(`🛍️ <b>Loja de Roupa</b> · Estilos novos dão <b>aparência</b> e mudam o teu visual no mundo 3D. O que compras fica no guarda-roupa (Casa).<br>${lojaR ? '📍 Estás no Mercado: <b>preço de loja</b>.' : `🛵 A comprar à distância: <b>+10% de entrega</b> (mín. ${kzShort(DIST_MIN.bem)}). Vai à Loja de Roupa no Mercado do Roque para o preço de loja.`}`);
   h += `<div class="looks">${Object.entries(SHOP_OUTFITS).map(([id, p]) => {
     const O = OUTFITS[id], tem = G.roupas.includes(id), kid = G.idade < 13 && !O.kid, veste = cur === id;
     const lock = id === 'executivo' && G.edu < 4 && G.dinheiro < 20000000;
-    const btn = veste ? `<button class="lkb on" disabled>A vestir</button>` : tem ? `<button class="lkb" ${kid ? 'disabled' : ''} onclick="wear('${id}')">Vestir</button>` : `<button class="lkb buy" ${kid || G.dinheiro < p ? 'disabled' : ''} onclick="buyOutfit('${id}')">${kzShort(p)}</button>`;
+    const total = p + (lojaR || tem ? 0 : taxaDist('bem', p));
+    const btn = veste ? `<button class="lkb on" disabled>A vestir</button>` : tem ? `<button class="lkb" ${kid ? 'disabled' : ''} onclick="wear('${id}')">Vestir</button>` : `<button class="lkb buy" ${kid || G.dinheiro < total ? 'disabled' : ''} onclick="buyOutfit('${id}')">${kzShort(total)}</button>`;
     return `<div class="look ${veste ? 'on' : ''}"><img data-look="${id}" alt=""><div class="lkt"><b>${O.t}</b><small>${kid ? 'A partir dos 13 anos' : lock ? 'Só licenciados ou 20M Kz' : tem ? 'No teu guarda-roupa' : 'Disponível'}</small>${btn}</div></div>`;
   }).join('')}</div>`;
   return h;
@@ -6394,7 +6408,7 @@ function gameMenu() {
   openModal(`<div class="mico">☰</div><h3>Menu</h3><div class="choices">
     <button class="btn btn-ghost" onclick="closeModal();showHelp()">❓ Como Jogar</button>
     <button class="btn btn-ghost" onclick="closeModal();showCredits()">★ Créditos</button>
-    <button class="btn btn-ghost" onclick="closeModal();admAbrir()">🛡️ Administração</button>
+    <button class="btn btn-ghost" onclick="closeModal();admAbrir()">🛡️ Administração${typeof USER !== 'undefined' && USER && USER.adm ? ' 👑' : ''}</button>
     <button class="btn btn-ghost" onclick="save();closeModal();goTitle()">🏠 Menu Principal (vida guardada)</button>
     <button class="btn btn-pri" onclick="if(confirm('Terminar esta vida agora?')){closeModal();die('decidiu partir para a próxima encarnação')}">☠ Terminar esta vida</button>
     <button class="btn btn-ghost" onclick="closeModal()">Voltar ao jogo</button></div>`);
@@ -8981,9 +8995,10 @@ orderFood = function (id) {
   if (G.tel < 2) return toast('Precisas de um smartphone.');
   const F = FOODS.find(f => f.id === id); if (!F) return;
   if (P2.track && Date.now() - P2.track.t0 < 9000) return toast('🛵 Espera pelo pedido que já vem a caminho!');
-  if (!pay(F.p)) return;
+  const taxaTx = typeof taxaDist === 'function' ? taxaDist('comida', F.p) : 0;
+  if (!pay(F.p + taxaTx)) return;
   P2.track = { f: F, t0: Date.now(), est: pick(P2_ESTAF) };
-  toast(`🛵 Pedido feito: ${F.t}. Acompanha a entrega na Txova!`); save(); refresh(); renderPhone(true);
+  toast(`🛵 Pedido feito: ${F.t} (+${kzShort(taxaTx)} de entrega). Acompanha a entrega na Txova!`); save(); refresh(); renderPhone(true);
   setTimeout(() => {
     G.comidaAno = (G.comidaAno || 0) + 1;
     const t = `🛵 A Txova entregou: ${F.t}. ` + (G.comidaAno <= 3 ? fx(F.ef) : 'Já comeste bem este ano, o efeito é menor. ' + fx({ saude: F.ef.saude < 0 ? -1 : 0 }));
@@ -8991,8 +9006,8 @@ orderFood = function (id) {
   }, 9000);
 };
 PHONE_VIEWS.tupuca = () => apHead('Txova', `Entrega em ${G.cidade.mun} · 30 min`) + p2TrackHTML()
-  + P2_REST.map(Rs => `<div class="rest" style="background:${Rs.bg}"><b>${Rs.t}</b><span>${Rs.d} · entrega grátis</span></div><div class="list">${Rs.ids.map(id => { const F = FOODS.find(f => f.id === id); return F ? btnItem(F.ico, F.t, Object.entries(F.ef).map(([k, v]) => `${SHORT[k]} ${v > 0 ? '+' : ''}${v}`).join(' '), kzShort(F.p), `orderFood('${F.id}')`, G.dinheiro < F.p) : ''; }).join('')}</div>`).join('')
-  + '<p class="apnote">Encomendar não gasta energia. Depois de 3 refeições no ano o efeito diminui. Comida de plástico tira saúde!</p>';
+  + P2_REST.map(Rs => `<div class="rest" style="background:${Rs.bg}"><b>${Rs.t}</b><span>${Rs.d} · entrega +20%</span></div><div class="list">${Rs.ids.map(id => { const F = FOODS.find(f => f.id === id); return F ? btnItem(F.ico, F.t, Object.entries(F.ef).map(([k, v]) => `${SHORT[k]} ${v > 0 ? '+' : ''}${v}`).join(' '), kzShort(F.p + (typeof taxaDist === 'function' ? taxaDist('comida', F.p) : 0)), `orderFood('${F.id}')`, G.dinheiro < F.p) : ''; }).join('')}</div>`).join('')
+  + '<p class="apnote">A entrega custa +20% (mín. 1.000 Kz) — no restaurante comes ao preço do menu. Encomendar não gasta energia. Depois de 3 refeições no ano o efeito diminui. Comida de plástico tira saúde!</p>';
 
 /* =========================================================
    KUIA — feed de vídeos (deslizar, gostar, comentar)
@@ -10311,7 +10326,7 @@ function mpApply(ps) {
     if (!o) {
       let h; try { h = makeHuman(cc.cfg); } catch (e) { continue; }
       h.g.position.set(p.x, 0, p.z); h.g.rotation.y = p.yaw;
-      o = { h, s0: h.g.scale.x, ck, x: p.x, z: p.z, yaw: p.yaw, tx: p.x, tz: p.z, tyaw: p.yaw, mv: 0, nick: p.nick, tag: mpTag(p.id, p.nick, false), hgt: 0 };
+      o = { h, s0: h.g.scale.x, ck, x: p.x, z: p.z, yaw: p.yaw, tx: p.x, tz: p.z, tyaw: p.yaw, mv: 0, nick: p.nick, adm: p.adm ? 1 : 0, tag: mpTag(p.id, (p.adm ? '👑 ' : '') + p.nick, false), hgt: 0 };
       MP.others.set(p.id, o);
     }
     if (o.h.g.parent !== sc) { if (o.h.g.parent) o.h.g.parent.remove(o.h.g); sc.add(o.h.g); o.h.g.scale.setScalar(o.s0 * (sc === worldScene ? BODY_S : 1)); o.hgt = 0; }
@@ -10320,7 +10335,7 @@ function mpApply(ps) {
     if (JSON.stringify(o.mu) !== JSON.stringify(p.mu)) { o.mu = p.mu; o.muT = performance.now(); }
     if ((o.vh || '') !== (p.vh || '')) { o.vh = p.vh || ''; o.tag.classList.toggle('vtrip', !!o.vh); }
     if (p.em && o.h.emote !== p.em) { o.h.emote = p.em; o.h.emoteT = typeof emDur === 'function' ? emDur(p.em) : 1.8; o.h.emAge = 0; }
-    if (o.nick !== p.nick) { o.nick = p.nick; o.tag.querySelector('.nnick span').textContent = p.nick; }
+    if (o.nick !== p.nick || o.adm !== (p.adm ? 1 : 0)) { o.nick = p.nick; o.adm = p.adm ? 1 : 0; o.tag.querySelector('.nnick span').textContent = (o.adm ? '👑 ' : '') + p.nick; }
   }
   for (const id of [...MP.others.keys()]) if (!ids.has(id)) mpRemove(id);
   if (MP.cfgs.size > 300) for (const id of [...MP.cfgs.keys()]) if (!ids.has(id)) MP.cfgs.delete(id);
@@ -10345,7 +10360,7 @@ function mpFrame(dt) {
   if (player && G) {
     if (MP.myPlayer !== player || MP.myS !== player.g.scale.x) { MP.myPlayer = player; MP.myS = player.g.scale.x; MP.myH = 0; }
     if (!MP.myTag) MP.myTag = mpTag('me', G.nome, true);
-    const nm = MP.myTag.querySelector('.nnick span'); const want = MP.nick || G.nome; if (nm.textContent !== want) nm.textContent = want;
+    const nm = MP.myTag.querySelector('.nnick span'); const want = (typeof USER !== 'undefined' && USER && USER.adm ? '👑 ' : '') + (MP.nick || G.nome); if (nm.textContent !== want) nm.textContent = want;
     if (!MP.myH) MP.myH = mpHeight(player.g);
     const myMus = !!((typeof SND !== 'undefined') && SND.RADIO.on); if (MP.myMus !== myMus) { MP.myMus = myMus; MP.myTag.classList.toggle('mus', myMus); }
     mpPlace(MP.myTag, player.g, MP.myH, show && !dying);
@@ -10455,7 +10470,7 @@ function mpRenderPl(online) {
   const os = [...MP.others.entries()].map(([id, o]) => ({ id, o, d: o.d != null ? o.d : Math.hypot(o.x - playerPos.x, o.z - playerPos.z) })).sort((a, b) => a.d - b.d);
   const fora = Math.max(0, (online || 1) - 1 - os.length);
   const zona = d => d < MP_PERTO ? '<em class="z1">perto</em>' : d < 80 ? '<em class="z2">médio</em>' : '<em class="z3">longe</em>';
-  el.innerHTML = `<div class="plh">${MP.room.split('@')[0] === 'rua' ? 'Na rua contigo' : 'Aqui em ' + esc(mpRoomName(MP.room))}</div>` + (os.length ? os.map(({ id, o, d }) => `<button class="plr" onclick="mpOpen('@${esc(o.nick).replace(/'/g, '')} ')"><i style="background:${mpColor(o.nick)}"></i><b>${esc(o.nick)}</b>${o.mu ? '<span class="plm">🎵</span>' : ''}${o.vh ? `<span class="plm">${o.vh.startsWith('plane') ? '✈️' : o.vh.startsWith('train') ? '🚆' : o.vh.startsWith('bike') ? '🚲' : o.vh.startsWith('moto') ? '🏍️' : '🚗'}</span>` : ''}${zona(d)}<small>${Math.round(d)} m</small></button>`).join('') : '<div class="ple">Ninguém por perto.</div>')
+  el.innerHTML = `<div class="plh">${MP.room.split('@')[0] === 'rua' ? 'Na rua contigo' : 'Aqui em ' + esc(mpRoomName(MP.room))}</div>` + (os.length ? os.map(({ id, o, d }) => `<button class="plr" onclick="mpOpen('@${esc(o.nick).replace(/'/g, '')} ')"><i style="background:${mpColor(o.nick)}"></i><b>${o.adm ? '👑 ' : ''}${esc(o.nick)}</b>${o.mu ? '<span class="plm">🎵</span>' : ''}${o.vh ? `<span class="plm">${o.vh.startsWith('plane') ? '✈️' : o.vh.startsWith('train') ? '🚆' : o.vh.startsWith('bike') ? '🚲' : o.vh.startsWith('moto') ? '🏍️' : '🚗'}</span>` : ''}${zona(d)}<small>${Math.round(d)} m</small></button>`).join('') : '<div class="ple">Ninguém por perto.</div>')
     + (fora ? `<div class="plf">+${fora} noutros sítios da cidade</div>` : '') + `<div class="plf">📍 Perto = até ${MP_PERTO} m · 🎵 ouves a música a até ${MP_OUVIR} m</div>`;
 }
 /* minimapa: pontos dos outros jogadores */

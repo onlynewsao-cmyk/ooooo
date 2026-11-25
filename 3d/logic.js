@@ -365,8 +365,8 @@ const temMovel = id => (G.moveis || []).includes(id);
 /* Comprar à distância custa mais do que ir à loja: entrega/tratamento cobra taxa.
    Na loja (perto ou dentro) paga-se o preço normal. */
 const naLoja = id => typeof vrNearLoc === 'function' ? vrNearLoc(id, 34) : true;
-const DIST_TAXA = { movel: .15, bem: .10, casa: .04 };
-const DIST_MIN = { movel: 5000, bem: 3000, casa: 15000 };
+const DIST_TAXA = { movel: .15, bem: .10, casa: .04, comida: .20 };
+const DIST_MIN = { movel: 5000, bem: 3000, casa: 15000, comida: 1000 };
 function taxaDist(tipo, v) { const t = Math.max(DIST_MIN[tipo], Math.round(v * DIST_TAXA[tipo] / 1000) * 1000); return tipo === 'casa' ? Math.min(500000, t) : t; }
 const casaPropriaOuArrendada = () => G && (G.casa.tipo === 'propria' || G.casa.tipo === 'arrendada');
 function buyMovel(id) {
@@ -509,6 +509,17 @@ function newLife() {
   addLog(`🎓 Terminaste a escola aos 16 anos com média de <b>${G.notaMedia} valores</b>. Agora decides: universidade, curso técnico ou trabalhar.`, 'gold');
   if (kb > 0) addLog(`✨ O bom karma da vida passada acompanha-te (+${kb}).`, 'good');
   if (kb < 0) addLog(`⚠️ O karma da vida passada pesa sobre ti (${kb}).`, 'bad');
+  // 👑 a conta do Criador joga com a coroa: casa, carro e pé-de-meia para testar tudo sem grind
+  if (typeof USER !== 'undefined' && USER && USER.adm) {
+    G.dev = true;
+    G.dinheiro += 5000000;
+    G.imoveis.push({ id: 'vivenda', valor: precoCasa(casaT('vivenda')) });
+    moveInto(G.imoveis.length - 1, true);
+    G.moveis = ['cama2', 'arcond', 'fogao', 'geladeira', 'sofa', 'tv', 'mesa', 'guardaroupa'];
+    G.bens.push('carro'); G.tel = 4; G.carta = true;
+    G.stats.fama = Math.max(G.stats.fama, 5);
+    addLog('👑 <b>És o Criador do Próxima Encarnação!</b> A cidade recebe-te de braços abertos: vivenda mobilada em Talatona, carro, Lumi 17 Pro Max e um pé-de-meia de 5M Kz — para experimentares tudo sem grind. Os jogadores veem a tua coroa na cidade e o painel de administração está no Menu (☰).', 'gold');
+  }
   save();
   return { prov, cls, tal, pai, mae, irmaos, inf, rua, fundo };
 }
@@ -627,9 +638,11 @@ function buyOutfit(id) {
   if (G.roupas.includes(id)) return;
   if (id === 'executivo' && G.edu < 4 && G.dinheiro < 20000000) return toast('A boutique só vende o fato a licenciados ou a quem tem 20M Kz.');
   if (G.idade < 13 && !OUTFITS[id].kid) return toast('Ainda és muito novo(a) para essa roupa (13+).');
-  if (!canAct()) return; if (!pay(SHOP_OUTFITS[id])) return; G.acoes--;
+  if (!canAct()) return;
+  const taxaRoupa = naLoja('mercado') ? 0 : taxaDist('bem', SHOP_OUTFITS[id]);
+  if (!pay(SHOP_OUTFITS[id] + taxaRoupa)) return; G.acoes--;
   unlockOutfit(id); G.roupa = id; fx({ aparencia: 3, felicidade: 3 });
-  after(`🛍️ Compraste ${OUTFITS[id].t}.`, 'good', 'cheer'); if (typeof checkPlayerLook === 'function') checkPlayerLook();
+  after(`🛍️ Compraste ${OUTFITS[id].t}.${taxaRoupa ? ` <i>(à distância: +${kzShort(taxaRoupa)} de entrega — na Loja de Roupa do Mercado é ao preço normal)</i>` : ''}`, 'good', 'cheer'); if (typeof checkPlayerLook === 'function') checkPlayerLook();
 }
 
 /* ---------------- ESCOLA ---------------- */

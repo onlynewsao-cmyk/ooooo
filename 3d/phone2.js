@@ -412,9 +412,10 @@ orderFood = function (id) {
   if (G.tel < 2) return toast('Precisas de um smartphone.');
   const F = FOODS.find(f => f.id === id); if (!F) return;
   if (P2.track && Date.now() - P2.track.t0 < 9000) return toast('🛵 Espera pelo pedido que já vem a caminho!');
-  if (!pay(F.p)) return;
+  const taxaTx = typeof taxaDist === 'function' ? taxaDist('comida', F.p) : 0;
+  if (!pay(F.p + taxaTx)) return;
   P2.track = { f: F, t0: Date.now(), est: pick(P2_ESTAF) };
-  toast(`🛵 Pedido feito: ${F.t}. Acompanha a entrega na Txova!`); save(); refresh(); renderPhone(true);
+  toast(`🛵 Pedido feito: ${F.t} (+${kzShort(taxaTx)} de entrega). Acompanha a entrega na Txova!`); save(); refresh(); renderPhone(true);
   setTimeout(() => {
     G.comidaAno = (G.comidaAno || 0) + 1;
     const t = `🛵 A Txova entregou: ${F.t}. ` + (G.comidaAno <= 3 ? fx(F.ef) : 'Já comeste bem este ano, o efeito é menor. ' + fx({ saude: F.ef.saude < 0 ? -1 : 0 }));
@@ -422,8 +423,8 @@ orderFood = function (id) {
   }, 9000);
 };
 PHONE_VIEWS.tupuca = () => apHead('Txova', `Entrega em ${G.cidade.mun} · 30 min`) + p2TrackHTML()
-  + P2_REST.map(Rs => `<div class="rest" style="background:${Rs.bg}"><b>${Rs.t}</b><span>${Rs.d} · entrega grátis</span></div><div class="list">${Rs.ids.map(id => { const F = FOODS.find(f => f.id === id); return F ? btnItem(F.ico, F.t, Object.entries(F.ef).map(([k, v]) => `${SHORT[k]} ${v > 0 ? '+' : ''}${v}`).join(' '), kzShort(F.p), `orderFood('${F.id}')`, G.dinheiro < F.p) : ''; }).join('')}</div>`).join('')
-  + '<p class="apnote">Encomendar não gasta energia. Depois de 3 refeições no ano o efeito diminui. Comida de plástico tira saúde!</p>';
+  + P2_REST.map(Rs => `<div class="rest" style="background:${Rs.bg}"><b>${Rs.t}</b><span>${Rs.d} · entrega +20%</span></div><div class="list">${Rs.ids.map(id => { const F = FOODS.find(f => f.id === id); return F ? btnItem(F.ico, F.t, Object.entries(F.ef).map(([k, v]) => `${SHORT[k]} ${v > 0 ? '+' : ''}${v}`).join(' '), kzShort(F.p + (typeof taxaDist === 'function' ? taxaDist('comida', F.p) : 0)), `orderFood('${F.id}')`, G.dinheiro < F.p) : ''; }).join('')}</div>`).join('')
+  + '<p class="apnote">A entrega custa +20% (mín. 1.000 Kz) — no restaurante comes ao preço do menu. Encomendar não gasta energia. Depois de 3 refeições no ano o efeito diminui. Comida de plástico tira saúde!</p>';
 
 /* =========================================================
    KUIA — feed de vídeos (deslizar, gostar, comentar)

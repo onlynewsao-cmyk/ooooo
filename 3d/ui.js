@@ -301,7 +301,7 @@ function statusTxt() {
 function refresh() {
   if (!G || !$('#hName')) return;
   $('#hAvatar').src = myShot() || imgSrc(G.avatar.base);
-  $('#hName').textContent = G.nome;
+  $('#hName').textContent = (G.dev ? '👑 ' : '') + G.nome;
   $('#hSub').textContent = statusTxt();
   const m = $('#hMoney'); m.textContent = kzShort(G.dinheiro); m.classList.toggle('neg', G.dinheiro < 0);
   $('#hAge').textContent = `${G.idade} anos · ${G.ano}`;
@@ -616,12 +616,13 @@ function fillLooks() {
 }
 function boutiqueUI() {
   setTimeout(fillLooks, 0);
-  const cur = curOutfit();
-  let h = energyBar() + noteBox('🛍️ <b>Loja de Roupa</b> · Estilos novos dão <b>aparência</b> e mudam o teu visual no mundo 3D. O que compras fica no guarda-roupa (Casa).');
+  const cur = curOutfit(), lojaR = naLoja('mercado');
+  let h = energyBar() + noteBox(`🛍️ <b>Loja de Roupa</b> · Estilos novos dão <b>aparência</b> e mudam o teu visual no mundo 3D. O que compras fica no guarda-roupa (Casa).<br>${lojaR ? '📍 Estás no Mercado: <b>preço de loja</b>.' : `🛵 A comprar à distância: <b>+10% de entrega</b> (mín. ${kzShort(DIST_MIN.bem)}). Vai à Loja de Roupa no Mercado do Roque para o preço de loja.`}`);
   h += `<div class="looks">${Object.entries(SHOP_OUTFITS).map(([id, p]) => {
     const O = OUTFITS[id], tem = G.roupas.includes(id), kid = G.idade < 13 && !O.kid, veste = cur === id;
     const lock = id === 'executivo' && G.edu < 4 && G.dinheiro < 20000000;
-    const btn = veste ? `<button class="lkb on" disabled>A vestir</button>` : tem ? `<button class="lkb" ${kid ? 'disabled' : ''} onclick="wear('${id}')">Vestir</button>` : `<button class="lkb buy" ${kid || G.dinheiro < p ? 'disabled' : ''} onclick="buyOutfit('${id}')">${kzShort(p)}</button>`;
+    const total = p + (lojaR || tem ? 0 : taxaDist('bem', p));
+    const btn = veste ? `<button class="lkb on" disabled>A vestir</button>` : tem ? `<button class="lkb" ${kid ? 'disabled' : ''} onclick="wear('${id}')">Vestir</button>` : `<button class="lkb buy" ${kid || G.dinheiro < total ? 'disabled' : ''} onclick="buyOutfit('${id}')">${kzShort(total)}</button>`;
     return `<div class="look ${veste ? 'on' : ''}"><img data-look="${id}" alt=""><div class="lkt"><b>${O.t}</b><small>${kid ? 'A partir dos 13 anos' : lock ? 'Só licenciados ou 20M Kz' : tem ? 'No teu guarda-roupa' : 'Disponível'}</small>${btn}</div></div>`;
   }).join('')}</div>`;
   return h;
@@ -744,7 +745,7 @@ function gameMenu() {
   openModal(`<div class="mico">☰</div><h3>Menu</h3><div class="choices">
     <button class="btn btn-ghost" onclick="closeModal();showHelp()">❓ Como Jogar</button>
     <button class="btn btn-ghost" onclick="closeModal();showCredits()">★ Créditos</button>
-    <button class="btn btn-ghost" onclick="closeModal();admAbrir()">🛡️ Administração</button>
+    <button class="btn btn-ghost" onclick="closeModal();admAbrir()">🛡️ Administração${typeof USER !== 'undefined' && USER && USER.adm ? ' 👑' : ''}</button>
     <button class="btn btn-ghost" onclick="save();closeModal();goTitle()">🏠 Menu Principal (vida guardada)</button>
     <button class="btn btn-pri" onclick="if(confirm('Terminar esta vida agora?')){closeModal();die('decidiu partir para a próxima encarnação')}">☠ Terminar esta vida</button>
     <button class="btn btn-ghost" onclick="closeModal()">Voltar ao jogo</button></div>`);

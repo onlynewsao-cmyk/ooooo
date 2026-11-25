@@ -76,6 +76,7 @@ CRIM = {}            # uid -> {'wl': estrelas de procurado 0..5, 'wlT': último 
 EVQ = {}             # uid -> eventos pendentes (roubado, preso, alerta, pedido de amizade, ...)
 LASTCRIME = {}
 GTAG = {}            # uid -> (tag, gid, tipo) ou None
+ADMC = {}            # uid -> 1/0 em cache: é admin? (presença, leaderboard, painel)
 CRIME_T = {  # tipo: (estrelas, prob. sucesso, saque mín, saque máx, prob. polícia NPC, nome)
     'npc': (1, .75, 2000, 15000, .10, 'roubo a um peão'),
     'loja': (2, .60, 20000, 120000, .18, 'assalto a uma cantina'),
@@ -132,6 +133,9 @@ KZ_MAX, KZ_DIA = 5_000_000, 20_000_000
 IPSALT = os.environ.get('IP_SALT', 'pe3d-kianda-ao')   # sal para não guardar IPs em claro
 ADMIN_KEY = os.environ.get('ADMIN_KEY', '')            # chave do painel de auditoria (definir no Northflank)
 ADMIN_EMAILS = set(e.strip().lower() for e in os.environ.get('ADMIN_EMAILS', '').split(',') if e.strip())  # estas contas entram sempre como admin
+DEV_EMAIL = os.environ.get('DEV_EMAIL', 'dono@proximaencarnacao.ao').strip().lower()   # conta do criador do jogo (sempre admin)
+DEV_SENHA = os.environ.get('DEV_SENHA', '')            # senha inicial da conta do criador; vazia = gerada e mostrada 1 vez no registo
+DEV_NOME = os.environ.get('DEV_NOME', 'Criador')[:24]
 IDENTC = {}   # uid -> (dev, iph) em cache; a gravação na base só acontece quando muda
 KZIP = {}     # (uid, fid) -> (dia, total) transferências entre contas no mesmo IP
 KZIP_DIA = 2_000_000   # teto diário entre contas que partilham IP
@@ -354,7 +358,7 @@ def _cartao(o):
     """o que os outros recebem deste jogador, em JSON pronto (sem campos vazios). Feito 1 vez por atualização
     dele, em vez de 1 vez por cada jogador que o vê (até 24x por pedido)."""
     q = {k: o.get(k) for k in ('id', 'nick', 'x', 'z', 'yaw', 'mv', 'cv')}
-    for k in ('em', 'mu', 'vh', 'wl', 'pol', 'gt', 'cad', 'job'):
+    for k in ('em', 'mu', 'vh', 'wl', 'pol', 'gt', 'cad', 'job', 'adm'):
         v = o.get(k)
         if v:
             q[k] = v
@@ -749,10 +753,14 @@ class H(SimpleHTTPRequestHandler):
         uid, nome_conta = who[0], who[1]
         now = time.time()
         evs = None
-        if p == '/api/mp' and uid not in GTAG:   # consulta à base de dados FORA do cadeado (não bloqueia os outros)
+        if p == '/api/mp' and (uid not in GTAG or uid not in ADMC):   # consulta à base de dados FORA do cadeado (não bloqueia os outros)
             try:
                 with db() as c:
-                    _gtag(c, uid)
+                    if uid not in GTAG:
+                        _gtag(c, uid)
+                    if uid not in ADMC:
+                        r = c.execute('SELECT adm FROM users WHERE id=?', (uid,)).fetchone()
+                        ADMC[uid] = 1 if (r and r['adm']) else 0
             except pedb.DBError:
                 pass
         if CLUSTER and p == '/api/mp' and uid not in PLAYERS and now - EVCHK.get(uid, 0) > 3:
@@ -832,6 +840,7 @@ class H(SimpleHTTPRequestHandler):
                     with db() as c:
                         gt = _gtag(c, uid)
                 st['gt'] = gt[0] if gt else None
+                st['adm'] = ADMC.get(uid) or None   # a coroa de administrador aparece na cidade
                 st['wl'] = cr['wl']
                 st['cad'] = cr['cad'] > now
                 if NODE == 1:
@@ -1596,9 +1605,17 @@ class H(SimpleHTTPRequestHandler):
             if sets:
                 with db() as c:
                     c.execute(f"UPDATE users SET {', '.join(sets)} WHERE id=?", (*args, who[0]))
-            try:   # quadro dos mais ricos/famosos para o telejornal e a rádio
+            try:   # quadro dos mais ricos/famosos para o telejornal e a rádio (a conta do Criador não entra: seria batota)
                 sv = d.get('save') or {}
-                if isinstance(sv, dict) and ('dinheiro' in sv or 'stats' in sv):
+                adm = ADMC.get(who[0])
+                if adm is None:
+                    try:
+                        with db() as c:
+                            r = c.execute('SELECT adm FROM users WHERE id=?', (who[0],)).fetchone()
+                        adm = ADMC[who[0]] = 1 if (r and r['adm']) else 0
+                    except Exception:
+                        adm = 0
+                if not adm and isinstance(sv, dict) and ('dinheiro' in sv or 'stats' in sv):
                     LEAD[who[0]] = [who[1], int(sv.get('dinheiro') or 0) + int(sv.get('poupanca') or 0),
                                     int((sv.get('stats') or {}).get('fama') or 0)]
             except Exception:
@@ -1647,8 +1664,9 @@ class H(SimpleHTTPRequestHandler):
                 tok = secrets.token_urlsafe(32)
                 c.execute('INSERT INTO sessions VALUES(?,?,?)', (tok, cur.lastrowid, time.time()))
                 _ident_note(self, c, cur.lastrowid, str(d.get('dv') or '')[:32], time.time())
-                if email in ADMIN_EMAILS:
+                if email in ADMIN_EMAILS or email == DEV_EMAIL:
                     c.execute('UPDATE users SET adm=1 WHERE id=?', (cur.lastrowid,))
+                    ADMC.pop(cur.lastrowid, None)
                 u = c.execute('SELECT * FROM users WHERE id=?', (cur.lastrowid,)).fetchone()
                 return self.send_json(200, {'token': tok, 'user': public(u), 'save': None, 'meta': None})
             if p == '/api/login':
@@ -1658,8 +1676,9 @@ class H(SimpleHTTPRequestHandler):
                     return self.send_json(401, {'erro': 'E-mail ou senha incorretos.'})
                 if c.execute('SELECT v FROM kv WHERE k=?', ('ban:' + str(u['id']),)).fetchone():
                     return self.send_json(403, {'erro': '🚫 Esta conta foi suspensa pela administração do jogo.'})
-                if email in ADMIN_EMAILS and not u['adm']:
+                if (email in ADMIN_EMAILS or email == DEV_EMAIL) and not u['adm']:
                     c.execute('UPDATE users SET adm=1 WHERE id=?', (u['id'],))
+                    ADMC.pop(u['id'], None)
                     u = c.execute('SELECT * FROM users WHERE id=?', (u['id'],)).fetchone()
                 tok = secrets.token_urlsafe(32)
                 c.execute('INSERT INTO sessions VALUES(?,?,?)', (tok, u['id'], time.time()))
@@ -1674,6 +1693,7 @@ class H(SimpleHTTPRequestHandler):
                 if not ADMIN_KEY or str(d.get('chave', '')) != ADMIN_KEY:
                     return self.send_json(403, {'erro': 'Chave de administrador errada.'})
                 c.execute('UPDATE users SET adm=1 WHERE id=?', (u['id'],))
+                ADMC.pop(u['id'], None)
                 _aud(u, 'ativou o modo administrador')
                 return self.send_json(200, {'ok': True, 'adm': True})
             if p == '/api/admin/acao':
@@ -1681,9 +1701,11 @@ class H(SimpleHTTPRequestHandler):
                     return self.send_json(404, {'erro': 'Não encontrado'})
                 op = str(d.get('op', ''))
                 uid = int(_num(d.get('uid'), 0, 1e12))
-                alvo = c.execute('SELECT id, nome FROM users WHERE id=?', (uid,)).fetchone()
+                alvo = c.execute('SELECT id, nome, email FROM users WHERE id=?', (uid,)).fetchone()
                 if not alvo:
                     return self.send_json(400, {'erro': 'Conta não encontrada.'})
+                if (alvo['email'] or '').lower() == DEV_EMAIL and op in ('banir', 'zerar'):
+                    return self.send_json(400, {'erro': '👑 A conta do Criador não pode ser banida nem apagada.'})
                 if alvo['id'] == u['id'] and op in ('banir', 'zerar'):
                     return self.send_json(400, {'erro': 'Não podes fazer isso à tua própria conta.'})
                 if op == 'banir':
@@ -1794,6 +1816,37 @@ class H(SimpleHTTPRequestHandler):
         return self.send_json(404, {'erro': 'Rota desconhecida'})
 
 
+def seed_dev():
+    """cria (ou promove) a conta do criador do jogo — entra sempre como administrador"""
+    if not DEV_EMAIL:
+        return
+    try:
+        with db() as c:
+            u = c.execute('SELECT id, adm FROM users WHERE email=?', (DEV_EMAIL,)).fetchone()
+            if u:
+                if not u['adm']:
+                    c.execute('UPDATE users SET adm=1 WHERE id=?', (u['id'],))
+                    print(f'★ Conta do criador promovida a administrador: {DEV_EMAIL}')
+                return
+            nome = DEV_NOME or 'Criador'
+            for i in range(2, 20):   # o nome tem de ser único
+                if not c.execute('SELECT 1 FROM users WHERE nome=? COLLATE NOCASE', (nome,)).fetchone():
+                    break
+                nome = f'{DEV_NOME}{i}'
+            senha = DEV_SENHA or secrets.token_urlsafe(9)
+            salt = secrets.token_hex(16)
+            c.execute('INSERT INTO users(nome,email,salt,hash,adulto,avatar,criado) VALUES(?,?,?,?,?,?,?)',
+                      (nome, DEV_EMAIL, salt, hash_pw(senha, salt), 1,
+                       json.dumps({'base': 'ndalu', 'genero': 'M'}), time.time()))
+            c.execute('UPDATE users SET adm=1 WHERE email=?', (DEV_EMAIL,))
+            if DEV_SENHA:
+                print(f'★ Conta do criador pronta: {DEV_EMAIL} (senha definida pela variável DEV_SENHA)')
+            else:
+                print(f'★★ CONTA DO CRIADOR: {DEV_EMAIL} · senha inicial: {senha} · guarda-a e muda-a no jogo (ou define DEV_SENHA no servidor)')
+    except Exception as e:
+        print('seed_dev falhou:', e)
+
+
 if __name__ == '__main__':
     try:   # cada jogador ligado gasta 1 ficheiro (socket): sobe o limite do processo (por omissão 1024) até ao máximo permitido
         import resource
@@ -1804,6 +1857,7 @@ if __name__ == '__main__':
     except Exception:
         pass
     port = int(os.environ.get('PORT', 8080))
+    seed_dev()   # a conta do criador existe sempre e é administradora
     print(f'Próxima Encarnação a correr em http://0.0.0.0:{port}  (jogo em /3d/)' + (f'  [nó {NODE}/{NODES}]' if CLUSTER else ''))
     class Srv(ThreadingHTTPServer):
         daemon_threads = True

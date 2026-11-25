@@ -195,7 +195,7 @@ function mpApply(ps) {
     if (!o) {
       let h; try { h = makeHuman(cc.cfg); } catch (e) { continue; }
       h.g.position.set(p.x, 0, p.z); h.g.rotation.y = p.yaw;
-      o = { h, s0: h.g.scale.x, ck, x: p.x, z: p.z, yaw: p.yaw, tx: p.x, tz: p.z, tyaw: p.yaw, mv: 0, nick: p.nick, tag: mpTag(p.id, p.nick, false), hgt: 0 };
+      o = { h, s0: h.g.scale.x, ck, x: p.x, z: p.z, yaw: p.yaw, tx: p.x, tz: p.z, tyaw: p.yaw, mv: 0, nick: p.nick, adm: p.adm ? 1 : 0, tag: mpTag(p.id, (p.adm ? '👑 ' : '') + p.nick, false), hgt: 0 };
       MP.others.set(p.id, o);
     }
     if (o.h.g.parent !== sc) { if (o.h.g.parent) o.h.g.parent.remove(o.h.g); sc.add(o.h.g); o.h.g.scale.setScalar(o.s0 * (sc === worldScene ? BODY_S : 1)); o.hgt = 0; }
@@ -204,7 +204,7 @@ function mpApply(ps) {
     if (JSON.stringify(o.mu) !== JSON.stringify(p.mu)) { o.mu = p.mu; o.muT = performance.now(); }
     if ((o.vh || '') !== (p.vh || '')) { o.vh = p.vh || ''; o.tag.classList.toggle('vtrip', !!o.vh); }
     if (p.em && o.h.emote !== p.em) { o.h.emote = p.em; o.h.emoteT = typeof emDur === 'function' ? emDur(p.em) : 1.8; o.h.emAge = 0; }
-    if (o.nick !== p.nick) { o.nick = p.nick; o.tag.querySelector('.nnick span').textContent = p.nick; }
+    if (o.nick !== p.nick || o.adm !== (p.adm ? 1 : 0)) { o.nick = p.nick; o.adm = p.adm ? 1 : 0; o.tag.querySelector('.nnick span').textContent = (o.adm ? '👑 ' : '') + p.nick; }
   }
   for (const id of [...MP.others.keys()]) if (!ids.has(id)) mpRemove(id);
   if (MP.cfgs.size > 300) for (const id of [...MP.cfgs.keys()]) if (!ids.has(id)) MP.cfgs.delete(id);
@@ -229,7 +229,7 @@ function mpFrame(dt) {
   if (player && G) {
     if (MP.myPlayer !== player || MP.myS !== player.g.scale.x) { MP.myPlayer = player; MP.myS = player.g.scale.x; MP.myH = 0; }
     if (!MP.myTag) MP.myTag = mpTag('me', G.nome, true);
-    const nm = MP.myTag.querySelector('.nnick span'); const want = MP.nick || G.nome; if (nm.textContent !== want) nm.textContent = want;
+    const nm = MP.myTag.querySelector('.nnick span'); const want = (typeof USER !== 'undefined' && USER && USER.adm ? '👑 ' : '') + (MP.nick || G.nome); if (nm.textContent !== want) nm.textContent = want;
     if (!MP.myH) MP.myH = mpHeight(player.g);
     const myMus = !!((typeof SND !== 'undefined') && SND.RADIO.on); if (MP.myMus !== myMus) { MP.myMus = myMus; MP.myTag.classList.toggle('mus', myMus); }
     mpPlace(MP.myTag, player.g, MP.myH, show && !dying);
@@ -339,7 +339,7 @@ function mpRenderPl(online) {
   const os = [...MP.others.entries()].map(([id, o]) => ({ id, o, d: o.d != null ? o.d : Math.hypot(o.x - playerPos.x, o.z - playerPos.z) })).sort((a, b) => a.d - b.d);
   const fora = Math.max(0, (online || 1) - 1 - os.length);
   const zona = d => d < MP_PERTO ? '<em class="z1">perto</em>' : d < 80 ? '<em class="z2">médio</em>' : '<em class="z3">longe</em>';
-  el.innerHTML = `<div class="plh">${MP.room.split('@')[0] === 'rua' ? 'Na rua contigo' : 'Aqui em ' + esc(mpRoomName(MP.room))}</div>` + (os.length ? os.map(({ id, o, d }) => `<button class="plr" onclick="mpOpen('@${esc(o.nick).replace(/'/g, '')} ')"><i style="background:${mpColor(o.nick)}"></i><b>${esc(o.nick)}</b>${o.mu ? '<span class="plm">🎵</span>' : ''}${o.vh ? `<span class="plm">${o.vh.startsWith('plane') ? '✈️' : o.vh.startsWith('train') ? '🚆' : o.vh.startsWith('bike') ? '🚲' : o.vh.startsWith('moto') ? '🏍️' : '🚗'}</span>` : ''}${zona(d)}<small>${Math.round(d)} m</small></button>`).join('') : '<div class="ple">Ninguém por perto.</div>')
+  el.innerHTML = `<div class="plh">${MP.room.split('@')[0] === 'rua' ? 'Na rua contigo' : 'Aqui em ' + esc(mpRoomName(MP.room))}</div>` + (os.length ? os.map(({ id, o, d }) => `<button class="plr" onclick="mpOpen('@${esc(o.nick).replace(/'/g, '')} ')"><i style="background:${mpColor(o.nick)}"></i><b>${o.adm ? '👑 ' : ''}${esc(o.nick)}</b>${o.mu ? '<span class="plm">🎵</span>' : ''}${o.vh ? `<span class="plm">${o.vh.startsWith('plane') ? '✈️' : o.vh.startsWith('train') ? '🚆' : o.vh.startsWith('bike') ? '🚲' : o.vh.startsWith('moto') ? '🏍️' : '🚗'}</span>` : ''}${zona(d)}<small>${Math.round(d)} m</small></button>`).join('') : '<div class="ple">Ninguém por perto.</div>')
     + (fora ? `<div class="plf">+${fora} noutros sítios da cidade</div>` : '') + `<div class="plf">📍 Perto = até ${MP_PERTO} m · 🎵 ouves a música a até ${MP_OUVIR} m</div>`;
 }
 /* minimapa: pontos dos outros jogadores */
