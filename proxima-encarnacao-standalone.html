@@ -2085,6 +2085,15 @@ function newLife() {
     addLog(`👶 Nasceste em <b>${G.cidade.mun}, ${prov.n}</b>, numa <b>${cls.t.toLowerCase()}</b>. Chamam-te <b>${nome}</b>.`, 'gold');
     addLog(`O teu pai é ${pai.vivo ? pai.prof.toLowerCase() : 'ausente'} e a tua mãe é ${mae.prof.toLowerCase()}. És filho(a) único(a).`);
     addLog('🏚️ Aos 16 anos saíste de casa dos teus pais para fazeres a tua vida: <b>estás na rua</b> — dormes em passeios e no Abrigo da Missão. Trabalha, poupa e arrenda um quarto ou compra a tua casa (Imobiliária). Os teus pais estão a uma chamada de distância.', 'bad');
+    // presente de despedida: os pais dão um extra conforme a classe (a mãe esconde na mala...)
+    if (pai.vivo || mae.vivo) {
+      const pre = [R(10, 25), R(25, 60), R(60, 150), R(200, 500), R(500, 1200)][ci] * 1000;
+      G.dinheiro += pre;
+      const frases = pai.vivo && mae.vivo
+        ? [`A tua mãe meteu <b>${kzShort(pre)}</b> na tua mala sem o pai ver: "Para o primeiro mês, filho(a)."`, `O teu pai deu-te <b>${kzShort(pre)}</b> no portão: "Não gastes tudo em cerveja."`, `Os teus pais juntaram <b>${kzShort(pre)}</b> para o teu arranque: "Faz por ti."`]
+        : pai.vivo ? [`O teu pai deu-te <b>${kzShort(pre)}</b> no portão: "Faz por ti, filho(a)."`] : [`A tua mãe meteu <b>${kzShort(pre)}</b> na tua mala: "Cuida de ti, filho(a)."`];
+      addLog(`🎁 ${pick(frases)}`, 'gold');
+    }
   }
   if (ci >= 3) addLog(`🍀 <b>Sorte rara!</b> Só ${cls.w} em cada 100 pessoas nascem numa ${cls.t.toLowerCase()} — e o fundo acaba: trabalhar continua a ser o caminho.`, 'gold');
   if (fundo) addLog(`💳 A tua família abriu-te uma conta com <b>${kzShort(fundo.total)}</b>. Recebes até ${kzShort(fundo.anual)} por ano enquanto durar — quando acabar, é contigo. Trabalhar continua a ser o caminho.`, 'gold');
@@ -2099,7 +2108,7 @@ function newLife() {
 /* Infância resumida: escola, notas, poupança e primeiros amigos (a vida jogável começa aos 16) */
 function infancia(cls, ci, tal, prov) {
   const st = G.stats, priv = ci >= 3;
-  const rua = G.casa && G.casa.tipo === 'rua';
+  const rua = G.origem === 'rua'; // a casa é 'rua' para todos aos 16 — quem é de rua a sério vem da origem
   let base = 9.5 + st.inteligencia * .08 + ci * .5 + (talento('estudo') ? 1.6 : 0) - (rua ? 1.2 : 0);
   G.notas = Array.from({ length: 10 }, () => clamp20(Math.max(10, base + R(-2, 2))));
   G.notaMedia = Math.round(G.notas.reduce((s, x) => s + x, 0) / G.notas.length * 10) / 10;
@@ -2107,7 +2116,7 @@ function infancia(cls, ci, tal, prov) {
   const w = { cfb: 1 + st.inteligencia / 40, cej: 1.3, hum: 1.2, info: tal.id === 'estudo' ? 1.4 : .8, saude: .8 };
   G.area = wpick(Object.keys(w), k => w[k]);
   const A = AREAS.find(a => a.id === G.area);
-  G.dinheiro = rua ? R(1, 6) * 1000 : [R(5, 25), R(30, 90), R(150, 450), R(1200, 3500), R(6000, 18000)][ci] * 1000;
+  G.dinheiro = rua ? R(10, 25) * 1000 : [R(60, 120), R(150, 300), R(400, 900), R(1200, 3500), R(6000, 18000)][ci] * 1000;
   G.tel = [1, 1, 2, 3, 4][ci]; if (ci <= 1 && chance(.35) && !rua) G.tel = 2;
   const ev = [];
   if (rua) {
