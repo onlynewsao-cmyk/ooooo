@@ -285,15 +285,17 @@ const V4K = {
     const iok = v4Idade(), aqui = (G.casa.tipo === 'arrendada' && G.casa.id === id) || (G.casa.tipo === 'propria' && G.imoveis[G.casa.idx] && G.imoveis[G.casa.idx].id === id);
     const tem = G.imoveis.some(im => im.id === id), tx = V4_CASA_TXT[id] || ['', [], []];
     const ageWhy = 'Só a partir dos 18 anos (ou 16, se não tiveres família).';
-    const acts = [{ l: `🔑 Arrendar · caução ${kzShort(cau)}`, code: `rentHouse('${id}')`, pri: true, dis: !iok || aqui || G.dinheiro < cau,
-      why: !iok ? ageWhy : aqui ? 'Já moras aqui.' : G.dinheiro < cau ? `Faltam ${kzShort(cau - Math.max(0, G.dinheiro))} para a caução.` : '',
-      conf: [`Pagas agora a caução: <b>${kz(cau)}</b>`, `Renda: <b>${kzShort(mes)}/mês</b> (${kzShort(renda)} por ano, no fim de cada ano)`, `Conforto ${v4Sign(C.conforto)} → felicidade ${v4Sign(Math.round(C.conforto / 4))} por ano`, G.casa.tipo === 'rua' ? 'Sais da rua: acabam os castigos de dormir ao relento' : '', 'Gasta 10 de energia'] }];
+    const loja4 = naLoja('imobiliaria'), txR4 = loja4 ? 0 : taxaDist('casa', renda), txC4 = loja4 ? 0 : taxaDist('casa', preco);
+    const distWhy4 = loja4 ? '' : `📞 À distância: +${kzShort(txR4)} de taxa de tratamento (na Imobiliária é grátis)`;
+    const acts = [{ l: `🔑 Arrendar · caução ${kzShort(cau + txR4)}`, code: `rentHouse('${id}')`, pri: true, dis: !iok || aqui || G.dinheiro < cau + txR4,
+      why: !iok ? ageWhy : aqui ? 'Já moras aqui.' : G.dinheiro < cau + txR4 ? `Faltam ${kzShort(cau + txR4 - Math.max(0, G.dinheiro))} para a caução.` : '',
+      conf: [`Pagas agora a caução: <b>${kz(cau)}</b>${txR4 ? ` + <b>${kz(txR4)}</b> de taxa de tratamento à distância` : ''}`, distWhy4, `Renda: <b>${kzShort(mes)}/mês</b> (${kzShort(renda)} por ano, no fim de cada ano)`, `Conforto ${v4Sign(C.conforto)} → felicidade ${v4Sign(Math.round(C.conforto / 4))} por ano`, G.casa.tipo === 'rua' ? 'Sais da rua: acabam os castigos de dormir ao relento' : '', 'Gasta 10 de energia'] }];
     if (C.preco) {
-      acts.push({ l: `🏠 Comprar a pronto · ${kzShort(preco)}`, code: `buyHouse('${id}',false)`, dis: !iok || G.dinheiro < preco,
-        why: !iok ? ageWhy : G.dinheiro < preco ? `Faltam ${kzShort(preco - Math.max(0, G.dinheiro))}.` : '', conf: [`Pagas <b>${kz(preco)}</b> de uma vez`, 'Deixas de pagar renda', 'A casa valoriza (ou desvaloriza) todos os anos e podes arrendá-la a outros', 'Gasta 10 de energia'] });
-      acts.push({ l: `🏦 Crédito habitação · entrada ${kzShort(ent)}`, code: `buyHouse('${id}',true)`, dis: G.idade < 18 || !okCred || G.dinheiro < ent,
-        why: G.idade < 18 ? 'Crédito só a partir dos 18 anos.' : !rend ? 'Precisas de rendimento formal (emprego ou negócio).' : !credAnosOk() ? 'O banco pede 2 anos de contrato no emprego atual.' : !okCred ? `A prestação (${kzShort(prest)}/ano) passa 45% do teu rendimento.` : G.dinheiro < ent ? `Faltam ${kzShort(ent - Math.max(0, G.dinheiro))} para a entrada.` : '',
-        conf: [`Entrada: <b>${kz(ent)}</b>`, `Prestação: <b>${kzShort(prest)}/ano</b> durante 15 anos (juro 14%)`, 'Se falhares 2 prestações, o banco fica com a casa', 'Gasta 10 de energia'] });
+      acts.push({ l: `🏠 Comprar a pronto · ${kzShort(preco + txC4)}`, code: `buyHouse('${id}',false)`, dis: !iok || G.dinheiro < preco + txC4,
+        why: !iok ? ageWhy : G.dinheiro < preco + txC4 ? `Faltam ${kzShort(preco + txC4 - Math.max(0, G.dinheiro))}.` : '', conf: [`Pagas <b>${kz(preco)}</b> de uma vez${txC4 ? ` + <b>${kz(txC4)}</b> de taxa de tratamento à distância` : ''}`, distWhy4, 'Deixas de pagar renda', 'A casa valoriza (ou desvaloriza) todos os anos e podes arrendá-la a outros', 'Gasta 10 de energia'] });
+      acts.push({ l: `🏦 Crédito habitação · entrada ${kzShort(ent + txC4)}`, code: `buyHouse('${id}',true)`, dis: G.idade < 18 || !okCred || G.dinheiro < ent + txC4,
+        why: G.idade < 18 ? 'Crédito só a partir dos 18 anos.' : !rend ? 'Precisas de rendimento formal (emprego ou negócio).' : !credAnosOk() ? 'O banco pede 2 anos de contrato no emprego atual.' : !okCred ? `A prestação (${kzShort(prest)}/ano) passa 45% do teu rendimento.` : G.dinheiro < ent + txC4 ? `Faltam ${kzShort(ent + txC4 - Math.max(0, G.dinheiro))} para a entrada.` : '',
+        conf: [`Entrada: <b>${kz(ent)}</b>${txC4 ? ` + <b>${kz(txC4)}</b> de taxa de tratamento à distância` : ''}`, `Prestação: <b>${kzShort(prest)}/ano</b> durante 15 anos (juro 14%)`, 'Se falhares 2 prestações, o banco fica com a casa', 'Gasta 10 de energia'] });
     }
     return { id, title: C.t, sub: `${Z.nivel} · ${Z.t}`, img: id, grad: [Z.cor, '#0d0d10'], ico: C.ico,
       badge: aqui ? 'MORAS AQUI' : tem ? 'É TUA' : Z.nivel.toUpperCase(), badgeC: aqui || tem ? 'g' : '', cur: aqui, off: !iok || (!aqui && G.dinheiro < cau),
@@ -393,7 +395,7 @@ function v4UniCursosHTML(slot) {
 function v4ImobUI() {
   let h = energyBar();
   const P = cid(), Zm = zonaCasa(typeof casaZona === 'function' ? casaZona() : 'bairro');
-  h += noteBox(`🏠 Moras em: <b>${moradaTxt()}</b>${G.casa.tipo === 'rua' ? '' : ' · ' + Zm.nivel}<br>📍 ${G.cidade.mun}, <b>${P.n}</b> — ${NIVEL_CID[nivelCidade(P)]} (preços a ${Math.round(P.custo * 100)}% dos de Luanda)`, G.casa.tipo === 'rua');
+  h += noteBox(`🏠 Moras em: <b>${moradaTxt()}</b>${G.casa.tipo === 'rua' ? '' : ' · ' + Zm.nivel}<br>📍 ${G.cidade.mun}, <b>${P.n}</b> — ${NIVEL_CID[nivelCidade(P)]} (preços a ${Math.round(P.custo * 100)}% dos de Luanda)<br>${naLoja('imobiliaria') ? '📍 Estás na Imobiliária: <b>sem taxas extra</b>.' : `📞 A tratar à distância: <b>+4% de taxa de tratamento</b> (mín. ${kzShort(DIST_MIN.casa)}, máx. 500 mil). Vem à Imobiliária no Centro Habitacional e evita a taxa.`}`, G.casa.tipo === 'rua');
   if (!v4Idade()) h += noteBox('🧒 Ainda vives com a família: podes ver as casas, mas só arrendas ou compras aos 18.');
   h += meusImoveisHTML();
   const f = V4.f.casa || 'todas';

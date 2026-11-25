@@ -543,13 +543,13 @@ function moveisUI() {
     return h + noteBox('🏚️ <b>Ainda não tens casa.</b> As casas são entregues vazias — primeiro arrenda ou compra uma casa na tab 🏘️ Casas, e depois volta aqui para a mobilar ao teu gosto.', true)
       + list([btnItem('🏘️', 'Ver casas', 'Arrendar ou comprar', '', "setTab('casas')")]);
   }
-  const mv = G.moveis || [], k = cid().custo;
-  h += noteBox(`🏠 <b>${moradaTxt()}</b> · ${mv.length ? `móveis: <b>${mv.length}/${MOVEIS.length}</b>` : '<b>vazia!</b> Começa pelo colchão e pelo fogão.'}<br>🚚 Entrega e montagem incluídas. Os móveis ficam na casa mesmo que te mudes de visual.`);
+  const mv = G.moveis || [], k = cid().custo, lojaM = naLoja('imobiliaria');
+  h += noteBox(`🏠 <b>${moradaTxt()}</b> · ${mv.length ? `móveis: <b>${mv.length}/${MOVEIS.length}</b>` : '<b>vazia!</b> Começa pelo colchão e pelo fogão.'}<br>${lojaM ? '📍 Estás na Imobiliária: <b>preço de loja</b> — entrega e montagem incluídas.' : `🚚 A comprar à distância: <b>+15% de entrega e montagem</b> (mín. ${kzShort(DIST_MIN.movel)}). Vai à Imobiliária no Centro Habitacional para o preço de loja.`} Os móveis ficam na casa mesmo que te mudes de visual.`);
   if (!mv.length) h += noteBox('📦 A tua casa está vazia: dormir no chão cansa e dá cabo da saúde, e sem fogão não podes cozinhar.', true);
   h += sec('Mobília & electrodomésticos');
   h += list(MOVEIS.map(M => {
-    const tenho = mv.includes(M.id), preco = precoMovel(M);
-    return btnItem(M.ico, M.t, M.d + (tenho ? ' · <b>✅ em casa</b>' : ''), tenho ? '✅' : kzShort(preco), `buyMovel('${M.id}')`, tenho || G.dinheiro < preco);
+    const tenho = mv.includes(M.id), preco = precoMovel(M), taxa = lojaM ? 0 : taxaDist('movel', preco), total = preco + taxa;
+    return btnItem(M.ico, M.t, M.d + (tenho ? ' · <b>✅ em casa</b>' : taxa ? ` · <i>+${kzShort(taxa)} entrega</i>` : ''), tenho ? '✅' : kzShort(total), `buyMovel('${M.id}')`, tenho || G.dinheiro < total);
   }));
   if (mv.length >= 5) h += noteBox('✨ A tua casa está bem mobilada: dormir em casa dá +felicidade extra.');
   return h;
@@ -557,7 +557,8 @@ function moveisUI() {
 function imobUI() {
   let h = energyBar();
   const P = cid(), Zm = zonaCasa(typeof casaZona === 'function' ? casaZona() : 'bairro');
-  h += noteBox(`🏠 Moras em: <b>${moradaTxt()}</b> · ${Zm.nivel}<br>📍 ${G.cidade.mun}, <b>${P.n}</b> — ${NIVEL_CID[nivelCidade(P)]} (preços a ${Math.round(P.custo * 100)}% dos de Luanda)`);
+  const lojaI = naLoja('imobiliaria');
+  h += noteBox(`🏠 Moras em: <b>${moradaTxt()}</b> · ${Zm.nivel}<br>📍 ${G.cidade.mun}, <b>${P.n}</b> — ${NIVEL_CID[nivelCidade(P)]} (preços a ${Math.round(P.custo * 100)}% dos de Luanda)<br>${lojaI ? '📍 Estás na Imobiliária: <b>sem taxas extra</b>.' : `📞 A tratar à distância: <b>+4% de taxa de tratamento</b> (mín. ${kzShort(DIST_MIN.casa)}, máx. 500 mil). Vem à Imobiliária no Centro Habitacional e evita a taxa.`}`);
   if (G.idade < 18) return h + tooYoung(18, 'arrendar ou comprar casa');
   h += meusImoveisHTML();
   const rend = imobRend();
@@ -567,9 +568,10 @@ function imobUI() {
     h += `<div class="zhead" style="--zc:${Z.cor}"><b>${Z.ico} ${Z.nivel}</b><span>${Z.t}</span></div>`;
     h += list(cs.map(C => {
       const renda = Math.round(C.renda * P.custo), cau = Math.round(renda / 6), preco = precoCasa(C), ent = Math.round(preco * CRED_ENT), prest = credPrest(preco - ent), okCred = rend && prest <= rend * .45 && credAnosOk();
+      const txR = lojaI ? 0 : taxaDist('casa', renda), txC = lojaI ? 0 : taxaDist('casa', preco);
       const aqui = G.casa.tipo === 'arrendada' && G.casa.id === C.id;
-      return `<div class="item col"><div class="row"><div class="ico">${C.ico}</div><div class="tx"><div class="t1">${C.t}${aqui ? ' <span class="tag">moras aqui</span>' : ''}</div><div class="t2">Renda <b>${kzShort(renda / 12)}/mês</b>${C.preco ? ` · Preço <b>${kzShort(preco)}</b>` : ' · só arrendar'} · conforto ${C.conforto > 0 ? '+' : ''}${C.conforto}</div></div></div>
-        <div class="btns">${chip(`Arrendar (caução ${kzShort(cau)})`, `rentHouse('${C.id}')`, aqui || G.dinheiro < cau)}${C.preco ? chip('Comprar a pronto', `buyHouse('${C.id}',false)`, G.dinheiro < preco) + chip(okCred ? `Crédito: ${kzShort(ent)} + ${kzShort(prest)}/ano` : 'Crédito ❌', `buyHouse('${C.id}',true)`, !okCred || G.dinheiro < ent) : ''}</div></div>`;
+      return `<div class="item col"><div class="row"><div class="ico">${C.ico}</div><div class="tx"><div class="t1">${C.t}${aqui ? ' <span class="tag">moras aqui</span>' : ''}</div><div class="t2">Renda <b>${kzShort(renda / 12)}/mês</b>${C.preco ? ` · Preço <b>${kzShort(preco)}</b>` : ' · só arrendar'} · conforto ${C.conforto > 0 ? '+' : ''}${C.conforto}${txR || txC ? ` · <i>à distância +${kzShort(C.preco ? txC : txR)}</i>` : ''}</div></div></div>
+        <div class="btns">${chip(`Arrendar (caução ${kzShort(cau + txR)})`, `rentHouse('${C.id}')`, aqui || G.dinheiro < cau + txR)}${C.preco ? chip(`Comprar a pronto${txC ? ` (${kzShort(preco + txC)})` : ''}`, `buyHouse('${C.id}',false)`, G.dinheiro < preco + txC) + chip(okCred ? `Crédito: ${kzShort(ent + txC)} + ${kzShort(prest)}/ano` : 'Crédito ❌', `buyHouse('${C.id}',true)`, !okCred || G.dinheiro < ent + txC) : ''}</div></div>`;
     }));
   });
   return h;
@@ -578,12 +580,15 @@ function imobUI() {
 function cidadesUI() { return angCidadesUI(); }
 function lojaUI() {
   let h = energyBar();
+  const lojaB = naLoja('banco');
+  h += noteBox(lojaB ? '📍 Estás no Stand & Loja: <b>preço de loja</b>, sem taxa de entrega.' : `🛵 A comprar à distância: <b>+10% de entrega</b> (mín. ${kzShort(DIST_MIN.bem)}). Vai ao Stand & Loja (Banco Palanca, Baixa) para o preço de loja.`);
   if (G.bens.length) h += sec('Os teus bens') + list(G.bens.map(b => { const B = bemT(b); return `<div class="item"><div class="ico">${B.ico}</div><div class="tx"><div class="t1">${B.t}</div><div class="t2">${B.renda ? 'Rende ~' + kzShort(B.renda) + '/ano · ' : ''}${B.manut ? 'Manutenção ' + kzShort(B.manut) + '/ano' : B.d || ''}</div></div><button class="chip" onclick="sellBem('${b}')">Vender ${kzShort(B.p * .55)}</button></div>`; }));
   [...new Set(BENS.map(B => B.cat))].forEach(cat => {
     h += sec(cat) + list(BENS.filter(B => B.cat === cat).map(B => {
       const tem = G.bens.includes(B.id) || (B.tel && G.tel >= B.tel);
-      const why = B.carta && !G.carta ? '🪪 Requer carta de condução' : (B.d || '') + (B.manut ? ` · manutenção ${kzShort(B.manut)}/ano` : '');
-      return btnItem(B.ico, B.t + (tem ? ` <span class="tag">${B.tel && !G.bens.includes(B.id) ? 'tens melhor' : 'tens'}</span>` : ''), why, kzShort(B.p), `buyBem('${B.id}')`, tem || (B.carta && !G.carta) || (G.idade < 10 && !B.tel && B.id !== 'bike'));
+      const taxa = lojaB || tem ? 0 : taxaDist('bem', B.p);
+      const why = (B.carta && !G.carta ? '🪪 Requer carta de condução' : (B.d || '') + (B.manut ? ` · manutenção ${kzShort(B.manut)}/ano` : '')) + (taxa ? ` · <i>+${kzShort(taxa)} entrega</i>` : '');
+      return btnItem(B.ico, B.t + (tem ? ` <span class="tag">${B.tel && !G.bens.includes(B.id) ? 'tens melhor' : 'tens'}</span>` : ''), why, kzShort(B.p + taxa), `buyBem('${B.id}')`, tem || (B.carta && !G.carta) || (G.idade < 10 && !B.tel && B.id !== 'bike'));
     }));
   });
   return h;

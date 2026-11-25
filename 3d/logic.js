@@ -362,16 +362,23 @@ const MOVEIS = [
 const movelT = id => MOVEIS.find(m => m.id === id);
 const precoMovel = M => Math.round(M.p * cid().custo / 1000) * 1000;
 const temMovel = id => (G.moveis || []).includes(id);
+/* Comprar à distância custa mais do que ir à loja: entrega/tratamento cobra taxa.
+   Na loja (perto ou dentro) paga-se o preço normal. */
+const naLoja = id => typeof vrNearLoc === 'function' ? vrNearLoc(id, 34) : true;
+const DIST_TAXA = { movel: .15, bem: .10, casa: .04 };
+const DIST_MIN = { movel: 5000, bem: 3000, casa: 15000 };
+function taxaDist(tipo, v) { const t = Math.max(DIST_MIN[tipo], Math.round(v * DIST_TAXA[tipo] / 1000) * 1000); return tipo === 'casa' ? Math.min(500000, t) : t; }
 const casaPropriaOuArrendada = () => G && (G.casa.tipo === 'propria' || G.casa.tipo === 'arrendada');
 function buyMovel(id) {
   const M = movelT(id); if (!M) return;
   if (!casaPropriaOuArrendada()) return toast('🏚️ Precisas de uma casa (própria ou arrendada) para ter móveis. Vai à Imobiliária!');
   G.moveis = G.moveis || [];
   if (G.moveis.includes(id)) return toast('Já tens isto em casa.');
-  if (!pay(precoMovel(M))) return;
+  const p = precoMovel(M), taxa = naLoja('imobiliaria') ? 0 : taxaDist('movel', p);
+  if (!pay(p + taxa)) return;
   G.moveis.push(id);
   if (typeof IV_CACHE !== 'undefined') Object.keys(IV_CACHE).forEach(k => { if (k.startsWith('casa:')) delete IV_CACHE[k]; });
-  const t = `🪑 <b>${M.t}</b> entregue em tua casa! ` + fx({ felicidade: 2 });
+  const t = `🪑 <b>${M.t}</b> entregue em tua casa! ${taxa ? `<i>(compra à distância: +${kzShort(taxa)} de entrega e montagem — na Imobiliária é ao preço de loja)</i> ` : ''}` + fx({ felicidade: 2 });
   addLog(t, 'good'); toast('🪑 ' + M.t + ' entregue! Entra em casa para veres.'); save(); refresh();
   if (typeof inInt !== 'undefined' && inInt && inInt.loc === 'casa' && typeof ivExit === 'function' && typeof ivEnter === 'function') { ivExit(true); setTimeout(() => ivEnter('casa'), 60); }
 }
@@ -1016,11 +1023,12 @@ const moradaTxt = () => G.casa.tipo === 'rua' ? 'Sem casa · dormes na rua / Abr
 function rentHouse(id) {
   if (!adulto() && !(semFamilia() && G.idade >= 16)) return toast('Só podes arrendar casa a partir dos 18 anos (ou 16, se não tiveres família).');
   const C = casaT(id); const caucao = Math.round(C.renda * cid().custo / 6);
-  if (!canAct()) return; if (!pay(caucao)) return; G.acoes--;
+  const taxaCasa = naLoja('imobiliaria') ? 0 : taxaDist('casa', Math.round(C.renda * cid().custo));
+  if (!canAct()) return; if (!pay(caucao + taxaCasa)) return; G.acoes--;
   if (G.casa.tipo === 'propria') G.imoveis[G.casa.idx].mora = false;
   G.casa = { tipo: 'arrendada', id };
   if (G.parceiro && G.parceiro.casado) G.parceiro.juntos = true;
-  after(`🔑 Arrendaste: <b>${C.t}</b> (${kzShort(C.renda * cid().custo / 12)}/mês). Pagaste ${kzShort(caucao)} de caução. ` + fx({ felicidade: 6 + C.conforto }), 'good', 'cheer');
+  after(`🔑 Arrendaste: <b>${C.t}</b> (${kzShort(C.renda * cid().custo / 12)}/mês). Pagaste ${kzShort(caucao)} de caução${taxaCasa ? ` + ${kzShort(taxaCasa)} de taxa de tratamento à distância` : ''}. ` + fx({ felicidade: 6 + C.conforto }), 'good', 'cheer');
 }
 const CRED_ENT = .3; // entrada do crédito habitação
 const CRED_ANOS = 2; // o banco pede 2 anos de contrato no emprego atual
@@ -1028,7 +1036,7 @@ const credAnosOk = () => !!(G.emprego && !job(G.emprego.id).informal && (G.empre
 function credPrest(v) { const r = .14, n = 15; return Math.round(v * r / (1 - Math.pow(1 + r, -n))); }
 function buyHouse(id, credito) {
   if (!adulto() && !(semFamilia() && G.idade >= 16 && !credito)) return toast('Só podes comprar casa a partir dos 18 anos (ou a pronto aos 16, se não tiveres família).');
-  const C = casaT(id), preco = precoCasa(C);
+  const C = casaT(id), preco = precoCasa(C), taxaCompra = naLoja('imobiliaria') ? 0 : taxaDist('casa', preco);
   if (!canAct()) return;
   if (credito) {
     if (typeof v6DocOk === 'function' && !v6DocOk('bi')) return toast('🪪 O banco pede o BI para o crédito habitação. Trata no SIAC (Mutamba).');
@@ -1036,12 +1044,12 @@ function buyHouse(id, credito) {
     const ent = Math.round(preco * CRED_ENT), prest = credPrest(preco - ent);
     const rend = (G.emprego && !job(G.emprego.id).informal ? salario(G.emprego) : 0) + G.negocios.reduce((s, n) => s + Math.max(0, n.ult || 0), 0);
     if (!rend || prest > rend * .45) return toast(`🏦 Crédito recusado: a prestação (${kzShort(prest)}/ano) não pode passar 45% do teu rendimento formal.`);
-    if (!pay(ent)) return; G.acoes--;
+    if (!pay(ent + taxaCompra)) return; G.acoes--;
     G.imoveis.push({ id, valor: preco, cred: { divida: preco - ent, prest, anos: 15 } });
-  } else { if (!pay(preco)) return; G.acoes--; G.imoveis.push({ id, valor: preco }); }
+  } else { if (!pay(preco + taxaCompra)) return; G.acoes--; G.imoveis.push({ id, valor: preco }); }
   const idx = G.imoveis.length - 1;
   if (G.casa.tipo !== 'propria' || casaT(G.imoveis[G.casa.idx].id).preco < C.preco) moveInto(idx, true);
-  after(`🏠 Compraste <b>${C.t}</b>${credito ? ' com crédito habitação' : ''}! ` + fx({ felicidade: 15 + C.conforto, fama: C.conforto > 10 ? 5 : 0 }), 'gold', 'cheer');
+  after(`🏠 Compraste <b>${C.t}</b>${credito ? ' com crédito habitação' : ''}!${taxaCompra ? ` <i>(à distância: +${kzShort(taxaCompra)} de taxa de tratamento)</i>` : ''} ` + fx({ felicidade: 15 + C.conforto, fama: C.conforto > 10 ? 5 : 0 }), 'gold', 'cheer');
   if (typeof newsPub === 'function') newsPub(`🏠 ${G.nome} comprou casa: ${C.t}, em ${G.cidade.mun}. O sonho mwangolé!`);
 }
 function moveInto(idx, silent) {
@@ -1121,11 +1129,12 @@ function buyBem(id) {
   if (B.tel && G.idade < 10) return toast('🧒 Ainda és muito pequeno(a) para ter telemóvel (só a partir dos 10 anos).');
   if (B.tel && G.tel >= B.tel) return toast('Já tens um telemóvel igual ou melhor.');
   if (G.bens.includes(id) && !B.tel) return toast('Já tens isto.');
-  if (!pay(B.p)) return;
+  const taxaBem = naLoja('banco') ? 0 : taxaDist('bem', B.p);
+  if (!pay(B.p + taxaBem)) return;
   if (B.tel) { G.bens = G.bens.filter(b => !bemT(b).tel); G.tel = B.tel; }
   G.bens.push(id);
   if (B.tel && typeof telNovo === 'function') setTimeout(telNovo, 400);
-  after(`🛍️ Compraste: <b>${B.t}</b>! ` + fx(B.ef || {}), 'good', 'cheer');
+  after(`🛍️ Compraste: <b>${B.t}</b>!${taxaBem ? ` <i>(à distância: +${kzShort(taxaBem)} de entrega — no Stand é ao preço de loja)</i>` : ''} ` + fx(B.ef || {}), 'good', 'cheer');
 }
 function sellBem(id) { const B = bemT(id); const v = Math.round(B.p * .55); if (!confirm(`Vender ${B.t} por ${kz(v)}?`)) return; G.bens = G.bens.filter(b => b !== id); if (B.tel) G.tel = 0; G.dinheiro += v; addLog(`Vendeste ${B.t} por ${kzShort(v)}.`); save(); refresh(); }
 
