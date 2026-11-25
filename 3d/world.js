@@ -5,7 +5,10 @@ const T = THREE;
 if (T.ColorManagement) T.ColorManagement.legacyMode = false; // cores hex em sRGB (pele correta)
 const IS_MOBILE = matchMedia('(pointer:coarse)').matches || /Android|iPhone|iPad/i.test(navigator.userAgent);
 /* Modo Leve (telemóveis fracos): sem sombras, menos gente e carros, resolução mais baixa */
-const LITE = (() => { try { const s = localStorage.getItem('pe3d_lite'); if (s != null) return s === '1'; } catch (e) { } return IS_MOBILE && ((navigator.deviceMemory || 4) <= 3 || (navigator.hardwareConcurrency || 4) <= 4); })();
+/* modos gráficos: leve (telemóveis fracos) · normal · hd — escolha em Vida → Definições */
+const GFX_MODE = (() => { try { const s = localStorage.getItem('pe3d_gfx'); if (s === 'leve' || s === 'normal' || s === 'hd') return s; const old = localStorage.getItem('pe3d_lite'); if (old != null) return old === '1' ? 'leve' : 'normal'; } catch (e) { } return IS_MOBILE && ((navigator.deviceMemory || 4) <= 3 || (navigator.hardwareConcurrency || 4) <= 4) ? 'leve' : 'normal'; })();
+const LITE = GFX_MODE === 'leve';
+const GFX_HD = GFX_MODE === 'hd';
 /* cidade compacta: as pessoas e os carros ficam maiores face aos prédios (tudo fica mais perto) */
 const BODY_S = 1.3;
 let renderer, camera, clock, curScene, showZoom = 0, _shZ = 0;
@@ -22,7 +25,8 @@ const CAM_MODES = [
 ];
 let camMode = (() => { try { return +localStorage.getItem('pe3d_cam') || 1; } catch (e) { return 1; } })();
 camMode = Math.max(0, Math.min(CAM_MODES.length - 1, camMode));
-function camApply() { const m = CAM_MODES[camMode]; camDist = m.d * BODY_S; camPitch = m.p; try { localStorage.setItem('pe3d_cam', camMode); } catch (e) { } }
+function camApply() { const m = CAM_MODES[camMode]; camDist = m.d * BODY_S; camPitch = m.p; try { localStorage.setItem('pe3d_cam', camMode); } catch (e) { } camHud(); }
+function camHud() { const b = document.getElementById('hbCam'); if (b) { const m = CAM_MODES[camMode]; b.innerHTML = (m.n === 'Aérea' ? '🚁' : m.n === 'Perto' ? '🎬' : '🎥') + '<small>' + m.n + '</small>'; } }
 function camCycle() {
   camMode = (camMode + 1) % CAM_MODES.length; camApply();
   const ic = { Perto: '🎥', Normal: '🎥', Longe: '🎥', 'Aérea': '🚁' }[CAM_MODES[camMode].n] || '🎥';
@@ -935,8 +939,8 @@ function afroAnim(h, t) {
    INIT
    ========================================================= */
 function init3D() {
-  renderer = new T.WebGLRenderer({ antialias: !IS_MOBILE && !LITE, powerPreference: LITE ? 'low-power' : 'high-performance' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, LITE ? 1 : IS_MOBILE ? 1.25 : 2));
+  renderer = new T.WebGLRenderer({ antialias: (!IS_MOBILE && !LITE) || GFX_HD, powerPreference: LITE ? 'low-power' : 'high-performance' });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, LITE ? 1 : GFX_HD ? (IS_MOBILE ? 2 : 2.5) : IS_MOBILE ? 1.25 : 2));
   renderer.setSize(innerWidth, innerHeight);
   renderer.outputEncoding = T.sRGBEncoding;
   renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;

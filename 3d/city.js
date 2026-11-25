@@ -312,7 +312,12 @@ function asphaltTex(vert, L) {
   if (!_asp[k]) _asp[k] = ctex(vert ? 128 : 256, vert ? 256 : 128, x => {
     const W = vert ? 128 : 256, H = vert ? 256 : 128;
     x.fillStyle = '#3a3b3f'; x.fillRect(0, 0, W, H);
-    for (let i = 0; i < 500; i++) { x.fillStyle = `rgba(${Math.random() < .5 ? '255,255,255' : '0,0,0'},${Math.random() * .06})`; x.fillRect(R(0, W - 1), R(0, H - 1), 2, 2); }
+    for (let i = 0; i < 900; i++) { x.fillStyle = `rgba(${Math.random() < .5 ? '255,255,255' : '0,0,0'},${Math.random() * .07})`; x.fillRect(R(0, W - 1), R(0, H - 1), 2, 2); }
+    // marcas dos pneus: duas faixas escuras por via (o asfalto gasta-se onde as rodas passam)
+    x.fillStyle = 'rgba(0,0,0,.10)';
+    if (vert) { x.fillRect(26, 0, 16, H); x.fillRect(84, 0, 16, H); } else { x.fillRect(0, 26, W, 16); x.fillRect(0, 84, W, 16); }
+    // remendos e fissuras
+    for (let i = 0; i < 5; i++) { x.fillStyle = 'rgba(0,0,0,.16)'; if (vert) x.fillRect(R(6, W - 30), R(0, H - 10), R(8, 20), R(3, 7)); else x.fillRect(R(0, W - 10), R(6, H - 30), R(3, 7), R(8, 20)); }
     const ln = (p, c, dash) => { x.fillStyle = c; for (let d = 0; d < 256; d += dash ? 32 : 256) vert ? x.fillRect(p, d, 3, dash ? 18 : 256) : x.fillRect(d, p, dash ? 18 : 256, 3); };
     ln(4, '#e8e8e8'); ln(121, '#e8e8e8'); ln(60, '#ffcb00'); ln(65, '#ffcb00');
   });
@@ -360,16 +365,16 @@ function buildWorld() {
   worldScene = new T.Scene();
   decor = new T.Group(); worldScene.add(decor);
   worldScene.background = new T.Color('#8ec9f0');
-  worldScene.fog = new T.Fog('#bfe3f7', LITE ? 80 : 120, LITE ? 300 : 420);
+  worldScene.fog = new T.Fog('#bfe3f7', LITE ? 80 : GFX_HD ? 150 : 120, LITE ? 300 : GFX_HD ? 520 : 420);
   skyMesh = makeSky();
   hemi = new T.HemisphereLight('#d6ebff', '#8a5a3a', .65); worldScene.add(hemi);
   sun = new T.DirectionalLight('#fff1d6', 1.35); sun.castShadow = true;
-  sun.shadow.mapSize.set(IS_MOBILE ? 1024 : 2048, IS_MOBILE ? 1024 : 2048);
+  sun.shadow.mapSize.set(LITE ? 1024 : GFX_HD && !IS_MOBILE ? 4096 : IS_MOBILE ? 1024 : 2048, LITE ? 1024 : GFX_HD && !IS_MOBILE ? 4096 : IS_MOBILE ? 1024 : 2048);
   Object.assign(sun.shadow.camera, { left: -50, right: 50, top: 50, bottom: -50, near: 1, far: 260 });
   sun.shadow.bias = -.0006; sun.shadow.normalBias = .02; sun.shadow.camera.updateProjectionMatrix(); worldScene.add(sun); worldScene.add(sun.target);
   lampMat = new T.MeshStandardMaterial({ color: '#fff3c4', emissive: '#ffd27a', emissiveIntensity: 0 });
   nightMats.push({ m: lampMat, day: 0, night: 2.2 });
-  sideMat = new T.MeshStandardMaterial({ map: (() => { const t = ctex(128, 128, x => { x.fillStyle = '#b9b2a6'; x.fillRect(0, 0, 128, 128); x.strokeStyle = 'rgba(0,0,0,.12)'; x.lineWidth = 2; for (let i = 0; i <= 128; i += 32) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, 128); x.stroke(); x.beginPath(); x.moveTo(0, i); x.lineTo(128, i); x.stroke(); } }); t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(60, 60); return t; })(), roughness: .95 });
+  sideMat = new T.MeshStandardMaterial({ map: (() => { const t = ctex(128, 128, x => { x.fillStyle = '#b9b2a6'; x.fillRect(0, 0, 128, 128); for (let ty = 0; ty < 128; ty += 32) for (let tx = 0; tx < 128; tx += 32) { x.fillStyle = Math.random() < .5 ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.07)'; x.fillRect(tx, ty, 32, 32); } for (let i = 0; i < 90; i++) { x.fillStyle = `rgba(0,0,0,${Math.random() * .08})`; x.fillRect(R(0, 127), R(0, 127), 2, 2); } x.strokeStyle = 'rgba(0,0,0,.16)'; x.lineWidth = 2; for (let i = 0; i <= 128; i += 32) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, 128); x.stroke(); x.beginPath(); x.moveTo(0, i); x.lineTo(128, i); x.stroke(); } }); t.wrapS = t.wrapT = T.RepeatWrapping; t.repeat.set(60, 60); return t; })(), roughness: .95 });
 
   /* chão: terra vermelha + relva nos bairros nobres */
   const red = noiseTex('#c4865a', ['#8a5236', '#d9a070', '#6e4028', '#b97a4e'], [80, 80], 2200);
@@ -656,8 +661,8 @@ function buildWorld() {
   bldg(150, 132, 30, 20, 10, { face: '#c9c0aa', glass: '#3a4a5a', noTop: true }); sign('FÁBRICA DE CERVEJA', 12, '#c8102e', '#fff', '', 150, 6, 121.9, Math.PI);
 
   // skyline ao longe (desligado no Modo Leve)
-  if (!LITE) for (let i = 0; i < 26; i++) { const x = -240 + i * 19, z = 330 + R(0, 40); bldg(x, z, R(10, 16), R(10, 16), R(18, 60), { face: pick(['#c9c4b8', '#8fa3b8', '#d9d2c0', '#6f8aa3']), glass: '#2a3d52', nocol: true, noTop: true }); }
-  if (!LITE) for (let i = 0; i < 10; i++) { bldg(220 + R(0, 30), -60 + i * 22, 14, 14, R(14, 40), { face: pick(['#c9c4b8', '#d9d2c0']), nocol: true, noTop: true }); bldg(-220 - R(0, 30), -60 + i * 22, 14, 14, R(14, 40), { face: pick(['#c9c4b8', '#e0d6c2']), nocol: true, noTop: true }); }
+  if (!LITE) for (let i = 0; i < (GFX_HD ? 40 : 26); i++) { const x = -240 + i * (GFX_HD ? 12.5 : 19), z = 330 + R(0, 40); bldg(x, z, R(10, 16), R(10, 16), R(18, 60), { face: pick(['#c9c4b8', '#8fa3b8', '#d9d2c0', '#6f8aa3']), glass: '#2a3d52', nocol: true, noTop: true }); }
+  if (!LITE) for (let i = 0; i < (GFX_HD ? 16 : 10); i++) { bldg(220 + R(0, 30), -60 + i * 22, 14, 14, R(14, 40), { face: pick(['#c9c4b8', '#d9d2c0']), nocol: true, noTop: true }); bldg(-220 - R(0, 30), -60 + i * 22, 14, 14, R(14, 40), { face: pick(['#c9c4b8', '#d9d2c0', '#e0d6c2']), nocol: true, noTop: true }); }
 
   // juntar geometria estática
   worldScene.remove(decor); worldScene.add(mergeStatic(decor)); decor = null;
@@ -688,7 +693,7 @@ function buildWorld() {
     [[X[2], Z[0]], [X[2], Z[4]], [X[4], Z[4]], [X[4], Z[2]], [X[0], Z[2]], [X[0], Z[0]]],
     [[X[0], Z[1]], [X[4], Z[1]], [X[4], Z[3]], [X[0], Z[3]]],
   ];
-  const nV = LITE ? 5 : IS_MOBILE ? 8 : 12;
+  const nV = LITE ? 5 : GFX_HD ? (IS_MOBILE ? 10 : 18) : IS_MOBILE ? 8 : 12;
   for (let i = 0; i < nV; i++) {
     let path = loops[i % loops.length]; if (i % 2) path = path.slice().reverse();
     const segs = []; let total = 0;

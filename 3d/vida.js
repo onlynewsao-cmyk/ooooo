@@ -574,10 +574,11 @@ function vrVidaUI() {
     : btnItem('🌙', 'Dormir em casa', 'Quanto melhor a cama, mais descansas: chão +45 · colchão +75 · cama 100% +2 saúde · ortopédica 100% +3 saúde', '', 'vrDormir(false)', !vrNearLoc('casa', 34)),
     btnItem('😴', 'Sesta', 'Banco do jardim +30 (30% risco de roubo) · em casa: sofá +40 ou cama +45, sem risco', '', 'vrDormir(true)')]);
   h += noteBox('💤 Parado na rua o corpo recupera energia devagarinho (até 40). Para encher mesmo, nada como uma cama boa.');
-  h += sec('Definições') + list([btnItem('🔋', `Modo Leve: ${LITE ? 'LIGADO' : 'desligado'}`, 'Para telemóveis fracos: sem sombras, menos gente e carros, resolução mais baixa (recarrega o jogo)', '', 'vrLite()')]);
+  h += sec('Definições') + `<div class="item col"><div class="tx"><div class="t1">🖥️ Gráficos: <b>${GFX_MODE === 'leve' ? '🔋 Leve' : GFX_MODE === 'hd' ? '✨ HD' : '⚖️ Normal'}</b></div><div class="t2">🔋 Leve: telemóveis fracos (sem sombras, menos carros) · ⚖️ Normal: equilíbrio · ✨ HD: máximo detalhe, mais trânsito e horizonte (PC forte). Mudar recarrega o jogo.</div></div><div class="btns"><button class="chip ${GFX_MODE === 'leve' ? 'on' : ''}" onclick="vrGfx('leve')">🔋 Leve</button><button class="chip ${GFX_MODE === 'normal' ? 'on' : ''}" onclick="vrGfx('normal')">⚖️ Normal</button><button class="chip ${GFX_MODE === 'hd' ? 'on' : ''}" onclick="vrGfx('hd')">✨ HD</button></div></div>`;
   return h;
 }
-function vrLite() { try { localStorage.setItem('pe3d_lite', LITE ? '0' : '1'); } catch (e) { } save(); toast('🔋 A recarregar…'); setTimeout(() => location.reload(), 600); }
+function vrLite() { vrGfx(LITE ? 'normal' : 'leve'); }
+function vrGfx(m) { if (m === GFX_MODE) return toast('🖥️ Já estás nesse modo.'); try { localStorage.setItem('pe3d_gfx', m); localStorage.removeItem('pe3d_lite'); } catch (e) { } save(); toast('🖥️ Gráficos: ' + (m === 'leve' ? '🔋 Leve' : m === 'hd' ? '✨ HD' : '⚖️ Normal') + ' — a recarregar…'); setTimeout(() => location.reload(), 600); }
 PANELS.cidade = {
   ico: '🏛', t: 'Cidade Viva', sub: () => `${vrOnline() ? (MP.online || 1) + ' online' : 'offline'} · Governo: ${esc(vrGov().nick)}${VR.wl ? ' · <b style="color:#ff5a5a">' + vrStarsF(VR.wl) + '</b>' : ''}`,
   tabs: [['online', '👥 Online', vrOnlineUI], ['policia', '🚔 Polícia', vrPolUI], ['politica', '🗳 Política', vrPolitUI], ['impostos', '🧾 Impostos', vrImpUI], ['grupo', '👥 Grupos', vrGrupoUI], ['amigos', '🤝 Amigos', vrAmigosUI], ['vida', '🍲 Vida', vrVidaUI]],
@@ -672,5 +673,5 @@ PANELS.cidade = {
   };
   // menu: atalho para o Modo Leve
   const _gm = gameMenu;
-  gameMenu = function () { _gm.apply(this, arguments); const ch = document.querySelector('#modalBox .choices'); if (ch) { const b = document.createElement('button'); b.className = 'btn btn-ghost'; b.innerHTML = `🔋 Modo Leve: ${LITE ? 'LIGADO' : 'desligado'}`; b.onclick = vrLite; ch.insertBefore(b, ch.lastElementChild); } };
+  gameMenu = function () { _gm.apply(this, arguments); const ch = document.querySelector('#modalBox .choices'); if (ch) { const b = document.createElement('button'); b.className = 'btn btn-ghost'; b.innerHTML = `🖥️ Gráficos: ${GFX_MODE === 'leve' ? '🔋 Leve' : GFX_MODE === 'hd' ? '✨ HD' : '⚖️ Normal'}`; b.onclick = () => vrGfx(GFX_MODE === 'leve' ? 'normal' : GFX_MODE === 'normal' ? 'hd' : 'leve'); ch.insertBefore(b, ch.lastElementChild); } };
 })();
