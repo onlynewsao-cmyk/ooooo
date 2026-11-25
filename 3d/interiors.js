@@ -837,6 +837,21 @@ function ivColchao(x, z, ry) {
     ivB(.7, .12, .4, '#f4f4f4', 0, .22, -.85);
   });
 }
+function ivCama2(x, z, ry) {   // cama ortopédica de casal: maior, cabeceira estofada
+  ivGrp(x, z, ry, () => {
+    ivB(2.4, .36, 3, '#3a2a1e', 0, .18, 0);
+    ivB(2.3, .3, 2.9, '#f7f4ef', 0, .5, 0);
+    ivB(2.2, .12, 1.7, new T.MeshStandardMaterial({ map: waxTex(['#8a1a2a', '#c9a227', '#f2f2f2', '#1d1d1d']) }), 0, .66, .45);
+    ivB(.9, .16, .5, '#ffffff', -.6, .66, -1.05); ivB(.9, .16, .5, '#ffffff', .6, .66, -1.05);
+    ivB(2.4, 1.15, .14, '#5a4632', 0, .58, -1.55);
+  });
+}
+function ivArcond(D, x, z) {   // unidade na parede + fluxo de ar
+  ivB(1.35, .45, .3, '#eef1f4', x, 2.62, z);
+  ivB(1.2, .06, .05, '#8a949e', x, 2.46, z + .13);
+  ivB(.22, .22, .05, '#2ab0d8', x - .48, 2.66, z + .14);
+  ivCol(D, x, z, 1.2, .5);
+}
 function ivCama(x, z, ry) {
   ivGrp(x, z, ry, () => {
     ivB(1.9, .32, 2.6, '#6b4a2a', 0, .16, 0);
@@ -885,8 +900,10 @@ function ivCasaVazia(D, tier) {
     ivB(.5, .04, .3, '#7a6a55', -W * .1, .02, H * .2, null, false);   // tapete velho enrolado
   }
   const ax = (fx, fz) => [W * fx, -H * fz];
-  if (tem('cama')) { const [x, z] = ax(.34, .36); ivCama(x, z, 0); ivCol(D, x, z, 2, 2.7); }
+  if (tem('cama2')) { const [x, z] = ax(.34, .36); ivCama2(x, z, 0); ivCol(D, x, z, 2.5, 3); }
+  else if (tem('cama')) { const [x, z] = ax(.34, .36); ivCama(x, z, 0); ivCol(D, x, z, 2, 2.7); }
   else if (tem('colchao')) { const [x, z] = ax(.34, .36); ivColchao(x, z, 0); ivCol(D, x, z, 1.6, 2.5); }
+  if (tem('arcond')) { const [x, z] = ax(.34, .36); ivArcond(D, x, z - 2.6); }
   if (tem('sofa')) { const [x, z] = ax(-.16, .16); ivSofa(x, z, Math.PI, tier === 'luxo' ? '#f4f1ea' : tier === 'apto' ? '#7a8794' : '#a3482a', Math.min(3.2, W * .22)); ivCol(D, x, z, Math.min(3.4, W * .24), 1); }
   if (tem('tv')) { const [x, z] = ax(-.16, .44); ivB(2.2, .55, .5, tier === 'simples' ? '#6b4a2a' : '#1d1d1d', x, 0, z); ivTV(x, .68, z - .12, 0, tier === 'luxo' ? 2.6 : 1.5); ivCol(D, x, z, 2.3, .6); }
   if (tem('mesa')) { const [x, z] = ax(.26, .24); ivTable(x, z, Math.min(2.4, W * .16), 1, .76, tier === 'simples' ? '#7a5236' : '#6b4423'); ivChair(x - .6, z - .75, 0, '#7a5236'); ivChair(x + .6, z - .75, 0, '#7a5236'); ivChair(x, z + .75, Math.PI, '#7a5236'); ivCol(D, x, z, 2.4, 1.8); }

@@ -408,11 +408,8 @@ function v2RegenTxt() {
   const s = Math.max(0, Math.ceil(V2_REGEN_S - V2.regenT)); return `+1 em ${s}s`;
 }
 (function () {
-  const _vd = vrDormir; vrDormir = function (sesta) {
-    const r = _vd.apply(this, arguments);
-    try { const v = v2G(); if (!sesta && vrNearLoc('casa', 34) && !vrPreso() && v.dormAno !== G.ano && G.acoes < maxAcoes()) { v.dormAno = G.ano; setTimeout(() => { G.acoes = Math.min(maxAcoes(), G.acoes + 2); toast('🌙 Dormir bem em casa deu-te +2 de energia.'); save(); refresh(); }, 1400); } } catch (e) { }
-    return r;
-  };
+  /* (removido o bónus legado "+2 energia por dormir" — com a energia unificada (ano9) o descanso
+     vem todo dos níveis de cama em vrDormir: chão +45 · colchão +75 · cama 100 · ortopédica 100++) */
   const _rf = refresh; refresh = function () {
     const r = _rf.apply(this, arguments);
     try { const he = document.getElementById('hEnergy'); if (he && G && !he.querySelector('.v2rg')) he.insertAdjacentHTML('beforeend', `<small class="v2rg">${v2RegenTxt()}</small>`); } catch (e) { }

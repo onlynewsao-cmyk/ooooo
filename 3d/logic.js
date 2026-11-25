@@ -344,12 +344,14 @@ const casaT = id => CASAS.find(c => c.id === id);
 
 /* ---------------- MÓVEIS (a casa compra-se vazia — mobilar é contigo) ---------------- */
 const MOVEIS = [
-  { id: 'colchao', t: 'Colchão', ico: '🛏️', p: 25000, d: 'Dormir em casa sem ser no chão frio' },
-  { id: 'cama', t: 'Cama com colchão', ico: '🛏️', p: 180000, d: 'Dormir a sério: energia no máximo e +saúde' },
+  { id: 'colchao', t: 'Colchão', ico: '🛏️', p: 25000, d: 'Dormir em casa sem ser no chão frio (+75 energia)' },
+  { id: 'cama', t: 'Cama com colchão', ico: '🛏️', p: 180000, d: 'Dormir a sério: energia no máximo e +2 saúde' },
+  { id: 'cama2', t: 'Cama ortopédica de casal', ico: '🛏️', p: 480000, d: 'O melhor sono da tua vida: energia no máximo, +3 saúde e +2 felicidade' },
+  { id: 'arcond', t: 'Ar condicionado', ico: '❄️', p: 380000, d: 'Dormir fresco no calor: a tua cama descansa ainda mais (+1 saúde extra ao dormir)' },
   { id: 'mesa', t: 'Mesa e cadeiras', ico: '🪑', p: 85000, d: 'Refeições sentado(a), receber visitas' },
   { id: 'fogao', t: 'Fogão a gás', ico: '🍳', p: 130000, d: 'Cozinhar em casa — a comida mais barata' },
   { id: 'geladeira', t: 'Geladeira', ico: '🧊', p: 260000, d: 'Comida guardada: acordas com menos fome' },
-  { id: 'sofa', t: 'Sofá', ico: '🛋️', p: 210000, d: 'Descansar, ver TV e receber kambas' },
+  { id: 'sofa', t: 'Sofá', ico: '🛋️', p: 210000, d: 'Descansar, ver TV, receber kambas e fazer sestas sem risco (+40 energia)' },
   { id: 'tv', t: 'TV LED', ico: '📺', p: 280000, d: 'Ver a novela da Kalemba TV e o futebol (+felicidade)' },
   { id: 'som', t: 'Aparelho de som', ico: '🔊', p: 150000, d: 'Kizomba em casa (+felicidade)' },
   { id: 'guardaroupa', t: 'Guarda-roupa', ico: '🚪', p: 190000, d: 'Guardar a roupa: trocar de look em casa' },

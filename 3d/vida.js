@@ -297,25 +297,47 @@ function vrDormir(sesta) {
   const v = vrG();
   if (vrPreso()) return toast('🔒 Na cadeia dorme-se mal...');
   if (!sesta && !vrNearLoc('casa', 34)) return toast('🏠 Para dormires bem tens de estar em casa (ou faz uma sesta no jardim, com risco).');
-  const f = $('#fade'); f.innerHTML = `<div><small>${sesta ? 'Uma sesta no banco do jardim…' : 'Boa noite…'}</small><b>${sesta ? '😴' : '🌙'}</b></div>`; f.classList.add('on'); uiBlocked = true;
+  const visita = !sesta && G.visitando;
+  const penPr = visita ? Math.round(4000 * cid().custo / 500) * 500 : 0;
+  if (visita && G.dinheiro < penPr) return toast(`💸 Uma noite na Pensão Central custa ${kz(penPr)}. Se não chegar, faz uma sesta no jardim.`);
+  const f = $('#fade'); f.innerHTML = `<div><small>${sesta ? 'Uma sestinha…' : 'Boa noite…'}</small><b>${sesta ? '😴' : '🌙'}</b></div>`; f.classList.add('on'); uiBlocked = true;
   setTimeout(() => {
     f.classList.remove('on'); uiBlocked = !!panelId || modalOpen || !!phoneApp;
     if (sesta) {
-      v.energia = Math.min(100, v.energia + 30); v.fome = Math.max(0, v.fome - 5);
-      if (Math.random() < .3 && G.dinheiro > 0) { const p = Math.round(G.dinheiro * (.05 + Math.random() * .1)); G.dinheiro -= p; addLog(`😴 Fizeste uma sesta no jardim e acordaste sem ${kz(p)} na carteira. <i>Razão: dormir na rua é arriscado.</i>`, 'bad'); }
-      else toast('😴 Sesta feita: +30 de energia.');
+      const minha = G.casa && (G.casa.tipo === 'propria' || G.casa.tipo === 'arrendada');
+      const mv = G.moveis || [], emCasa = minha && !G.visitando && vrNearLoc('casa', 34);
+      if (emCasa && (mv.includes('cama2') || mv.includes('cama'))) { v.energia = Math.min(100, v.energia + 45); v.fome = Math.max(0, v.fome - 4); toast('😴 Sesta na tua cama: +45 de energia, zero riscos.'); }
+      else if (emCasa && mv.includes('sofa')) { v.energia = Math.min(100, v.energia + 40); v.fome = Math.max(0, v.fome - 4); toast('😴 Sesta no sofá: +40 de energia, zero riscos.'); }
+      else {
+        v.energia = Math.min(100, v.energia + 30); v.fome = Math.max(0, v.fome - 5);
+        if (Math.random() < .3 && G.dinheiro > 0) { const p = Math.round(G.dinheiro * (.05 + Math.random() * .1)); G.dinheiro -= p; addLog(`😴 Fizeste uma sesta no jardim e acordaste sem ${kz(p)} na carteira. <i>Razão: dormir na rua é arriscado — um sofá ou uma cama em casa evitam isto.</i>`, 'bad'); }
+        else toast('😴 Sesta feita: +30 de energia.');
+      }
+    } else if (visita) {
+      G.dinheiro -= penPr;
+      v.energia = Math.min(100, v.energia + 65); v.fome = Math.max(0, v.fome - 8);
+      addLog(`🏨 Noite na Pensão Central (${kz(penPr)}): cama simples mas limpa. Não é a tua cama, mas descansa. ` + fx({ saude: 1 }));
     } else {
       const minha = G.casa && (G.casa.tipo === 'propria' || G.casa.tipo === 'arrendada');
-      const mv = G.moveis || [];
-      if (minha && !mv.includes('cama') && !mv.includes('colchao')) {
+      const mv = G.moveis || [], frio = mv.includes('arcond');
+      if (G.casa && G.casa.tipo === 'rua') {
+        v.energia = Math.min(100, v.energia + 30); v.fome = Math.max(0, v.fome - 5);
+        addLog('🏚️ Noite no beliche do Abrigo da Missão: tecto e sopa, mas o corpo não descansa como deve ser. <i>Trabalha para teres a tua cama.</i>');
+      } else if (G.casa && G.casa.tipo === 'pais') {
+        v.energia = Math.min(100, v.energia + 85); v.fome = Math.max(0, v.fome - 10);
+        addLog('👨‍👩‍👧 Dormiste no teu quarto de sempre em casa dos teus pais — e a tua mãe ainda deixou o jantar. ' + fx({ saude: 1, felicidade: 1 }));
+      } else if (minha && !mv.includes('cama') && !mv.includes('colchao') && !mv.includes('cama2')) {
         v.energia = Math.min(100, v.energia + 45); v.fome = Math.max(0, v.fome - 8);
         addLog('🌙 Dormiste no chão frio da tua casa vazia e acordaste todo(a) dorido(a). <i>Compra pelo menos um colchão (Imobiliária → 🪑 Móveis).</i> ' + fx({ saude: -1, felicidade: -2 }), 'bad');
+      } else if (minha && mv.includes('cama2')) {
+        v.energia = 100; v.fome = Math.max(0, v.fome - 12 - (mv.includes('geladeira') ? 6 : 0));
+        addLog(`🌙 Noite de rei na tua cama ortopédica${frio ? ', com o ar condicionado no ponto' : ''}: acordaste como novo(a)! ` + fx({ saude: 3 + (frio ? 1 : 0), felicidade: 2 }));
       } else if (minha && !mv.includes('cama')) {
         v.energia = Math.min(100, v.energia + 75); v.fome = Math.max(0, v.fome - 10 - (mv.includes('geladeira') ? 4 : 0));
-        addLog('🌙 Dormiste no colchão no chão. Dá para descansar, mas uma cama a sério era outra coisa. ' + fx({ saude: 1 })); 
+        addLog('🌙 Dormiste no colchão no chão. Dá para descansar, mas uma cama a sério era outra coisa. ' + fx({ saude: 1 }));
       } else {
         v.energia = 100; v.fome = Math.max(0, v.fome - 12 - (mv.includes('geladeira') ? 6 : 0));
-        addLog('🌙 Dormiste bem na tua cama e acordaste com a energia no máximo. ' + fx({ saude: 2, felicidade: 1 + (mv.length >= 5 ? 1 : 0) }));
+        addLog(`🌙 Dormiste bem na tua cama${frio ? ', fresquinha com o ar condicionado' : ''} e acordaste com a energia no máximo. ` + fx({ saude: 2 + (frio ? 1 : 0), felicidade: 1 + (mv.length >= 5 ? 1 : 0) }));
       }
       if (typeof dayT !== 'undefined') dayT = .3;
     }
@@ -547,7 +569,11 @@ function vrVidaUI() {
   h += `<div class="vrneeds"><div><span>🍲 Fome</span><i><b style="width:${v.fome}%;background:${v.fome < 20 ? '#ff4d4d' : '#ff9f1a'}"></b></i><em>${Math.round(v.fome)}</em></div><div><span>⚡ Energia</span><i><b style="width:${v.energia}%;background:${v.energia < 15 ? '#ff4d4d' : '#3fd0ff'}"></b></i><em>${Math.round(v.energia)}</em></div></div>`;
   h += noteBox('Razões: com fome a zero perdes saúde e andas mais devagar; sem energia não consegues correr. Come e dorme como na vida real.');
   h += sec('Comer') + list(VR_FOOD.map(F => { const longe = F[7] && !vrNearLoc(F[7], 34); return btnItem(F[1], F[2], F[3] + ` · +${F[5]} fome${F[6] ? ` · +${F[6]} energia` : ''}${longe ? ' · <b style="color:#ff8a8a">longe daqui</b>' : ''}`, kzShort(F[4]), `vrComer('${F[0]}')`, longe); }));
-  h += sec('Descansar') + list([btnItem('🌙', 'Dormir em casa', 'Energia ao máximo e +2 saúde · tens de estar em casa', '', 'vrDormir(false)', !vrNearLoc('casa', 34)), btnItem('😴', 'Sesta no banco do jardim', '+30 energia em qualquer lado · 30% de risco de seres roubado(a)', '', 'vrDormir(true)')]);
+  h += sec('Descansar') + list([G.visitando
+    ? btnItem('🏨', 'Dormir na Pensão Central', `Cama simples e limpa: +65 energia, +1 saúde · ${kzShort(Math.round(4000 * cid().custo / 500) * 500)}/noite`, '', 'vrDormir(false)', !vrNearLoc('casa', 34))
+    : btnItem('🌙', 'Dormir em casa', 'Quanto melhor a cama, mais descansas: chão +45 · colchão +75 · cama 100% +2 saúde · ortopédica 100% +3 saúde', '', 'vrDormir(false)', !vrNearLoc('casa', 34)),
+    btnItem('😴', 'Sesta', 'Banco do jardim +30 (30% risco de roubo) · em casa: sofá +40 ou cama +45, sem risco', '', 'vrDormir(true)')]);
+  h += noteBox('💤 Parado na rua o corpo recupera energia devagarinho (até 40). Para encher mesmo, nada como uma cama boa.');
   h += sec('Definições') + list([btnItem('🔋', `Modo Leve: ${LITE ? 'LIGADO' : 'desligado'}`, 'Para telemóveis fracos: sem sombras, menos gente e carros, resolução mais baixa (recarrega o jogo)', '', 'vrLite()')]);
   return h;
 }
@@ -624,7 +650,9 @@ PANELS.cidade = {
       const v = vrG(), run = keys.ShiftLeft || keys.ShiftRight || (joy.active && Math.hypot(joy.x, joy.y) > .95);
       const k = (uiBlocked ? .4 : 1) * Math.min(dt, .5);
       const mov = keys.KeyW || keys.KeyA || keys.KeyS || keys.KeyD || keys.ArrowUp || keys.ArrowDown || keys.ArrowLeft || keys.ArrowRight || (joy.active && Math.hypot(joy.x, joy.y) > .15) || !!autoGo;
-      v.fome = Math.max(0, v.fome - k / 40 * (run ? 1.2 : 1)); v.energia = Math.max(0, v.energia - k / 70 * (!mov ? .3 : run ? 1.6 : 1));
+      v.fome = Math.max(0, v.fome - k / 40 * (run ? 1.2 : 1));
+      if (!mov && !run) v.energia = Math.min(40, v.energia + k / 10);   // parado na rua o corpo descansa um pouco (até 40 — uma cama boa descansa muito mais)
+      else v.energia = Math.max(0, v.energia - k / 70 * (run ? 1.6 : 1));
       VR.t += dt;
       if (VR.t > .33) {
         VR.t = 0; vrActBtn(); vrHud();

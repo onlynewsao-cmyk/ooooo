@@ -1944,12 +1944,14 @@ const casaT = id => CASAS.find(c => c.id === id);
 
 /* ---------------- MÓVEIS (a casa compra-se vazia — mobilar é contigo) ---------------- */
 const MOVEIS = [
-  { id: 'colchao', t: 'Colchão', ico: '🛏️', p: 25000, d: 'Dormir em casa sem ser no chão frio' },
-  { id: 'cama', t: 'Cama com colchão', ico: '🛏️', p: 180000, d: 'Dormir a sério: energia no máximo e +saúde' },
+  { id: 'colchao', t: 'Colchão', ico: '🛏️', p: 25000, d: 'Dormir em casa sem ser no chão frio (+75 energia)' },
+  { id: 'cama', t: 'Cama com colchão', ico: '🛏️', p: 180000, d: 'Dormir a sério: energia no máximo e +2 saúde' },
+  { id: 'cama2', t: 'Cama ortopédica de casal', ico: '🛏️', p: 480000, d: 'O melhor sono da tua vida: energia no máximo, +3 saúde e +2 felicidade' },
+  { id: 'arcond', t: 'Ar condicionado', ico: '❄️', p: 380000, d: 'Dormir fresco no calor: a tua cama descansa ainda mais (+1 saúde extra ao dormir)' },
   { id: 'mesa', t: 'Mesa e cadeiras', ico: '🪑', p: 85000, d: 'Refeições sentado(a), receber visitas' },
   { id: 'fogao', t: 'Fogão a gás', ico: '🍳', p: 130000, d: 'Cozinhar em casa — a comida mais barata' },
   { id: 'geladeira', t: 'Geladeira', ico: '🧊', p: 260000, d: 'Comida guardada: acordas com menos fome' },
-  { id: 'sofa', t: 'Sofá', ico: '🛋️', p: 210000, d: 'Descansar, ver TV e receber kambas' },
+  { id: 'sofa', t: 'Sofá', ico: '🛋️', p: 210000, d: 'Descansar, ver TV, receber kambas e fazer sestas sem risco (+40 energia)' },
   { id: 'tv', t: 'TV LED', ico: '📺', p: 280000, d: 'Ver a novela da Kalemba TV e o futebol (+felicidade)' },
   { id: 'som', t: 'Aparelho de som', ico: '🔊', p: 150000, d: 'Kizomba em casa (+felicidade)' },
   { id: 'guardaroupa', t: 'Guarda-roupa', ico: '🚪', p: 190000, d: 'Guardar a roupa: trocar de look em casa' },
@@ -8123,6 +8125,21 @@ function ivColchao(x, z, ry) {
     ivB(.7, .12, .4, '#f4f4f4', 0, .22, -.85);
   });
 }
+function ivCama2(x, z, ry) {   // cama ortopédica de casal: maior, cabeceira estofada
+  ivGrp(x, z, ry, () => {
+    ivB(2.4, .36, 3, '#3a2a1e', 0, .18, 0);
+    ivB(2.3, .3, 2.9, '#f7f4ef', 0, .5, 0);
+    ivB(2.2, .12, 1.7, new T.MeshStandardMaterial({ map: waxTex(['#8a1a2a', '#c9a227', '#f2f2f2', '#1d1d1d']) }), 0, .66, .45);
+    ivB(.9, .16, .5, '#ffffff', -.6, .66, -1.05); ivB(.9, .16, .5, '#ffffff', .6, .66, -1.05);
+    ivB(2.4, 1.15, .14, '#5a4632', 0, .58, -1.55);
+  });
+}
+function ivArcond(D, x, z) {   // unidade na parede + fluxo de ar
+  ivB(1.35, .45, .3, '#eef1f4', x, 2.62, z);
+  ivB(1.2, .06, .05, '#8a949e', x, 2.46, z + .13);
+  ivB(.22, .22, .05, '#2ab0d8', x - .48, 2.66, z + .14);
+  ivCol(D, x, z, 1.2, .5);
+}
 function ivCama(x, z, ry) {
   ivGrp(x, z, ry, () => {
     ivB(1.9, .32, 2.6, '#6b4a2a', 0, .16, 0);
@@ -8171,8 +8188,10 @@ function ivCasaVazia(D, tier) {
     ivB(.5, .04, .3, '#7a6a55', -W * .1, .02, H * .2, null, false);   // tapete velho enrolado
   }
   const ax = (fx, fz) => [W * fx, -H * fz];
-  if (tem('cama')) { const [x, z] = ax(.34, .36); ivCama(x, z, 0); ivCol(D, x, z, 2, 2.7); }
+  if (tem('cama2')) { const [x, z] = ax(.34, .36); ivCama2(x, z, 0); ivCol(D, x, z, 2.5, 3); }
+  else if (tem('cama')) { const [x, z] = ax(.34, .36); ivCama(x, z, 0); ivCol(D, x, z, 2, 2.7); }
   else if (tem('colchao')) { const [x, z] = ax(.34, .36); ivColchao(x, z, 0); ivCol(D, x, z, 1.6, 2.5); }
+  if (tem('arcond')) { const [x, z] = ax(.34, .36); ivArcond(D, x, z - 2.6); }
   if (tem('sofa')) { const [x, z] = ax(-.16, .16); ivSofa(x, z, Math.PI, tier === 'luxo' ? '#f4f1ea' : tier === 'apto' ? '#7a8794' : '#a3482a', Math.min(3.2, W * .22)); ivCol(D, x, z, Math.min(3.4, W * .24), 1); }
   if (tem('tv')) { const [x, z] = ax(-.16, .44); ivB(2.2, .55, .5, tier === 'simples' ? '#6b4a2a' : '#1d1d1d', x, 0, z); ivTV(x, .68, z - .12, 0, tier === 'luxo' ? 2.6 : 1.5); ivCol(D, x, z, 2.3, .6); }
   if (tem('mesa')) { const [x, z] = ax(.26, .24); ivTable(x, z, Math.min(2.4, W * .16), 1, .76, tier === 'simples' ? '#7a5236' : '#6b4423'); ivChair(x - .6, z - .75, 0, '#7a5236'); ivChair(x + .6, z - .75, 0, '#7a5236'); ivChair(x, z + .75, Math.PI, '#7a5236'); ivCol(D, x, z, 2.4, 1.8); }
@@ -12853,25 +12872,47 @@ function vrDormir(sesta) {
   const v = vrG();
   if (vrPreso()) return toast('🔒 Na cadeia dorme-se mal...');
   if (!sesta && !vrNearLoc('casa', 34)) return toast('🏠 Para dormires bem tens de estar em casa (ou faz uma sesta no jardim, com risco).');
-  const f = $('#fade'); f.innerHTML = `<div><small>${sesta ? 'Uma sesta no banco do jardim…' : 'Boa noite…'}</small><b>${sesta ? '😴' : '🌙'}</b></div>`; f.classList.add('on'); uiBlocked = true;
+  const visita = !sesta && G.visitando;
+  const penPr = visita ? Math.round(4000 * cid().custo / 500) * 500 : 0;
+  if (visita && G.dinheiro < penPr) return toast(`💸 Uma noite na Pensão Central custa ${kz(penPr)}. Se não chegar, faz uma sesta no jardim.`);
+  const f = $('#fade'); f.innerHTML = `<div><small>${sesta ? 'Uma sestinha…' : 'Boa noite…'}</small><b>${sesta ? '😴' : '🌙'}</b></div>`; f.classList.add('on'); uiBlocked = true;
   setTimeout(() => {
     f.classList.remove('on'); uiBlocked = !!panelId || modalOpen || !!phoneApp;
     if (sesta) {
-      v.energia = Math.min(100, v.energia + 30); v.fome = Math.max(0, v.fome - 5);
-      if (Math.random() < .3 && G.dinheiro > 0) { const p = Math.round(G.dinheiro * (.05 + Math.random() * .1)); G.dinheiro -= p; addLog(`😴 Fizeste uma sesta no jardim e acordaste sem ${kz(p)} na carteira. <i>Razão: dormir na rua é arriscado.</i>`, 'bad'); }
-      else toast('😴 Sesta feita: +30 de energia.');
+      const minha = G.casa && (G.casa.tipo === 'propria' || G.casa.tipo === 'arrendada');
+      const mv = G.moveis || [], emCasa = minha && !G.visitando && vrNearLoc('casa', 34);
+      if (emCasa && (mv.includes('cama2') || mv.includes('cama'))) { v.energia = Math.min(100, v.energia + 45); v.fome = Math.max(0, v.fome - 4); toast('😴 Sesta na tua cama: +45 de energia, zero riscos.'); }
+      else if (emCasa && mv.includes('sofa')) { v.energia = Math.min(100, v.energia + 40); v.fome = Math.max(0, v.fome - 4); toast('😴 Sesta no sofá: +40 de energia, zero riscos.'); }
+      else {
+        v.energia = Math.min(100, v.energia + 30); v.fome = Math.max(0, v.fome - 5);
+        if (Math.random() < .3 && G.dinheiro > 0) { const p = Math.round(G.dinheiro * (.05 + Math.random() * .1)); G.dinheiro -= p; addLog(`😴 Fizeste uma sesta no jardim e acordaste sem ${kz(p)} na carteira. <i>Razão: dormir na rua é arriscado — um sofá ou uma cama em casa evitam isto.</i>`, 'bad'); }
+        else toast('😴 Sesta feita: +30 de energia.');
+      }
+    } else if (visita) {
+      G.dinheiro -= penPr;
+      v.energia = Math.min(100, v.energia + 65); v.fome = Math.max(0, v.fome - 8);
+      addLog(`🏨 Noite na Pensão Central (${kz(penPr)}): cama simples mas limpa. Não é a tua cama, mas descansa. ` + fx({ saude: 1 }));
     } else {
       const minha = G.casa && (G.casa.tipo === 'propria' || G.casa.tipo === 'arrendada');
-      const mv = G.moveis || [];
-      if (minha && !mv.includes('cama') && !mv.includes('colchao')) {
+      const mv = G.moveis || [], frio = mv.includes('arcond');
+      if (G.casa && G.casa.tipo === 'rua') {
+        v.energia = Math.min(100, v.energia + 30); v.fome = Math.max(0, v.fome - 5);
+        addLog('🏚️ Noite no beliche do Abrigo da Missão: tecto e sopa, mas o corpo não descansa como deve ser. <i>Trabalha para teres a tua cama.</i>');
+      } else if (G.casa && G.casa.tipo === 'pais') {
+        v.energia = Math.min(100, v.energia + 85); v.fome = Math.max(0, v.fome - 10);
+        addLog('👨‍👩‍👧 Dormiste no teu quarto de sempre em casa dos teus pais — e a tua mãe ainda deixou o jantar. ' + fx({ saude: 1, felicidade: 1 }));
+      } else if (minha && !mv.includes('cama') && !mv.includes('colchao') && !mv.includes('cama2')) {
         v.energia = Math.min(100, v.energia + 45); v.fome = Math.max(0, v.fome - 8);
         addLog('🌙 Dormiste no chão frio da tua casa vazia e acordaste todo(a) dorido(a). <i>Compra pelo menos um colchão (Imobiliária → 🪑 Móveis).</i> ' + fx({ saude: -1, felicidade: -2 }), 'bad');
+      } else if (minha && mv.includes('cama2')) {
+        v.energia = 100; v.fome = Math.max(0, v.fome - 12 - (mv.includes('geladeira') ? 6 : 0));
+        addLog(`🌙 Noite de rei na tua cama ortopédica${frio ? ', com o ar condicionado no ponto' : ''}: acordaste como novo(a)! ` + fx({ saude: 3 + (frio ? 1 : 0), felicidade: 2 }));
       } else if (minha && !mv.includes('cama')) {
         v.energia = Math.min(100, v.energia + 75); v.fome = Math.max(0, v.fome - 10 - (mv.includes('geladeira') ? 4 : 0));
-        addLog('🌙 Dormiste no colchão no chão. Dá para descansar, mas uma cama a sério era outra coisa. ' + fx({ saude: 1 })); 
+        addLog('🌙 Dormiste no colchão no chão. Dá para descansar, mas uma cama a sério era outra coisa. ' + fx({ saude: 1 }));
       } else {
         v.energia = 100; v.fome = Math.max(0, v.fome - 12 - (mv.includes('geladeira') ? 6 : 0));
-        addLog('🌙 Dormiste bem na tua cama e acordaste com a energia no máximo. ' + fx({ saude: 2, felicidade: 1 + (mv.length >= 5 ? 1 : 0) }));
+        addLog(`🌙 Dormiste bem na tua cama${frio ? ', fresquinha com o ar condicionado' : ''} e acordaste com a energia no máximo. ` + fx({ saude: 2 + (frio ? 1 : 0), felicidade: 1 + (mv.length >= 5 ? 1 : 0) }));
       }
       if (typeof dayT !== 'undefined') dayT = .3;
     }
@@ -13103,7 +13144,11 @@ function vrVidaUI() {
   h += `<div class="vrneeds"><div><span>🍲 Fome</span><i><b style="width:${v.fome}%;background:${v.fome < 20 ? '#ff4d4d' : '#ff9f1a'}"></b></i><em>${Math.round(v.fome)}</em></div><div><span>⚡ Energia</span><i><b style="width:${v.energia}%;background:${v.energia < 15 ? '#ff4d4d' : '#3fd0ff'}"></b></i><em>${Math.round(v.energia)}</em></div></div>`;
   h += noteBox('Razões: com fome a zero perdes saúde e andas mais devagar; sem energia não consegues correr. Come e dorme como na vida real.');
   h += sec('Comer') + list(VR_FOOD.map(F => { const longe = F[7] && !vrNearLoc(F[7], 34); return btnItem(F[1], F[2], F[3] + ` · +${F[5]} fome${F[6] ? ` · +${F[6]} energia` : ''}${longe ? ' · <b style="color:#ff8a8a">longe daqui</b>' : ''}`, kzShort(F[4]), `vrComer('${F[0]}')`, longe); }));
-  h += sec('Descansar') + list([btnItem('🌙', 'Dormir em casa', 'Energia ao máximo e +2 saúde · tens de estar em casa', '', 'vrDormir(false)', !vrNearLoc('casa', 34)), btnItem('😴', 'Sesta no banco do jardim', '+30 energia em qualquer lado · 30% de risco de seres roubado(a)', '', 'vrDormir(true)')]);
+  h += sec('Descansar') + list([G.visitando
+    ? btnItem('🏨', 'Dormir na Pensão Central', `Cama simples e limpa: +65 energia, +1 saúde · ${kzShort(Math.round(4000 * cid().custo / 500) * 500)}/noite`, '', 'vrDormir(false)', !vrNearLoc('casa', 34))
+    : btnItem('🌙', 'Dormir em casa', 'Quanto melhor a cama, mais descansas: chão +45 · colchão +75 · cama 100% +2 saúde · ortopédica 100% +3 saúde', '', 'vrDormir(false)', !vrNearLoc('casa', 34)),
+    btnItem('😴', 'Sesta', 'Banco do jardim +30 (30% risco de roubo) · em casa: sofá +40 ou cama +45, sem risco', '', 'vrDormir(true)')]);
+  h += noteBox('💤 Parado na rua o corpo recupera energia devagarinho (até 40). Para encher mesmo, nada como uma cama boa.');
   h += sec('Definições') + list([btnItem('🔋', `Modo Leve: ${LITE ? 'LIGADO' : 'desligado'}`, 'Para telemóveis fracos: sem sombras, menos gente e carros, resolução mais baixa (recarrega o jogo)', '', 'vrLite()')]);
   return h;
 }
@@ -13180,7 +13225,9 @@ PANELS.cidade = {
       const v = vrG(), run = keys.ShiftLeft || keys.ShiftRight || (joy.active && Math.hypot(joy.x, joy.y) > .95);
       const k = (uiBlocked ? .4 : 1) * Math.min(dt, .5);
       const mov = keys.KeyW || keys.KeyA || keys.KeyS || keys.KeyD || keys.ArrowUp || keys.ArrowDown || keys.ArrowLeft || keys.ArrowRight || (joy.active && Math.hypot(joy.x, joy.y) > .15) || !!autoGo;
-      v.fome = Math.max(0, v.fome - k / 40 * (run ? 1.2 : 1)); v.energia = Math.max(0, v.energia - k / 70 * (!mov ? .3 : run ? 1.6 : 1));
+      v.fome = Math.max(0, v.fome - k / 40 * (run ? 1.2 : 1));
+      if (!mov && !run) v.energia = Math.min(40, v.energia + k / 10);   // parado na rua o corpo descansa um pouco (até 40 — uma cama boa descansa muito mais)
+      else v.energia = Math.max(0, v.energia - k / 70 * (run ? 1.6 : 1));
       VR.t += dt;
       if (VR.t > .33) {
         VR.t = 0; vrActBtn(); vrHud();
@@ -14064,11 +14111,8 @@ function v2RegenTxt() {
   const s = Math.max(0, Math.ceil(V2_REGEN_S - V2.regenT)); return `+1 em ${s}s`;
 }
 (function () {
-  const _vd = vrDormir; vrDormir = function (sesta) {
-    const r = _vd.apply(this, arguments);
-    try { const v = v2G(); if (!sesta && vrNearLoc('casa', 34) && !vrPreso() && v.dormAno !== G.ano && G.acoes < maxAcoes()) { v.dormAno = G.ano; setTimeout(() => { G.acoes = Math.min(maxAcoes(), G.acoes + 2); toast('🌙 Dormir bem em casa deu-te +2 de energia.'); save(); refresh(); }, 1400); } } catch (e) { }
-    return r;
-  };
+  /* (removido o bónus legado "+2 energia por dormir" — com a energia unificada (ano9) o descanso
+     vem todo dos níveis de cama em vrDormir: chão +45 · colchão +75 · cama 100 · ortopédica 100++) */
   const _rf = refresh; refresh = function () {
     const r = _rf.apply(this, arguments);
     try { const he = document.getElementById('hEnergy'); if (he && G && !he.querySelector('.v2rg')) he.insertAdjacentHTML('beforeend', `<small class="v2rg">${v2RegenTxt()}</small>`); } catch (e) { }
