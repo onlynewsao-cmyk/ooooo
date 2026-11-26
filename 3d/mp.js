@@ -8,7 +8,7 @@
    Carregado por último (depois de sound.js).
    ========================================================= */
 const MP = {
-  me: null, nick: '', since: 0, online: 1, others: new Map(), busy: false, room: 'rua', mute: 0,
+  me: null, nick: '', since: 0, online: 1, others: new Map(), busy: false, room: 'rua', mute: 0, wx: 'auto', inv: false,
   last: null, lastT: 0, cfgKey: '', ticks: 0, offline: false, myBub: null, err: 0, seen: new Set(),
   scope: localStorage.getItem('pe3d_scope') === 'perto' ? 'perto' : 'todos', heard: null, musT: 0, plOpen: false,
   cfgs: new Map(), need: [], sh: 0, shWant: +(localStorage.getItem('pe3d_sh') || 0) || 0, shards: [], shOn: 1, needCfg: false,
@@ -271,6 +271,7 @@ async function mpTick() {
     MP.last = { x: p.x, z: p.z }; MP.lastT = now;
     const cfg = playerCfg(), ck = JSON.stringify(cfg);
     const body = { room, x: +p.x.toFixed(2), z: +p.z.toFixed(2), yaw: +playerYaw.toFixed(3), mv, em: player.emoteT > 0 ? player.emote : null, nick: G.nome, since: MP.since, mu: (typeof SND !== 'undefined') && SND.RADIO.on ? [SND.RADIO.idx, +SND.RADIO.pos().toFixed(1)] : null }; body.dv = typeof DEV_ID !== 'undefined' ? DEV_ID : '';
+    if (MP.inv) body.inv = 1;   // 👑 modo invisível do Criador
     if (typeof LIVE !== 'undefined') Object.assign(body, LIVE.mpBody());
     if (ck !== MP.cfgKey || MP.needCfg || MP.ticks % 200 === 0) { body.cfg = cfg; MP.cfgKey = ck; }
     body.cv = 1; if (MP.need.length) body.need = MP.need.slice(0, 10);
@@ -281,10 +282,15 @@ async function mpTick() {
     MP.busy = false;
     if (!r.ok) {   // servidor ocupado (429) ou nó em baixo (502/503): espera mais e, se persistir, pede outra cidade
       MP.err++; wait = Math.min(8000, 1500 * MP.err);
+      if (r.status === 403) {   // 👑 expulso da cidade pelo Criador
+        try { const ej = await r.clone().json(); if (ej.erro) { toast('🥾 ' + ej.erro); addLog('🥾 ' + esc(ej.erro), 'bad'); } } catch (e) { }
+        MP.err = 0; wait = 65000; return;
+      }
       if (MP.err >= 4 && r.status >= 500) { MP.sh = 0; MP.shWant = 0; MP.since = 0; }
       return;
     }
     const t0 = now; const d = await r.json(); MP.err = 0;
+    if (d.wx) MP.wx = d.wx;   // 👑 tempo comandado pelo Criador
     if (d.move) { MP.sh = 0; MP.shWant = d.move; MP.since = 0; wait = 60; return; }   // a cidade pedida está noutro servidor
     if (typeof LIVE !== 'undefined') try { LIVE.onMp(d, (performance.now() - t0) / 2000); } catch (e) { console.error(e); }
     MP.me = d.me; MP.nick = d.nick; MP.online = d.online; MP.needCfg = !!d.needCfg; MP.pm = +d.pm || 1;

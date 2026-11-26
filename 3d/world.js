@@ -1383,6 +1383,9 @@ function mkRain() {
   rainPts.frustumCulled = false; rainPts.visible = false; worldScene.add(rainPts);
 }
 function wthTick(dt) {
+  const wxm = (typeof MP !== 'undefined' && MP.wx) || 'auto';   // 👑 o Criador comanda o céu
+  if (wxm === 'chuva') { WTH.alvo = 1; if (WTH.proxT < 30) WTH.proxT = 30; }
+  else if (wxm === 'sol') { WTH.alvo = 0; if (WTH.proxT < 30) WTH.proxT = 30; }
   WTH.proxT -= dt;
   if (WTH.proxT <= 0) {   // o tempo muda: chuva forte 45–100 s, seca 2,5–6 min
     WTH.alvo = WTH.alvo > 0 ? 0 : .55 + Math.random() * .45;
@@ -1407,6 +1410,8 @@ function updateWorld(dt) {
   wTime += dt;
   // ciclo dia/noite (6 min)
   dayT = (dayT + dt / 360) % 1;
+  const wxd = (typeof MP !== 'undefined' && MP.wx) || 'auto';   // 👑 noite/dia eternos se o Criador quiser
+  if (wxd === 'noite') dayT = 0.85; else if (wxd === 'dia') dayT = 0.30;
   wthTick(dt);
   const ang = dayT * Math.PI * 2 - Math.PI / 2;
   const elev = Math.sin(ang);

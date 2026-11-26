@@ -583,7 +583,7 @@ function fx(o) {
 }
 function canAct() {
   if (G.preso > 0) { toast('🔒 Estás preso(a)! Só podes esperar...'); return false; }
-  if (G.acoes <= 0) { toast('⚡ Sem energia! Come alguma coisa, descansa ou dorme em casa.'); return false; }
+  if (G.acoes <= 0 && !G.criador) { toast('⚡ Sem energia! Come alguma coisa, descansa ou dorme em casa.'); return false; }   // 👑 o Criador não cansa
   return true;
 }
 function pay(v) { if (G.criador) { G.dinheiro = Math.max(0, G.dinheiro - v); return true; } if (G.dinheiro < v) { toast('💸 Não tens kumbu suficiente! Precisas de ' + kz(v)); return false; } G.dinheiro -= v; return true; }
@@ -597,7 +597,7 @@ function after(txt, cls, anim) {
 function doAct(cost, fn, anim) {
   if (!canAct()) return;
   if (cost && !G.criador && G.dinheiro < cost) return toast('💸 Não tens kumbu suficiente! Precisas de ' + kz(cost));
-  G.acoes--; if (cost) G.dinheiro -= cost;
+  G.acoes = G.criador ? Math.max(G.acoes, 10) : G.acoes - 1; if (cost) G.dinheiro -= cost;   // 👑 energia infinita do Criador
   const r = fn();
   after(r, '', anim || 'cheer');
 }

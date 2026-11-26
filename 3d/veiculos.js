@@ -761,7 +761,7 @@ function vhRoadUI(cat) {
   if (cat === 'bike') h += noteBox('🚲 De bicicleta só dá para destinos até 60 km. Para mais longe, apanha o comboio ou um voo!');
   return h;
 }
-function vhEnergy(n) { if (!canAct()) return false; if (G.acoes < n) { toast(`⚡ Esta viagem gasta ${n * 10} de energia. Come ou descansa primeiro.`); return false; } return true; }
+function vhEnergy(n) { if (G.criador) return true; if (!canAct()) return false; if (G.acoes < n) { toast(`⚡ Esta viagem gasta ${n * 10} de energia. Come ou descansa primeiro.`); return false; } return true; }
 function vhGo(cat, did) {
   const d = TR_ROAD.find(x => x.id === did), sel = vhSel(cat), C = VH_CAT[cat], need = d.km > 800 ? 2 : 1;
   if (sel === 'rent') { const r = vhRentOk(cat); if (r) return toast('🔑 Para alugar precisas de: ' + r + '.'); }

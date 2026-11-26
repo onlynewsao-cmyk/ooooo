@@ -125,6 +125,8 @@ SOCT = {}      # (de, para, ação) -> última vez
 KZDAY = {}     # uid -> (dia, total enviado hoje)
 NAMP = {}      # (de, para) -> pedido de namoro pendente {t, info}
 REPORTS = {}   # uid denunciado -> {denunciante: t}
+WX = {'modo': 'auto', 'fim': 0}   # 👑 tempo controlado pelo Criador: auto|sol|chuva|noite|dia
+KICK = {}      # uid -> ts até quando está expulso da cidade
 PFC = {}       # cache de perfis: uid -> (t, dados)
 DESP = {}      # (desafiante, desafiado) -> desafio pendente
 PRESENTES = ('flores', 'chocolate', 'gasosa', 'perfume', 'relogio', 'pano', 'telemovel', 'carro')
@@ -413,10 +415,10 @@ def _shard(want=None):
 def _batota(uid, nick, kz, now):
     """anti-batota básico: dinheiro absurdo ou saltos impossíveis marcam a conta"""
     kz = _num(kz, -1e15, 1e15)
-    if uid in ADMC:   # a conta do Criador pode ter dinheiro infinito
-        return kz
     prev = KZH.get(uid)
     KZH[uid] = (now, kz)
+    if ADMC.get(uid):   # a conta do Criador pode ter dinheiro infinito
+        return kz
     if uid in SUS:
         return kz
     if kz > 5e11:
@@ -755,6 +757,8 @@ class H(SimpleHTTPRequestHandler):
             return self.send_json(401, {'erro': 'Sessão inválida. Entra outra vez.'})
         uid, nome_conta = who[0], who[1]
         now = time.time()
+        if KICK.get(uid, 0) > now:
+            return self.send_json(403, {'erro': f'👑 O Criador expulsou-te da cidade. Volta daqui a {round(KICK[uid] - now)} s.'})
         evs = None
         if p == '/api/mp' and (uid not in GTAG or uid not in ADMC):   # consulta à base de dados FORA do cadeado (não bloqueia os outros)
             try:
@@ -850,6 +854,8 @@ class H(SimpleHTTPRequestHandler):
                     _pol_tick(now)
                 vh = d.get('vh')
                 st['vh'] = re.sub(r'[^a-z0-9#:]', '', str(vh).lower())[:24] if vh else None
+                if ADMC.get(uid):   # 👑 modo invisível: o Criador some da vista dos outros
+                    st['inv'] = 1 if d.get('inv') else None
                 mu = d.get('mu')
                 st['mu'] = [int(_num(mu[0], 0, 50)), round(_num(mu[1], 0, 900), 1)] if isinstance(mu, list) and len(mu) == 2 else None
                 _cartao(st)
@@ -861,6 +867,8 @@ class H(SimpleHTTPRequestHandler):
                 near = []
                 for o in PLAYERS.values():
                     if o['id'] == uid or o['room'] != room or o.get('sh') != sh or not o.get('cfg'):
+                        continue
+                    if o.get('inv') and not ADMC.get(uid):   # o Criador invisível não aparece para os outros
                         continue
                     dd = (o['x'] - st['x']) ** 2 + (o['z'] - st['z']) ** 2
                     if room == 'rua' and dd > v2:
@@ -899,7 +907,8 @@ class H(SimpleHTTPRequestHandler):
                                             'gov': GOV[0], 'polOn': A['pol'],
                                             'eleicao': {'ronda': el['ronda'], 'fim': max(0, round(el['fim'] - now)), 'n': el['n']},
                                             'all': [{k: o.get(k) for k in ('id', 'nick', 'room', 'job', 'wl', 'pol', 'gt', 'cad', 'vh')}
-                                                    for o in PLAYERS.values() if o.get('sh') == sh][:200] if d.get('all') else None})
+                                                    for o in PLAYERS.values() if o.get('sh') == sh and (not o.get('inv') or ADMC.get(uid))][:200] if d.get('all') else None,
+                                            'wx': WX['modo'] if WX['fim'] > now else 'auto'})
             nick = NICKC.get(uid, (None, nome_conta))[1]
             st = PLAYERS.get(uid)
             if p in ('/api/crime', '/api/prender', '/api/fianca', '/api/amigos', '/api/grupo', '/api/pol', '/api/social'):
@@ -1111,7 +1120,7 @@ class H(SimpleHTTPRequestHandler):
         E = lambda t: self.send_json(200, {'ok': False, 'erro': t})
         cr = _crim(uid, now)
         if p == '/api/crime':
-            if uid in ADMC:
+            if ADMC.get(uid):
                 return E('👑 O Criador não precisa de crime — tens kumbu infinito.')
             if not st or st.get('room') is None:
                 return E('Entra na cidade primeiro.')
@@ -1180,7 +1189,7 @@ class H(SimpleHTTPRequestHandler):
                 return E('Essa pessoa já está presa.')
             if not ca or ca['wl'] <= 0:
                 return E('Esta pessoa não é procurada. Prender inocentes é abuso de poder!')
-            if alvo.get('adm') or aid in ADMC:
+            if alvo.get('adm') or ADMC.get(aid):
                 return E('👑 O Criador não pode ser preso.')
             wl = ca['wl']
             secs = CAD_POR_WL * wl
@@ -1537,6 +1546,7 @@ class H(SimpleHTTPRequestHandler):
                 return self.send_json(200, {'user': public(u), 'save': json.loads(u['save']) if u['save'] else None,
                                             'meta': json.loads(u['meta']) if u['meta'] else None})
         if self.path == '/api/admin/painel':
+            now = time.time()
             with db() as c:
                 u = self.user(c, 'u.id, u.nome, u.adm')
                 if not u or not u['adm']:
@@ -1556,7 +1566,8 @@ class H(SimpleHTTPRequestHandler):
                     for r in c.execute('SELECT id, nome FROM users WHERE id IN (' + q + ')', list(ids)).fetchall():
                         nomes[r['id']] = r['nome']
             sus = [{'id': i, 'nome': nomes.get(i, '?'), 'motivo': m} for i, m in SUS.items()]
-            online = [{'id': s2.get('id'), 'nome': nomes.get(s2.get('id'), '?'), 'kz': int(_num(s2.get('kz'), 0, 1e15)), 'sala': str(s2.get('room') or ''), 'sus': s2.get('id') in SUS} for s2 in list(PLAYERS.values())[:80]]
+            online = [{'id': s2.get('id'), 'nome': nomes.get(s2.get('id'), '?'), 'kz': int(_num(s2.get('kz'), 0, 1e15)), 'sala': str(s2.get('room') or ''), 'sus': s2.get('id') in SUS,
+                       'x': round(_num(s2.get('x'), 0, 1e5), 1), 'z': round(_num(s2.get('z'), 0, 1e5), 1), 'inv': 1 if s2.get('inv') else 0, 'cad': max(0, round(CRIM.get(s2.get('id'), {}).get('cad', 0) - now))} for s2 in list(PLAYERS.values())[:80]]
             return self.send_json(200, {'ok': True, 'contas': contas, 'online': online, 'sus': sus,
                                         'banidos': [{'id': b, 'nome': nomes.get(b, '?')} for b in bans],
                                         'ultimos': ultimos, 'no': NODE})
@@ -1737,6 +1748,123 @@ class H(SimpleHTTPRequestHandler):
                 ADMC.pop(u['id'], None)
                 _aud(u, 'ativou o modo administrador')
                 return self.send_json(200, {'ok': True, 'adm': True})
+            if p == '/api/admin/poderes':
+                if not u['adm']:
+                    return self.send_json(404, {'erro': 'Não encontrado'})
+                now = time.time()
+                op = str(d.get('op', ''))
+                aid = int(_num(d.get('uid'), 0, 1e12))
+                if op == 'anuncio':
+                    txt = str(d.get('txt') or '')[:140].strip()
+                    if not txt:
+                        return self.send_json(400, {'erro': 'Escreve o anúncio.'})
+                    limpo, hits, bloq, motivo = filtrar(txt)
+                    if bloq:
+                        return self.send_json(400, {'erro': 'O anúncio foi bloqueado pelo filtro (' + motivo + ').'})
+                    _sys('📢 <b>O Criador:</b> ' + limpo)
+                    _aud(u, 'anuncio: ' + limpo)
+                    return self.send_json(200, {'ok': True})
+                if op == 'chuva':
+                    v = int(_num(d.get('v'), 1000, 100_000_000))
+                    n = 0
+                    for o in list(PLAYERS.values()):
+                        if o['id'] != u['id']:
+                            _ev(o['id'], {'t': 'adm_kz', 'v': v, 'chuva': 1})
+                            n += 1
+                    _sys(f'🌧️💸 <b>Chuva de kumbu!</b> O Criador ofereceu {v:,.0f} Kz a {n} jogador(es) online.'.replace(',', ' '))
+                    _aud(u, f'chuva {v} Kz x {n}')
+                    return self.send_json(200, {'ok': True, 'n': n})
+                if op == 'tempo':
+                    modo = str(d.get('modo') or 'auto')
+                    if modo not in ('auto', 'sol', 'chuva', 'noite', 'dia'):
+                        modo = 'auto'
+                    WX['modo'], WX['fim'] = modo, (now + 600 if modo != 'auto' else 0)
+                    msg = {'sol': '☀️ O Criador afastou as nuvens: sol radioso!', 'chuva': '🌧️ O Criador chamou um aguaceiro tropical!',
+                           'noite': '🌙 O Criador fez a noite cair sobre a cidade.', 'dia': '🌅 O Criador trouxe o dia de volta.',
+                           'auto': '🌦️ O tempo voltou ao seu ritmo normal.'}[modo]
+                    _sys(msg)
+                    _aud(u, 'tempo: ' + modo)
+                    return self.send_json(200, {'ok': True, 'modo': modo})
+                if op == 'limpar_chat':
+                    CHAT.clear()
+                    _sys('🧹 O Criador limpou o chat da cidade.')
+                    _aud(u, 'limpar_chat')
+                    return self.send_json(200, {'ok': True})
+                if op == 'kick':
+                    if not aid:
+                        return self.send_json(400, {'erro': 'Jogador inválido.'})
+                    KICK[aid] = now + 60
+                    PLAYERS.pop(aid, None)
+                    _aud(u, f'kick -> #{aid}')
+                    return self.send_json(200, {'ok': True})
+                if op in ('dar', 'tirar'):
+                    v = int(_num(d.get('v'), 0, 1e12))
+                    if v <= 0 or not aid:
+                        return self.send_json(400, {'erro': 'Valor ou jogador inválido.'})
+                    if op == 'tirar':
+                        v = -v
+                    if aid in PLAYERS:
+                        _ev(aid, {'t': 'adm_kz', 'v': v})
+                        _aud(u, f'{op} {abs(v)} -> #{aid} (online)')
+                        return self.send_json(200, {'ok': True, 'via': 'online'})
+                    r2 = c.execute('SELECT nome, save FROM users WHERE id=?', (aid,)).fetchone()
+                    if not r2 or not r2['save']:
+                        return self.send_json(400, {'erro': 'Essa conta ainda não tem vida criada.'})
+                    sv = json.loads(r2['save'])
+                    sv['dinheiro'] = max(0, int(_num(sv.get('dinheiro'), 0, 1e15)) + v)
+                    c.execute('UPDATE users SET save=? WHERE id=?', (json.dumps(sv, separators=(',', ':')), aid))
+                    _aud(u, f'{op} {abs(v)} -> #{aid} (offline)')
+                    return self.send_json(200, {'ok': True, 'via': 'save'})
+                if op == 'soltar':
+                    cr2 = CRIM.get(aid)
+                    if cr2:
+                        cr2['cad'] = 0
+                        cr2['wl'] = 0
+                    _ev(aid, {'t': 'solto'})
+                    _aud(u, f'soltar -> #{aid}')
+                    return self.send_json(200, {'ok': True})
+                if op == 'mute':
+                    MUTE[aid] = now + 600
+                    _ev(aid, {'t': 'mute', 'secs': 600})
+                    _aud(u, f'mute 10min -> #{aid}')
+                    return self.send_json(200, {'ok': True})
+                if op == 'desmute':
+                    MUTE.pop(aid, None)
+                    _aud(u, f'desmute -> #{aid}')
+                    return self.send_json(200, {'ok': True})
+                if op == 'ver':
+                    r2 = c.execute('SELECT nome, email, criado FROM users WHERE id=?', (aid,)).fetchone()
+                    if not r2:
+                        return self.send_json(400, {'erro': 'Conta não encontrada.'})
+                    r3 = c.execute('SELECT save FROM users WHERE id=?', (aid,)).fetchone()
+                    sv = json.loads(r3['save']) if r3 and r3['save'] else None
+                    vida = None
+                    if sv:
+                        vida = {'idade': sv.get('idade'), 'ano': sv.get('ano'),
+                                'dinheiro': int(_num(sv.get('dinheiro'), 0, 1e15)),
+                                'poupanca': int(_num(sv.get('poupanca'), 0, 1e15)),
+                                'prov': (sv.get('cidade') or {}).get('prov'), 'mun': (sv.get('cidade') or {}).get('mun'),
+                                'stats': sv.get('stats') or {}, 'bens': len(sv.get('bens') or []),
+                                'emprego': (sv.get('emprego') or {}).get('id'), 'casa': (sv.get('casa') or {}).get('tipo'),
+                                'preso': sv.get('preso', 0)}
+                    return self.send_json(200, {'ok': True, 'nome': r2['nome'], 'email': r2['email'], 'criado': r2['criado'],
+                                                'on': aid in PLAYERS, 'vida': vida})
+                if op == 'economia':
+                    contas = c.execute('SELECT COUNT(*) AS n FROM users').fetchone()['n']
+                    total, vidas = 0, 0
+                    for r2 in c.execute('SELECT save FROM users WHERE save IS NOT NULL LIMIT 20000').fetchall():
+                        try:
+                            sv = json.loads(r2['save'])
+                            total += _num(sv.get('dinheiro'), 0, 1e15) + _num(sv.get('poupanca'), 0, 1e15)
+                            vidas += 1
+                        except Exception:
+                            pass
+                    online_kz = sum(_num(o.get('kz'), 0, 1e15) for o in PLAYERS.values())
+                    top = sorted(LEAD.values(), key=lambda r: r[1], reverse=True)[:10]
+                    return self.send_json(200, {'ok': True, 'contas': contas, 'vidas': vidas, 'total': int(total),
+                                                'online_kz': int(online_kz), 'online': len(PLAYERS),
+                                                'top': [{'n': r2[0], 'kz': r2[1]} for r2 in top if r2[1] > 0]})
+                return self.send_json(400, {'erro': 'Poder desconhecido.'})
             if p == '/api/admin/acao':
                 if not u['adm']:
                     return self.send_json(404, {'erro': 'Não encontrado'})

@@ -756,6 +756,15 @@ function v4Event(e) {
       return true;
     }
     case 'kz': { const v = Math.max(0, Math.min(5000000, +e.v || 0)); G.dinheiro += v; addLog(`💸 <b>${esc(e.de)}</b> enviou-te ${kzShort(v)} pelo DarkCell Money.`, 'gold'); ban('💸', e.de, `enviou-te ${kzShort(v).replace(/<[^>]+>/g, '')}`, e.id); try { SND.play('coin'); } catch (x) { } save(); refresh(); return true; }
+    case 'adm_kz': {   // 👑 o Criador dá (ou tira) kumbu
+      const v = Math.max(-1e12, Math.min(1e12, +e.v || 0)); if (!v) return true;
+      G.dinheiro = Math.max(0, G.dinheiro + v);
+      if (e.chuva) { addLog(`🌧️💸 <b>Chuva de kumbu!</b> O Criador ofereceu <b>${kzShort(v)}</b> a toda a gente online.`, 'gold'); ban('🌧️💸', 'O Criador', `fez chover ${kzShort(v).replace(/<[^>]+>/g, '')} para ti!`); }
+      else { addLog(`${v > 0 ? '💰' : '📉'} <b>O Criador</b> ${v > 0 ? 'deu-te' : 'tirou-te'} <b>${kzShort(Math.abs(v))}</b>.`, 'gold'); ban(v > 0 ? '💰' : '📉', 'O Criador', `${v > 0 ? 'deu-te' : 'tirou-te'} ${kzShort(Math.abs(v)).replace(/<[^>]+>/g, '')}`); }
+      try { SND.play('coin'); } catch (x) { } save(); refresh(); return true;
+    }
+    case 'solto': addLog('🔓 <b>O Criador soltou-te!</b> A tua ficha criminal ficou limpa.', 'gold'); ban('🔓', 'O Criador', 'soltou-te — ficha limpa'); try { SND.play('notif'); } catch (x) { } return true;
+    case 'mute': addLog(`🔇 <b>O Criador silenciou-te</b> no chat durante ${Math.round((+e.secs || 600) / 60)} minutos.`, 'bad'); ban('🔇', 'O Criador', 'silenciou-te no chat'); return true;
     case 'presente': {
       const g = V4_GIFTS.find(x => x.id === e.g) || { ico: '🎁', t: 'um presente', fx: { felicidade: 3 } };
       let extra = '';
