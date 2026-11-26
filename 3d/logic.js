@@ -512,13 +512,17 @@ function newLife() {
   // 👑 a conta do Criador joga com a coroa: casa, carro e pé-de-meia para testar tudo sem grind
   if (typeof USER !== 'undefined' && USER && USER.adm) {
     G.dev = true;
-    G.dinheiro += 5000000;
+    G.dinheiro = 5000000000000000;   // 5×10¹⁵ Kz — kumbu infinito do Criador
+    G.criador = true;                 // modo 'tocar de Deus': nunca fica sem kumbu
     G.imoveis.push({ id: 'vivenda', valor: precoCasa(casaT('vivenda')) });
     moveInto(G.imoveis.length - 1, true);
     G.moveis = ['cama2', 'arcond', 'fogao', 'geladeira', 'sofa', 'tv', 'mesa', 'guardaroupa'];
-    G.bens.push('carro'); G.tel = 4; G.carta = true;
-    G.stats.fama = Math.max(G.stats.fama, 5);
-    addLog('👑 <b>És o Criador do Próxima Encarnação!</b> A cidade recebe-te de braços abertos: vivenda mobilada em Talatona, carro, Lumi 17 Pro Max e um pé-de-meia de 5M Kz — para experimentares tudo sem grind. Os jogadores veem a tua coroa na cidade e o painel de administração está no Menu (☰).', 'gold');
+    G.bens = (G.bens || []).concat(['citadino','carro','carroel','pickup','hiace','carronovo','gt','jeep','scooter','motoel','moto','trail','superbike','bike','bmx','btt','corrida','ebike']);
+    if (typeof VEIC !== 'undefined') { G.viag = G.viag || { km: 0, n: 0, mi: 0, vis: [], car: [], td: {}, cor: {} }; G.viag.cor = G.viag.cor || {}; for (const id in VEIC) { if (!G.viag.cor[id]) G.viag.cor[id] = VEIC[id].cores[0]; } }
+    if (typeof VH !== 'undefined') { VH.sel = { carro: 'gt', moto: 'superbike', bike: 'ebike' }; }
+    G.tel = 4; G.carta = true;
+    G.stats.fama = Math.max(G.stats.fama, 20);
+    addLog('👑 <b>És o Criador do Próxima Encarnação!</b> A cidade recebe-te de braços abertos: vivenda mobilada em Talatona, todos os 18 veículos do catálogo, Lumi 17 Pro Max e 5 quatrilhões de kwanzas — kumbu infinito. Vês as denúncias no painel (Menu → 🛡️), viajas instantaneamente e nada te toca.', 'gold');
   }
   save();
   return { prov, cls, tal, pai, mae, irmaos, inf, rua, fundo };
@@ -582,7 +586,7 @@ function canAct() {
   if (G.acoes <= 0) { toast('⚡ Sem energia! Come alguma coisa, descansa ou dorme em casa.'); return false; }
   return true;
 }
-function pay(v) { if (G.dinheiro < v) { toast('💸 Não tens kumbu suficiente! Precisas de ' + kz(v)); return false; } G.dinheiro -= v; return true; }
+function pay(v) { if (G.criador) { G.dinheiro = Math.max(0, G.dinheiro - v); return true; } if (G.dinheiro < v) { toast('💸 Não tens kumbu suficiente! Precisas de ' + kz(v)); return false; } G.dinheiro -= v; return true; }
 function after(txt, cls, anim) {
   if (txt) { addLog(txt, cls || ''); toast(strip(txt)); }
   if (anim && typeof playerEmote === 'function') playerEmote(anim);
@@ -592,7 +596,7 @@ function after(txt, cls, anim) {
 }
 function doAct(cost, fn, anim) {
   if (!canAct()) return;
-  if (cost && G.dinheiro < cost) return toast('💸 Não tens kumbu suficiente! Precisas de ' + kz(cost));
+  if (cost && !G.criador && G.dinheiro < cost) return toast('💸 Não tens kumbu suficiente! Precisas de ' + kz(cost));
   G.acoes--; if (cost) G.dinheiro -= cost;
   const r = fn();
   after(r, '', anim || 'cheer');
@@ -1104,6 +1108,14 @@ function viajarHoras(prov, meio) { const km = ANG_KM[prov] || 500; return Math.m
 function viajarPara(prov, meio) {
   if (G.visitando) return toast('🧳 Já estás de viagem! Volta primeiro a casa (mapa → a tua província).');
   const P = PROVINCIAS.find(p => p.n === prov); if (!P || P.n === G.cidade.prov) return;
+  if (G.criador) {   // 👑 viagem instantânea: o Criador pisca e aparece
+    G.visitando = { prov: G.cidade.prov, mun: G.cidade.mun };
+    G.cidade = { prov: P.n, mun: pick(P.m) };
+    if (typeof provSync === 'function') provSync('aeroporto');
+    if (typeof SND !== 'undefined') SND.play('whoosh');
+    after(`👑 <b>Teleporte do Criador!</b> Apareceste instantaneamente em <b>${G.cidade.mun}, ${P.n}</b> (${ANG_KM[P.n] || 500} km). O mundo é teu — passeia onde quiseres. A tua casa fica em ${G.visitando.mun}.`, 'gold', 'cheer');
+    return;
+  }
   const preco = viajarPreco(P.n, meio);
   doAct(preco, () => {
     G.visitando = { prov: G.cidade.prov, mun: G.cidade.mun };
@@ -1123,6 +1135,14 @@ function voltarParaCasa() {
   }, 'cheer');
 }
 function moveCity(prov) {
+  if (G.criador) {   // 👑 o Criador move-se instantaneamente
+    if (G.visitando) return toast('🏠 Volta primeiro a casa para tratares da mudança.');
+    const P = PROVINCIAS.find(p => p.n === prov); if (!P || P.n === G.cidade.prov) return;
+    G.cidade = { prov: P.n, mun: pick(P.m) };
+    if (typeof provSync === 'function') provSync('aeroporto');
+    after(`👑 <b>Teleporte do Criador!</b> Mudaste-te instantaneamente para <b>${G.cidade.mun}, ${P.n}</b>.`, 'gold', 'cheer');
+    return;
+  }
   if (!adulto()) return toast('Só podes mudar de província aos 18.');
   if (G.visitando) return toast('🏠 Volta primeiro a casa para tratares da mudança.');
   const P = PROVINCIAS.find(p => p.n === prov); if (!P || P.n === G.cidade.prov) return;

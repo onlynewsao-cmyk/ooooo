@@ -61,6 +61,22 @@ async function admLoadMulti() {
   } catch (e) { el.innerHTML = `<p class="center" style="padding:30px">❌ ${esc(e.message)}</p>`; }
 }
 
+/* ---------------- separador: denúncias de membros ---------------- */
+function admTabDen() { setTimeout(admLoadDen, 30); return '<div id="admB"><p class="center" style="padding:30px">⏳ A carregar…</p></div>'; }
+async function admLoadDen() {
+  const el = document.getElementById('admB'); if (!el) return;
+  try {
+    const d = await admApi('admin/denuncias');
+    const itens = d.denuncias || [];
+    el.innerHTML = '<p class="fxs" style="opacity:.8;margin:4px 0 10px">Denúncias feitas pelos jogadores (últimos 10 min). 3 denúncias à mesma pessoa bloqueiam-na automaticamente por 5 min.</p>'
+      + (itens.length ? itens.map(x => `<div class="apsec" style="margin-bottom:8px"><b>🚨 ${esc(x.nome)} <small>#${x.id}</small> · ${x.n} denúncia${x.n > 1 ? 's' : ''}</b></div><div class="list">`
+        + x.den.map(r => _admRow('🗣️', esc(r.nome) + ' <small>#' + r.id + '</small>', _admDt(r.t))).join('') + '</div>'
+        + `<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap"><button class="btn btn-ghost" style="padding:6px 10px;font-size:12px" onclick="admAcao('banir',${x.id},'${esc(x.nome).replace(/'/g, '')}')">🚫 Banir</button></div>`).join('')
+        : '<p class="center" style="padding:20px">✅ Nenhuma denúncia ativa agora.</p>')
+      + (d.log && d.log.length ? '<h4 style="margin:12px 0 4px">📜 Últimas denúncias registadas</h4><div class="list">' + d.log.map(l => { const p = l.split('\t'); return _admRow('📝', esc(p[3] || '?') + ' → ' + esc(p[4] || '?'), esc(p[0] || '') + (p[5] ? ' · ' + esc(p[5]) : '')); }).join('') + '</div>' : '');
+  } catch (e) { el.innerHTML = `<p class="center" style="padding:30px">❌ ${esc(e.message)}</p>`; }
+}
+
 /* ---------------- separador: jogadores online ---------------- */
 function admTabOn() { setTimeout(admLoadOn, 30); return '<div id="admB"><p class="center" style="padding:30px">⏳ A carregar…</p></div>'; }
 async function admLoadOn() {
@@ -79,5 +95,5 @@ async function admLoadOn() {
 /* ---------------- registar o painel ---------------- */
 if (typeof PANELS !== 'undefined') PANELS.admin = {
   ico: '🛡️', t: 'Administração', sub: 'Só para o dono do jogo',
-  tabs: [['vis', '📊 Visão geral', admTabVis], ['multi', '🕵️ Multicontas', admTabMulti], ['on', '🟢 Jogadores', admTabOn]],
+  tabs: [['vis', '📊 Visão geral', admTabVis], ['multi', '🕵️ Multicontas', admTabMulti], ['on', '🟢 Jogadores', admTabOn], ['den', '🚨 Denúncias', admTabDen]],
 };

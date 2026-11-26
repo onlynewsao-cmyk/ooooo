@@ -709,13 +709,23 @@ function vhSetCor(id, c) {
 }
 function vhBuy(id) {
   const V = VEIC[id]; if (vhIdade(V) > G.idade) return toast(`🧒 Só a partir dos ${vhIdade(V)} anos.`);
+  if (G.criador) {   // 👑 garagem do Criador: leva o modelo de graça
+    if (!G.bens.includes(id)) {
+      G.bens.push(id);
+      vhG().cor[id] = vhCor(id); VH.sel[V.cat] = id;
+      if (typeof SND !== 'undefined') SND.play(V.cat === 'bike' ? 'bell2' : 'car');
+      toast('👑 ' + V.t + ' adicionado à garagem do Criador!');
+      save();
+    }
+    renderPanel(true); return;
+  }
   buyBem(id); if (G.bens.includes(id)) { vhG().cor[id] = vhCor(id); VH.sel[V.cat] = id; if (typeof SND !== 'undefined') SND.play(V.cat === 'bike' ? 'bell2' : 'car'); save(); }
   renderPanel(true);
 }
 function vhSell(id) { sellBem(id); renderPanel(true); }
 function vhTest(id) {
-  const V = VEIC[id], v = vhG(); if (V.carta && !G.carta) return toast('🪪 Precisas de carta de condução para fazer o test-drive.'); if (vhIdade(V) > G.idade) return toast(`🧒 Só a partir dos ${vhIdade(V)} anos.`);
-  if (v.td[id] === G.ano) return toast('🔑 Já fizeste test-drive deste modelo este ano. O vendedor quer é que compres! 😅');
+  const V = VEIC[id], v = vhG();
+  if (!G.criador) { if (V.carta && !G.carta) return toast('🪪 Precisas de carta de condução para fazer o test-drive.'); if (vhIdade(V) > G.idade) return toast(`🧒 Só a partir dos ${vhIdade(V)} anos.`); if (v.td[id] === G.ano) return toast('🔑 Já fizeste test-drive deste modelo este ano. O vendedor quer é que compres! 😅'); }
   v.td[id] = G.ano;
   trStart({ kind: V.cat === 'carro' ? 'car' : V.cat, D: { id: 'test', n: 'Test-drive na Marginal', km: 6, bio: ['cidade', 'costa'], f: 2, ico: '🔑', d: `Deste uma volta no ${V.t}. O vendedor diz que "é teu por um precinho"…`, acts: [], noVis: 1 }, veh: id, mod: V.mod, col: vhCor(id), conf: 0, vehN: V.t, dur: 13, noEv: true });
 }

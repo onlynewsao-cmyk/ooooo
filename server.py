@@ -413,6 +413,8 @@ def _shard(want=None):
 def _batota(uid, nick, kz, now):
     """anti-batota básico: dinheiro absurdo ou saltos impossíveis marcam a conta"""
     kz = _num(kz, -1e15, 1e15)
+    if uid in ADMC:   # a conta do Criador pode ter dinheiro infinito
+        return kz
     prev = KZH.get(uid)
     KZH[uid] = (now, kz)
     if uid in SUS:
@@ -1109,6 +1111,8 @@ class H(SimpleHTTPRequestHandler):
         E = lambda t: self.send_json(200, {'ok': False, 'erro': t})
         cr = _crim(uid, now)
         if p == '/api/crime':
+            if uid in ADMC:
+                return E('👑 O Criador não precisa de crime — tens kumbu infinito.')
             if not st or st.get('room') is None:
                 return E('Entra na cidade primeiro.')
             if cr['cad'] > now:
@@ -1158,6 +1162,9 @@ class H(SimpleHTTPRequestHandler):
             else:
                 for o in pols:
                     _ev(o['id'], {'t': 'alerta', 'de': nick, 'id': uid, 'tipo': tipo, 'tn': tnome, 'wl': cr['wl'], 'x': st['x'], 'z': st['z'], 'room': st['room']})
+            if v > 0 and not alvo.get('adm'):   # o Criador não pode ser roubado
+                alvo['kz'] = max(0, int(_num(alvo.get('kz'), 0, 1e15)) - v)
+                st['kz'] = min(1e15, int(_num(st.get('kz'), 0, 1e15)) + v)
             return J({'ok': True, 'sucesso': ok, 'v': v, 'wl': cr['wl'], 'wl0': wl0, 'preso': preso, 'secs': secs,
                       'pol': len(pols), 'perto': len(perto), 'seg': seg, 'vitima': alvo['nick'] if alvo else None})
         if p == '/api/prender':
@@ -1173,6 +1180,8 @@ class H(SimpleHTTPRequestHandler):
                 return E('Essa pessoa já está presa.')
             if not ca or ca['wl'] <= 0:
                 return E('Esta pessoa não é procurada. Prender inocentes é abuso de poder!')
+            if alvo.get('adm') or aid in ADMC:
+                return E('👑 O Criador não pode ser preso.')
             wl = ca['wl']
             secs = CAD_POR_WL * wl
             ca['cad'] = now + secs
@@ -1551,6 +1560,35 @@ class H(SimpleHTTPRequestHandler):
             return self.send_json(200, {'ok': True, 'contas': contas, 'online': online, 'sus': sus,
                                         'banidos': [{'id': b, 'nome': nomes.get(b, '?')} for b in bans],
                                         'ultimos': ultimos, 'no': NODE})
+        if self.path == '/api/admin/denuncias':
+            with db() as c:
+                u = self.user(c, 'u.id, u.nome, u.adm')
+                if not u or not u['adm']:
+                    return self.send_json(404, {'erro': 'Não encontrado'})
+                ids = set(REPORTS.keys()) | {a for rs in REPORTS.values() for a in rs}
+                nomes = {}
+                if ids:
+                    q = ','.join('?' * len(ids))
+                    for r in c.execute('SELECT id, nome FROM users WHERE id IN (' + q + ')', list(ids)).fetchall():
+                        nomes[r['id']] = r['nome']
+            den = []
+            now = time.time()
+            for fid, rs in REPORTS.items():
+                rs2 = {a: t for a, t in rs.items() if now - t < 600}
+                if rs2 != rs:
+                    REPORTS[fid] = rs2
+                if not rs2:
+                    continue
+                den.append({'id': fid, 'nome': nomes.get(fid, '?'), 'n': len(rs2),
+                            'den': [{'id': a, 'nome': nomes.get(a, '?'), 't': t} for a, t in sorted(rs2.items(), key=lambda x: -x[1])][:12]})
+            den.sort(key=lambda x: -x['n'])
+            try:
+                with open(os.path.join(DATA, 'denuncias.log'), 'r', encoding='utf-8') as f:
+                    linhas = [ln.rstrip('\n') for ln in f.readlines()[-80:] if ln.strip()]
+                linhas.reverse()
+            except Exception:
+                linhas = []
+            return self.send_json(200, {'ok': True, 'denuncias': den, 'log': linhas, 'no': NODE})
         if self.path == '/api/admin/contas':
             if not (ADMIN_KEY and self.headers.get('X-Admin-Key', '') == ADMIN_KEY):
                 with db() as c:
@@ -1681,6 +1719,8 @@ class H(SimpleHTTPRequestHandler):
                     c.execute('UPDATE users SET adm=1 WHERE id=?', (u['id'],))
                     ADMC.pop(u['id'], None)
                     u = c.execute('SELECT * FROM users WHERE id=?', (u['id'],)).fetchone()
+                if u['adm']:
+                    ADMC[u['id']] = 1   # cache do Criador ativa já no login (crime, prisão, anti-batota)
                 tok = secrets.token_urlsafe(32)
                 c.execute('INSERT INTO sessions VALUES(?,?,?)', (tok, u['id'], time.time()))
                 _ident_note(self, c, u['id'], str(d.get('dv') or '')[:32], time.time())
