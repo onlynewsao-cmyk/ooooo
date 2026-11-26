@@ -54,12 +54,15 @@ function angolaMapHTML() {
   const ord = PROVINCIAS.filter(p => G0.p[p.n]).sort((a, b) => (a.n === sel) - (b.n === sel));
   let s = `<svg class="angmap" viewBox="-6 -6 ${G0.w + 12} ${G0.h + 12}" xmlns="http://www.w3.org/2000/svg">`;
   ord.forEach(P => { const g = G0.p[P.n]; s += `<path d="${g.d}" fill="${ANG_COR[nivelCidade(P)]}" class="${P.n === sel ? 'sel' : ''}${P.n === cur ? ' cur' : ''}" onclick="angSel('${P.n}')"><title>${P.n}</title></path>`; });
+  s += `<text class="oceano" transform="translate(6,310) rotate(-90)" text-anchor="middle">O c e a n o&nbsp;&nbsp;A t l â n t i c o</text>`;
+  ord.forEach(P => { const g = G0.p[P.n]; s += `<circle class="cap${P.n === sel ? ' sel' : ''}" cx="${g.x}" cy="${g.y - 4.6}" r="${P.n === sel ? 2.7 : 1.7}"/>`; });
   ord.forEach(P => { const g = G0.p[P.n]; let x = g.x, y = g.y, a = 'middle';
     if (P.n === 'Luanda') { x -= 8; a = 'end'; } if (P.n === 'Ícolo e Bengo') { y += 6; x += 4; } if (P.n === 'Cabinda') { x -= 4; a = 'end'; }
     s += `<text x="${x}" y="${y}" text-anchor="${a}" class="${P.n === sel ? 'sel' : ''}">${ANG_CURTO[P.n] || P.n}</text>`; });
   const home = (typeof G !== 'undefined' && G && G.visitando) ? G.visitando.prov : cur;
   const gc = G0.p[home]; if (gc) s += `<g class="pin" transform="translate(${gc.x},${gc.y - 16})"><path d="M0,12 C-9,0 -9,-12 0,-12 C9,-12 9,0 0,12Z"/><circle r="3.6" cy="-3"/></g>`;
   if (home !== cur) { const gv = G0.p[cur]; if (gv) s += `<g class="pin vis" transform="translate(${gv.x},${gv.y - 16})"><path d="M0,12 C-9,0 -9,-12 0,-12 C9,-12 9,0 0,12Z"/><circle r="3.6" cy="-3"/></g>`; }
+  s += `<g class="compass" transform="translate(474,30)"><circle r="14"/><path d="M0,-10 L4.5,7 L0,3.6 L-4.5,7 Z"/><text y="-18.5" text-anchor="middle">N</text></g>`;
   s += '</svg>';
   s += `<div class="angleg">${Object.entries(ANG_NIVEL).map(([k, t]) => `<span><i style="background:${ANG_COR[k]}"></i>${t.replace('Província ', '')}</span>`).join('')}<span><i class="me"></i>A tua casa</span>${home !== cur ? '<span><i class="aq"></i>Estás aqui (visita)</span>' : ''}</div>`;
   return s;
