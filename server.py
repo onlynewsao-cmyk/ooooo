@@ -52,6 +52,7 @@ STRIKES, MUTE, LASTMSG, NICKC = {}, {}, {}, {}
 SMS_T = {}            # uid -> últimos envios de SMS (limite de ritmo)
 NEWS = deque(maxlen=80)    # acontecimentos reais do jogo: {n, t, ts}
 NEWS_T = {}           # uid -> ts da última notícia publicada (1 a cada 5 min)
+BWEP_T = {}           # uid -> ts da última publicação na Bwé Social (1 a cada 90 s)
 LEAD = {}             # uid -> [nome, kz, fama]  (atualizado em cada /api/save)
 MP_TIMEOUT = 25   # rede móvel real tem falhas; só expira quem some mesmo
 PERTO = 35           # metros: alcance do chat "perto"
@@ -1739,6 +1740,113 @@ class H(SimpleHTTPRequestHandler):
                     c.execute('UPDATE users SET adulto=? WHERE id=?', (1 if d['adulto'] else 0, u['id']))
                 u = c.execute('SELECT * FROM users WHERE id=?', (u['id'],)).fetchone()
                 return self.send_json(200, {'user': public(u)})
+            if p == '/api/bwe':
+                # Bwé Social AO VIVO: publicações, gostos e seguidores reais entre jogadores
+                op = str(d.get('op') or 'feed')
+                uid = u['id']
+                now = time.time()
+
+                def _bwe_posts():
+                    r = c.execute("SELECT v FROM kv WHERE k='bwe:posts'").fetchone()
+                    try:
+                        v = json.loads(r[0]) if r and r[0] else []
+                        return v if isinstance(v, list) else []
+                    except Exception:
+                        return []
+
+                def _bwe_list(k):
+                    r = c.execute('SELECT v FROM kv WHERE k=?', (k,)).fetchone()
+                    try:
+                        v = json.loads(r[0]) if r and r[0] else []
+                        return v if isinstance(v, list) else []
+                    except Exception:
+                        return []
+
+                if op == 'post':
+                    if MUTE.get(uid, 0) > now:
+                        return self.send_json(200, {'ok': False, 'erro': f'Estás silenciado(a) por mais {round(MUTE[uid] - now)} s.'})
+                    if now - BWEP_T.get(uid, 0) < 90:
+                        return self.send_json(429, {'erro': f'Calma! Podes publicar outra vez daqui a {round(90 - (now - BWEP_T[uid]))} s.'})
+                    txt = str(d.get('txt') or '').strip()[:140]
+                    limpo, hits, bloq, motivo = filtrar(txt)
+                    if bloq:
+                        return self.send_json(400, {'erro': motivo or 'Essa publicação não passa no filtro.'})
+                    if not limpo:
+                        return self.send_json(400, {'erro': 'Escreve alguma coisa primeiro.'})
+                    BWEP_T[uid] = now
+                    try:
+                        av = json.loads(u['avatar'] or '{}')
+                    except Exception:
+                        av = {}
+                    posts = _bwe_posts()
+                    pid = (int(posts[0]['i']) + 1) if posts else 1
+                    posts.insert(0, {'i': pid, 'u': uid, 'n': u['nome'], 'av': av, 't': limpo, 'ts': now})
+                    del posts[150:]
+                    c.execute('INSERT OR REPLACE INTO kv VALUES(?, ?)', ('bwe:posts', json.dumps(posts, separators=(',', ':'))))
+                    return self.send_json(200, {'ok': True, 'id': pid})
+                if op == 'apagar':
+                    pid = int(_num(d.get('id'), 0, 1e12))
+                    posts = _bwe_posts()
+                    alvo = next((x for x in posts if x.get('i') == pid), None)
+                    if not alvo:
+                        return self.send_json(404, {'erro': 'Publicação não encontrada.'})
+                    if alvo.get('u') != uid and not u['adm']:
+                        return self.send_json(400, {'erro': 'Só podes apagar as tuas publicações.'})
+                    posts = [x for x in posts if x.get('i') != pid]
+                    c.execute('INSERT OR REPLACE INTO kv VALUES(?, ?)', ('bwe:posts', json.dumps(posts, separators=(',', ':'))))
+                    c.execute('DELETE FROM kv WHERE k=?', (f'bwe:lk:{pid}',))
+                    return self.send_json(200, {'ok': True})
+                if op == 'like':
+                    pid = int(_num(d.get('id'), 0, 1e12))
+                    posts = _bwe_posts()
+                    alvo = next((x for x in posts if x.get('i') == pid), None)
+                    if not alvo:
+                        return self.send_json(404, {'erro': 'Publicação não encontrada.'})
+                    likes = _bwe_list(f'bwe:lk:{pid}')
+                    if uid in likes:
+                        likes.remove(uid)
+                        on = False
+                    else:
+                        likes.append(uid)
+                        on = True
+                        if alvo.get('u') != uid:
+                            _ev(alvo['u'], {'t': 'bwe', 'a': 'like', 'de': u['nome'], 'id': uid})
+                    c.execute('INSERT OR REPLACE INTO kv VALUES(?, ?)', (f'bwe:lk:{pid}', json.dumps(likes)))
+                    return self.send_json(200, {'ok': True, 'on': on, 'n': len(likes)})
+                if op == 'seguir':
+                    fid = int(_num(d.get('fid'), 0, 1e12))
+                    if not fid or fid == uid:
+                        return self.send_json(400, {'erro': 'Jogador(a) inválido(a).'})
+                    if not c.execute('SELECT 1 FROM users WHERE id=?', (fid,)).fetchone():
+                        return self.send_json(404, {'erro': 'Jogador(a) não encontrado(a).'})
+                    seg = _bwe_list(f'bwe:seg:{uid}')
+                    fol = _bwe_list(f'bwe:fol:{fid}')
+                    if fid in seg:
+                        seg.remove(fid)
+                        on = False
+                        if uid in fol:
+                            fol.remove(uid)
+                    else:
+                        if len(seg) >= 300:
+                            return self.send_json(400, {'erro': 'Só podes seguir 300 pessoas.'})
+                        seg.append(fid)
+                        fol.append(uid)
+                        on = True
+                        _ev(fid, {'t': 'bwe', 'a': 'segue', 'de': u['nome'], 'id': uid})
+                    c.execute('INSERT OR REPLACE INTO kv VALUES(?, ?)', (f'bwe:seg:{uid}', json.dumps(seg)))
+                    c.execute('INSERT OR REPLACE INTO kv VALUES(?, ?)', (f'bwe:fol:{fid}', json.dumps(fol)))
+                    return self.send_json(200, {'ok': True, 'on': on, 'n': len(fol)})
+                # feed: as 40 publicações mais recentes de todos os jogadores
+                posts = _bwe_posts()[:40]
+                seg = _bwe_list(f'bwe:seg:{uid}')
+                fol = _bwe_list(f'bwe:fol:{uid}')
+                items = []
+                for x in posts:
+                    likes = _bwe_list(f"bwe:lk:{x.get('i')}")
+                    items.append({'i': x.get('i'), 'u': x.get('u'), 'n': x.get('n'), 'av': x.get('av') or {},
+                                  't': x.get('t'), 'ts': x.get('ts'), 'l': len(likes), 'ml': uid in likes,
+                                  'sg': x.get('u') in seg, 'eu': x.get('u') == uid})
+                return self.send_json(200, {'ok': True, 'items': items, 'meu': {'seg': len(seg), 'fol': len(fol)}})
             if p == '/api/news/pub':
                 who = self.mp_uid()
                 if not who:

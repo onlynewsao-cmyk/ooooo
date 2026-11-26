@@ -747,6 +747,14 @@ function v4Event(e) {
   const ban = (ico, de, txt, id) => { if (typeof p2Banner === 'function') p2Banner(ico, de, txt, () => id && v4Perfil(id)); else toast(`${ico} <b>${esc(de)}</b> ${esc(txt)}`); };
   switch (e.t) {
     case 'social': { const A = V4_ACOES[e.a]; if (!A) return true; fx(A.rfx); ban(A.ico, e.de, A.rx + ' · toca para ver o perfil', e.id); save(); refresh(); return true; }
+    case 'bwe': {
+      if (e.a === 'like') ban('❤️', e.de, 'gostou da tua publicação na Bwé Social', e.id);
+      else if (e.a === 'segue') ban('➕', e.de, 'começou a seguir-te na Bwé Social', e.id);
+      addLog(`${e.a === 'like' ? '❤️' : '➕'} <b>${esc(e.de)}</b> ${e.a === 'like' ? 'gostou da tua publicação' : 'começou a seguir-te'} na Bwé Social.`);
+      if (typeof BWEL !== 'undefined') { BWEL.ts = 0; if (BWEL.meu && e.a === 'segue') BWEL.meu.fol++; }
+      try { if (typeof SND !== 'undefined') SND.play('notif'); } catch (x) { }
+      return true;
+    }
     case 'kz': { const v = Math.max(0, Math.min(5000000, +e.v || 0)); G.dinheiro += v; addLog(`💸 <b>${esc(e.de)}</b> enviou-te ${kzShort(v)} pelo DarkCell Money.`, 'gold'); ban('💸', e.de, `enviou-te ${kzShort(v).replace(/<[^>]+>/g, '')}`, e.id); try { SND.play('coin'); } catch (x) { } save(); refresh(); return true; }
     case 'presente': {
       const g = V4_GIFTS.find(x => x.id === e.g) || { ico: '🎁', t: 'um presente', fx: { felicidade: 3 } };

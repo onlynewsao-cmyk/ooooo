@@ -435,6 +435,16 @@ button.item:disabled{opacity:.42;cursor:not-allowed}
 .pu{display:flex;align-items:center;gap:8px;padding:9px 10px;font-size:13px}.pu small{margin-left:auto;color:#888;font-size:11px}
 .pimg{height:170px;display:grid;place-items:center;font-size:60px}
 .pa{padding:8px 10px 2px;font-size:12px;font-weight:700}.pt{padding:0 10px 10px;font-size:12.5px;color:#ccc}
+.bwepub{display:flex;gap:6px;margin:8px 0}
+.bwepub input{flex:1;background:rgba(127,127,127,.13);border:1px solid #22222c;border-radius:10px;padding:9px 11px;color:#eee;font-size:13px;min-width:0}
+.bwestats{font-size:11.5px;color:#999;text-align:center;margin:0 0 8px}
+.bwestats a{color:#3fa9ff;cursor:pointer}
+.bwetxt{padding:2px 10px 8px;font-size:13.5px;line-height:1.45;color:#eee}
+.bwe-l,.bwe-f{background:rgba(127,127,127,.13);border:1px solid #22222c;border-radius:9px;padding:4px 10px;font-size:12px;cursor:pointer;color:#eee}
+.bwe-l.on{border-color:#e1306c;background:rgba(225,48,108,.18)}
+.bwe-f{margin-left:auto}
+.bwe-f.on{border-color:#2e8b57;background:rgba(46,139,87,.18);color:#7ef0ad}
+.bwe-x{margin-left:auto;background:none;border:none;cursor:pointer;font-size:14px}
 .kv{height:320px;border-radius:18px;background:linear-gradient(180deg,#1b1b25,#000);position:relative;overflow:hidden;margin-bottom:10px}
 .kvbg{position:absolute;inset:0;display:grid;place-items:center;font-size:120px;animation:bob 1.2s ease-in-out infinite alternate}
 @keyframes bob{to{transform:translateY(-12px) rotate(4deg)}}
@@ -16246,6 +16256,14 @@ function v4Event(e) {
   const ban = (ico, de, txt, id) => { if (typeof p2Banner === 'function') p2Banner(ico, de, txt, () => id && v4Perfil(id)); else toast(`${ico} <b>${esc(de)}</b> ${esc(txt)}`); };
   switch (e.t) {
     case 'social': { const A = V4_ACOES[e.a]; if (!A) return true; fx(A.rfx); ban(A.ico, e.de, A.rx + ' · toca para ver o perfil', e.id); save(); refresh(); return true; }
+    case 'bwe': {
+      if (e.a === 'like') ban('❤️', e.de, 'gostou da tua publicação na Bwé Social', e.id);
+      else if (e.a === 'segue') ban('➕', e.de, 'começou a seguir-te na Bwé Social', e.id);
+      addLog(`${e.a === 'like' ? '❤️' : '➕'} <b>${esc(e.de)}</b> ${e.a === 'like' ? 'gostou da tua publicação' : 'começou a seguir-te'} na Bwé Social.`);
+      if (typeof BWEL !== 'undefined') { BWEL.ts = 0; if (BWEL.meu && e.a === 'segue') BWEL.meu.fol++; }
+      try { if (typeof SND !== 'undefined') SND.play('notif'); } catch (x) { }
+      return true;
+    }
     case 'kz': { const v = Math.max(0, Math.min(5000000, +e.v || 0)); G.dinheiro += v; addLog(`💸 <b>${esc(e.de)}</b> enviou-te ${kzShort(v)} pelo DarkCell Money.`, 'gold'); ban('💸', e.de, `enviou-te ${kzShort(v).replace(/<[^>]+>/g, '')}`, e.id); try { SND.play('coin'); } catch (x) { } save(); refresh(); return true; }
     case 'presente': {
       const g = V4_GIFTS.find(x => x.id === e.g) || { ico: '🎁', t: 'um presente', fx: { felicidade: 3 } };
@@ -16964,6 +16982,116 @@ function v5Tick(dt) {
     const p = playerPos, L = V5.lastP; V5.lastP = { x: p.x, z: p.z };
     if (L) { const d = Math.hypot(p.x - L.x, p.z - L.z), sp = d / Math.max(dt, .001); if (sp > 7 && sp < 30) { V5.runAcc += d; if (V5.runAcc > 400) { V5.runAcc = 0; v5Corpo(.004, -.006, '(corrida)'); } } }
   }
+}
+</script>
+<script>/* =========================================================
+   BWÉ SOCIAL — AO VIVO
+   O feed real da cidade: publicações, gostos e seguidores
+   entre TODOS os jogadores (servidor /api/bwe). O sistema
+   simulado (posts de carreira, fãs) continua em "Criar".
+   ========================================================= */
+const BWEL = { items: [], ts: 0, meu: null, on: false };
+
+async function bweRefresh(force) {
+  if (typeof Acc === 'undefined' || !Acc.online || !Acc.token) return;
+  const now = Date.now();
+  if (!force && now - BWEL.ts < 40000) return;
+  BWEL.ts = now;
+  const r = await vrApi('bwe', { op: 'feed' });
+  if (r && r.ok) { BWEL.items = r.items || []; BWEL.meu = r.meu || { seg: 0, fol: 0 }; BWEL.on = true; BWEL.fail = false; }
+  else BWEL.fail = true;
+  if (typeof phoneApp !== 'undefined' && phoneApp === 'bwe' && typeof renderPhone === 'function') renderPhone(true);
+}
+setInterval(() => { try { if (phoneApp === 'bwe') bweRefresh(); } catch (e) { } }, 60000);
+
+function bweAgo(ts) {
+  const s = Math.max(1, (Date.now() - ts * 1000) / 1000);
+  if (s < 60) return 'agora';
+  if (s < 3600) return Math.floor(s / 60) + ' min';
+  if (s < 86400) return Math.floor(s / 3600) + ' h';
+  return Math.floor(s / 86400) + ' d';
+}
+
+async function bwePublicar() {
+  const el = document.getElementById('bweTxt');
+  const txt = (el && el.value || '').trim();
+  if (txt.length < 2) return toast('✍️ Escreve alguma coisa primeiro.');
+  const r = await vrApi('bwe', { op: 'post', txt });
+  if (!r || !r.ok) return toast('🚫 ' + ((r && r.erro) || 'Sem ligação ao servidor.'));
+  toast('📸 Publicado! Os jogadores de todo o país já podem ver e gostar.');
+  try { if (typeof SND !== 'undefined') SND.play('notif'); } catch (e) { }
+  bweRefresh(true);
+}
+async function bweGostar(id) {
+  const it = BWEL.items.find(x => x.i === id); if (!it) return;
+  it.ml = !it.ml; it.l = Math.max(0, it.l + (it.ml ? 1 : -1));   // resposta imediata
+  if (phoneApp === 'bwe') renderPhone(true);
+  const r = await vrApi('bwe', { op: 'like', id });
+  if (r && r.ok) { it.ml = !!r.on; it.l = r.n; if (phoneApp === 'bwe') renderPhone(true); }
+}
+async function bweSeguir(uid) {
+  const its = BWEL.items.filter(x => x.u === uid); if (!its.length) return;
+  const era = its[0].sg; its.forEach(x => x.sg = !era);
+  if (phoneApp === 'bwe') renderPhone(true);
+  const r = await vrApi('bwe', { op: 'seguir', fid: uid });
+  if (!r || !r.ok) { its.forEach(x => x.sg = era); toast('🚫 ' + ((r && r.erro) || 'Sem ligação ao servidor.')); }
+  else {
+    toast(r.on ? '➕ Agora segues essa pessoa! Os posts dela aparecem-te primeiro.' : '➖ Deixaste de seguir.');
+    if (BWEL.meu) BWEL.meu.seg = Math.max(0, BWEL.meu.seg + (r.on ? 1 : -1));
+  }
+  if (phoneApp === 'bwe') renderPhone(true);
+}
+async function bweApagar(id) {
+  if (!confirm('Apagar esta publicação?')) return;
+  const r = await vrApi('bwe', { op: 'apagar', id });
+  if (!r || !r.ok) return toast('🚫 ' + ((r && r.erro) || 'Sem ligação ao servidor.'));
+  BWEL.items = BWEL.items.filter(x => x.i !== id);
+  toast('🗑 Publicação apagada.');
+  if (phoneApp === 'bwe') renderPhone(true);
+}
+
+function bweIni(n) {
+  const p = String(n || '?').trim().split(/\s+/);
+  return esc(((p[0] || '?')[0] + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase());
+}
+function bwePostHTML(x) {
+  const cor = `hsl(${(typeof phHash === 'function' ? phHash(String(x.n || '?')) : 7) % 360},55%,42%)`;
+  return `<div class="post bwe${x.sg ? ' seg' : ''}"><div class="pu"><span class="cav sm" style="background:${cor};display:grid;place-items:center;font-weight:800;color:#fff">${bweIni(x.n)}</span><b>${esc((x.n || '?').split(' ')[0])}</b><small>${bweAgo(x.ts)}</small>
+    ${x.eu ? `<button class="bwe-x" onclick="bweApagar(${x.i})" title="Apagar">🗑</button>` : `<button class="bwe-f${x.sg ? ' on' : ''}" onclick="bweSeguir(${x.u})">${x.sg ? '✓ A seguir' : '+ Seguir'}</button>`}</div>
+    <div class="pt bwetxt">${esc(x.t)}</div>
+    <div class="pa"><button class="bwe-l${x.ml ? ' on' : ''}" onclick="bweGostar(${x.i})">${x.ml ? '❤️' : '🤍'} ${numShort(x.l)}</button></div></div>`;
+}
+function bweLiveHTML() {
+  const meu = BWEL.meu || { seg: 0, fol: 0 };
+  let h = `<div class="bwepub"><input id="bweTxt" maxlength="140" placeholder="No que estás a pensar, ${esc((G.nome || '').split(' ')[0])}?" onkeydown="if(event.key==='Enter')bwePublicar()"><button class="pbtn sm" onclick="bwePublicar()">Publicar</button></div>`;
+  h += `<div class="bwestats">🌍 <b>${numShort(meu.fol)}</b> ${meu.fol === 1 ? 'jogador segue-te' : 'jogadores seguem-te'} · tu segues <b>${numShort(meu.seg)}</b> · <a onclick="bweRefresh(true)">🔄 atualizar</a></div>`;
+  if (!BWEL.on && !BWEL.fail) h += '<p class="apnote">A ligar ao servidor… 📡</p>';
+  else if (BWEL.fail) h += '<p class="apnote">Sem ligação ao servidor — o feed ao vivo precisa de internet. Tenta outra vez daqui a bocado. 📡</p>';
+  else if (!BWEL.items.length) h += '<p class="apnote">Ainda ninguém publicou nada. Sê o(a) primeiro(a) a fazer história no país! 🎉</p>';
+  else {
+    const seg = BWEL.items.filter(x => x.sg), rest = BWEL.items.filter(x => !x.sg);
+    h += (seg.concat(rest)).map(bwePostHTML).join('');
+  }
+  h += '<p class="apnote">As publicações são reais: ficam guardadas no país e toda a gente as pode ver. Sem spam (1 post a cada 90 s) e sem ofensas — o filtro está atento. 🚫</p>';
+  return h;
+}
+
+/* envolve a app Bwé Social: o feed falso dá lugar ao AO VIVO */
+{
+  const _bweBase = PHONE_VIEWS.bwe;
+  PHONE_VIEWS.bwe = function () {
+    let h = _bweBase.apply(this, arguments);
+    const nota = '<p class="apnote">Sem publicar pelo menos uma vez por ano, perdes 12% dos seguidores. 5k+ dá parcerias pagas; 50k+ abre a carreira de influenciador(a).</p>';
+    const k = h.indexOf('<div class="apsec">Feed</div>');
+    h = (k >= 0 ? h.slice(0, k) : h) + `<div class="apsec">🌍 Ao vivo — jogadores reais</div>` + bweLiveHTML() +
+      `<div class="apsec">A tua carreira de criador</div>` + nota;
+    return h;
+  };
+  const _phoneOpenBwe = phoneOpen;
+  phoneOpen = function (id) {
+    _phoneOpenBwe.apply(this, arguments);
+    if (id === 'bwe') bweRefresh();
+  };
 }
 </script>
 <script>/* =========================================================
