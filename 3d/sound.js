@@ -290,7 +290,22 @@ const SND = (() => {
     trip.g.gain.setTargetAtTime((kind === 'plane' ? .22 : kind === 'train' ? .08 : .06) * k, now(), .4);
     if (kind === 'train' && k > .15) { const t = performance.now(); if (t - tripT > 1100 / Math.max(.3, k)) { tripT = t; noise(.05, { f: 300, q: 2, vol: .12 * k, ft: 'lowpass', dest: gAmb }); noise(.05, { f: 280, q: 2, vol: .1 * k, ft: 'lowpass', delay: .14, dest: gAmb }); } }
   }
-  return { play, vib, cfg, setOpt, RADIO, stepTick, unlock, crowd, engine, tripAmb, voice, voxBuf, get ctx() { return ctx; }, get mus() { return gMus; } };
+  /* ---- chuva: chiado filtrado (o mundo chama SND.rain(intensidade 0..1)) ---- */
+  let rainSrc = null, rainG = null;
+  function rain(v) {
+    if (!init()) return;
+    try {
+      if (!rainSrc) {
+        rainSrc = ctx.createBufferSource(); rainSrc.buffer = noiseBuf; rainSrc.loop = true; rainSrc.playbackRate.value = .8;
+        const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 2600; f.Q.value = .35;
+        rainG = ctx.createGain(); rainG.gain.value = 0;
+        rainSrc.connect(f); f.connect(rainG); rainG.connect(gAmb); rainSrc.start();
+      }
+      rainG.gain.setTargetAtTime(Math.max(0, Math.min(1, v)) * .16, now(), 1.1);
+    } catch (e) { }
+  }
+
+  return { play, vib, cfg, setOpt, RADIO, stepTick, unlock, crowd, engine, tripAmb, voice, voxBuf, rain, get ctx() { return ctx; }, get mus() { return gMus; } };
 })();
 const RADIO = SND.RADIO;
 

@@ -1371,24 +1371,58 @@ function collide(p, r) {
   }
   clampLand(p);
 }
+/* ---------------- TEMPO: aguaceiros tropicais que vêm e vão ---------------- */
+const WTH = { rain: 0, alvo: 0, proxT: 100 + Math.random() * 120 };
+let rainPts = null;
+function mkRain() {
+  const N = LITE ? 260 : GFX_HD ? 1100 : 650;
+  const g = new T.BufferGeometry(), pos = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) { pos[i * 3] = playerPos.x + (Math.random() - .5) * 70; pos[i * 3 + 1] = Math.random() * 26; pos[i * 3 + 2] = playerPos.z + (Math.random() - .5) * 70; }
+  g.setAttribute('position', new T.BufferAttribute(pos, 3));
+  rainPts = new T.Points(g, new T.PointsMaterial({ color: '#bcd8ee', size: .09, transparent: true, opacity: 0, depthWrite: false }));
+  rainPts.frustumCulled = false; rainPts.visible = false; worldScene.add(rainPts);
+}
+function wthTick(dt) {
+  WTH.proxT -= dt;
+  if (WTH.proxT <= 0) {   // o tempo muda: chuva forte 45–100 s, seca 2,5–6 min
+    WTH.alvo = WTH.alvo > 0 ? 0 : .55 + Math.random() * .45;
+    WTH.proxT = WTH.alvo > 0 ? 45 + Math.random() * 55 : 150 + Math.random() * 210;
+    if (typeof toast === 'function' && typeof mode !== 'undefined' && mode === 'game') toast(WTH.alvo > 0 ? '🌧️ Aguaceiro tropical! Procura um teto ou segue em frente.' : '☀️ A chuva parou. O sol voltou.');
+  }
+  WTH.rain += (WTH.alvo - WTH.rain) * Math.min(1, dt * .45);
+  if (WTH.rain > .03 && !rainPts && worldScene) mkRain();
+  if (rainPts) {
+    rainPts.visible = WTH.rain > .03;
+    rainPts.material.opacity = WTH.rain * .8;
+    if (rainPts.visible) {
+      const pa = rainPts.geometry.attributes.position.array, sp = (17 + WTH.rain * 12) * dt;
+      for (let i = 0; i < pa.length; i += 3) { pa[i + 1] -= sp; if (pa[i + 1] < 0) { pa[i + 1] = 22 + Math.random() * 6; pa[i] = playerPos.x + (Math.random() - .5) * 70; pa[i + 2] = playerPos.z + (Math.random() - .5) * 70; } }
+      rainPts.geometry.attributes.position.needsUpdate = true;
+    }
+  }
+  if (typeof SND !== 'undefined' && SND.rain) SND.rain((typeof mode !== 'undefined' && mode === 'game' && !(typeof inInt !== 'undefined' && inInt)) ? WTH.rain : 0);
+}
+
 function updateWorld(dt) {
   wTime += dt;
   // ciclo dia/noite (6 min)
   dayT = (dayT + dt / 360) % 1;
+  wthTick(dt);
   const ang = dayT * Math.PI * 2 - Math.PI / 2;
   const elev = Math.sin(ang);
   const day = Math.max(0, Math.min(1, elev * 2.5 + .2));
   const sunDir = new T.Vector3(Math.cos(ang) * .8, Math.max(.15, elev), .45).normalize();
   sun.position.copy(playerPos).addScaledVector(sunDir, 80); sun.target.position.copy(playerPos);
-  sun.intensity = .15 + day * 1.25;
+  sun.intensity = (.15 + day * 1.25) * (1 - WTH.rain * .55);   // a chuva esconde o sol
   sun.color.set(elev < .25 && elev > -0.1 ? '#ffb070' : (day > .1 ? '#fff1d6' : '#9fb5ff'));
   hemi.intensity = .25 + day * .45;
   const skyDay = new T.Color('#8ec9f0'), skyDusk = new T.Color('#f2925c'), skyNight = new T.Color('#0b1430');
   const sky = elev > .25 ? skyDay : elev > -0.05 ? skyDusk.clone().lerp(skyDay, Math.max(0, (elev + .05) / .3)) : skyNight.clone().lerp(skyDusk, Math.max(0, (elev + .3) / .25));
+  if (WTH.rain > .02) sky.lerp(new T.Color('#566270'), WTH.rain * .5);   // céu de aguaceiro
   worldScene.background.copy(sky); worldScene.fog.color.copy(sky).lerp(new T.Color('#ffffff'), .2 * day); citySky(sky, 1 - day);
   const night = 1 - day;
   nightMats.forEach(n => n.m.emissiveIntensity = n.day + (n.night - n.day) * night);
-  const hh = document.getElementById('clock'); if (hh) { const hr = Math.floor(((dayT * 24) + 6) % 24), mi = Math.floor((dayT * 24 * 60) % 60); hh.textContent = `${night > .5 ? '🌙' : '☀️'} ${String(hr).padStart(2, '0')}:${String(mi).padStart(2, '0')}`; }
+  const hh = document.getElementById('clock'); if (hh) { const hr = Math.floor(((dayT * 24) + 6) % 24), mi = Math.floor((dayT * 24 * 60) % 60); hh.textContent = `${WTH.rain > .25 ? '🌧️' : night > .5 ? '🌙' : '☀️'} ${String(hr).padStart(2, '0')}:${String(mi).padStart(2, '0')}`; }
 
   // mar
   const pa = seaGeo.attributes.position.array;

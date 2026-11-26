@@ -358,6 +358,49 @@ function noiseTex(base, spots, rep, n = 1600) {
 }
 function sign(text, w, bg, fg, sub, x, y, z, ry = 0) { const s = signPlane(text, w, bg, fg, sub); s.position.set(x, y, z); s.rotation.y = ry; worldScene.add(s); return s; }
 
+/* ---------------- vida nos passeios: paragens, bancas, mupis e caixotes ---------------- */
+function paragem(x, z, ry = 0) {  // abrigo da paragem de candongueiro
+  const g = new T.Group(); g.name = 'paragem';
+  const post = mat('#394048', { roughness: .6, metalness: .3 });
+  [[-1.7, -0.9], [1.7, -0.9]].forEach(([px, pz]) => mesh(cyl(.06, .06, 2.4, 8), post, px, 1.2, pz, g));
+  mesh(bx(4.2, .12, 1.7), mat('#1f63c9', { roughness: .5 }), 0, 2.45, -.15, g);
+  mesh(bx(3.6, .42, .12), mat('#ffcb00', { roughness: .5 }), 0, 2.1, -.95, g, false);
+  mesh(bx(3.4, .08, .5), mat('#8a6b46', { roughness: .8 }), 0, .55, -.55, g, false);
+  mesh(bx(3.4, .5, .08), mat('#8a6b46', { roughness: .8 }), 0, .95, -.9, g, false);
+  const s = signPlane('🚌 PARAGEM', 2.2, '#0d3f8f', '#ffffff'); s.material.side = T.DoubleSide; s.position.set(0, 1.55, -.99); g.add(s);
+  g.position.set(x, 0, z); g.rotation.y = ry; worldScene.add(g);
+}
+function banca(x, z, cor) {  // banca da zunga: mesa com mercadoria + guarda-sol às riscas + caixas
+  const g = new T.Group(); g.name = 'banca';
+  mesh(bx(1.9, .8, 1.1), mat('#7a5236', { roughness: .9 }), 0, .4, 0, g);
+  mesh(bx(1.7, .25, .9), mat('#e8b923', { roughness: .8 }), 0, .93, 0, g, false);
+  mesh(cyl(.04, .04, 2.3, 8), mat('#394048'), .6, 1.15, 0, g);
+  mesh(new T.ConeGeometry(1.5, .65, 10), new T.MeshStandardMaterial({ map: (() => { const t = ctex(128, 128, x2 => { for (let i = 0; i < 8; i++) { x2.fillStyle = i % 2 ? cor : '#f2f2f2'; x2.fillRect(i * 16, 0, 16, 128); } }); t.wrapS = t.wrapT = T.RepeatWrapping; return t; })(), roughness: .8 }), .6, 2.45, 0, g);
+  mesh(bx(.5, .5, .5), mat('#a34a2a', { roughness: .9 }), -1.3, .25, .4, g);
+  mesh(bx(.5, .5, .5), mat('#c4865a', { roughness: .9 }), -1.3, .75, .4, g);
+  g.position.set(x, 0, z); worldScene.add(g);
+}
+function mupi(x, z, txt, bg, fg, ry = 0) {  // painel publicitário das marcas do jogo
+  const g = new T.Group(); g.name = 'mupi';
+  mesh(cyl(.09, .09, 2.6, 8), mat('#2b2f36', { roughness: .6, metalness: .3 }), 0, 1.3, 0, g);
+  const s = signPlane(txt, 3.2, bg, fg); s.material.side = T.DoubleSide; s.position.set(0, 2.7, 0); g.add(s);
+  g.position.set(x, 0, z); g.rotation.y = ry; worldScene.add(g);
+}
+function caixote(x, z) {  // caixote do lixo municipal
+  const g = new T.Group(); g.name = 'caixote';
+  mesh(bx(1.6, 1, 1), mat('#2e7d32', { roughness: .85 }), 0, .55, 0, g);
+  mesh(bx(1.66, .12, 1.06), mat('#256427', { roughness: .8 }), 0, 1.1, 0, g);
+  g.position.set(x, 0, z); g.rotation.y = Math.random() * 3; worldScene.add(g);
+}
+function streetProps() {
+  const h = ROAD_W / 2 + 2.4;   // passeio = 5..11,8 a contar do centro da estrada
+  paragem(-90, 10 + h, Math.PI); paragem(30, 10 - h, 0); paragem(-h, -20, Math.PI / 2); paragem(h, 80, -Math.PI / 2);
+  banca(-52, 22, '#d2122e'); banca(-8, 22, '#2e8b57'); banca(-30, 33, '#e8b923');
+  mupi(-h, -64, 'DarkCell', '#ffcb00', '#151515', Math.PI / 2); mupi(h, 36, 'Banco Palanca', '#c8102e', '#ffffff', -Math.PI / 2);
+  mupi(-90, 10 - h, 'Kalemba TV', '#1f63c9', '#ffffff', 0); mupi(90, 10 + h, 'Txova', '#2e8b57', '#ffffff', Math.PI);
+  caixote(-52.6, -36); caixote(67.4, 12); caixote(-7.4, 70); caixote(28, -95.4); caixote(-112.6, 21.8);
+}
+
 /* =========================================================
    CONSTRUIR A CIDADE
    ========================================================= */
@@ -423,6 +466,7 @@ function buildWorld() {
   const offRoad = x => !CITY_XS.some(a => Math.abs(a - x) < 9) && !Object.values(LOC_POS).some(L => Math.abs(L.x - x) < 6);
   CITY_ZS.forEach((z, i) => { for (let x = -170; x <= 170; x += 20) { if (i && offRoad(x)) lamp(x, z - ROAD_W / 2 - 1.2, 0); if (offRoad(x + 10)) lamp(x + 10, z + ROAD_W / 2 + 1.2, Math.PI); } });
   CITY_XS.forEach(x => { for (let z = -76; z <= 144; z += 16) { if (CITY_ZS.some(a => Math.abs(a - z) < 8)) continue; treeA(x - ROAD_W / 2 - 1.8, z, .8); treeA(x + ROAD_W / 2 + 1.8, z + 8, .8); } });
+  streetProps();
 
   /* ===== ILHA ===== */
   for (let i = 0; i < 12; i++) {
