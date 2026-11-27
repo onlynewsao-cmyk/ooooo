@@ -188,6 +188,7 @@ const LV_TV = [
   { id: 'desp', n: 'Kalemba Desporto', s: 'Futebol em direto', c: '#2e7d32' },
   { id: 'nov', n: 'Kalemba Novelas', s: 'Amor na Banda', c: '#ad1457' },
   { id: 'mus', n: 'Kalemba Música', s: 'Clips 24 h', c: '#6a1b9a' },
+  { id: 'kids', n: 'Kalemba Kids', s: 'Desenhos animados', c: '#f59f00' },
 ];
 const LV_TEAMS = [['Petro de Luanda', 'PET', '#ffd400', '#00205b'], ['1º de Agosto', 'AGO', '#c8102e', '#111'], ['Sagrada Esperança', 'SAG', '#00843d', '#fff'], ['Interclube', 'INT', '#0047ab', '#fff'], ['Kabuscorp', 'KAB', '#8b0000', '#ffd700'], ['Desportivo da Huíla', 'HUI', '#1e88e5', '#fff'], ['Leões da Ilha', 'LEO', '#ff8f00', '#000'], ['Águias do Kilamba', 'AGK', '#6d4c41', '#fff']];
 const LV_MATCH = 720, LV_PLAY = 600;
@@ -311,8 +312,42 @@ function lvDrawTV(x, w, h, chId, t) {
       lvText(x, B[0], 310, 132, 200, 'italic 600 8.5px system-ui', 'rgba(255,255,255,.75)', 'right');
     }
     lvBug(x, ch, false);
+  } else if (chId === 'kids') {
+    /* Kalemba Kids: "As Aventuras do Puto Nzola" — desenho animado da banda */
+    const ep = Math.floor(T / 600), et = T - ep * 600;
+    const g = x.createLinearGradient(0, 0, 0, 180); g.addColorStop(0, '#7ec8f7'); g.addColorStop(.72, '#bfe8ff'); g.addColorStop(.721, '#7cc24a'); g.addColorStop(1, '#57a337');
+    x.fillStyle = g; x.fillRect(0, 0, 320, 180);
+    // sol sorridente
+    x.fillStyle = '#ffd93b'; x.beginPath(); x.arc(278, 30, 15, 0, 7); x.fill();
+    x.fillStyle = '#8a5a00'; x.fillRect(272, 26, 3, 3); x.fillRect(283, 26, 3, 3);
+    x.strokeStyle = '#8a5a00'; x.lineWidth = 1.4; x.beginPath(); x.arc(278, 31, 7, .3, Math.PI - .3); x.stroke();
+    // nuvens a deslizar
+    x.fillStyle = 'rgba(255,255,255,.92)';
+    for (let i = 0; i < 3; i++) { const cx = ((T * 9 + i * 130) % 400) - 40; x.beginPath(); x.arc(cx, 30 + i * 12, 8, 0, 7); x.arc(cx + 9, 26 + i * 12, 10, 0, 7); x.arc(cx + 19, 31 + i * 12, 7, 0, 7); x.fill(); }
+    // mulemba (a árvore sagrada)
+    x.fillStyle = '#8a6a48'; x.fillRect(28, 96, 7, 42); x.fillStyle = '#3f7d2c'; x.beginPath(); x.arc(31, 88, 17, 0, 7); x.fill();
+    // Puto Nzola: cabeça grande, camisola amarela, salta de alegria
+    const salto = Math.abs(Math.sin(T * 3.1)) * 14, px = 120 + Math.sin(T * .6) * 55, py = 128 - salto;
+    x.fillStyle = '#3a2a1a'; x.fillRect(px - 6, py + 26, 5, 12); x.fillRect(px + 2, py + 26, 5, 12);   // perninhas
+    x.fillStyle = '#ffcb00'; x.fillRect(px - 8, py + 8, 14, 20);           // camisola
+    x.fillStyle = '#6b3f1f'; x.beginPath(); x.arc(px, py, 11, 0, 7); x.fill();  // cabeça
+    x.fillStyle = '#fff'; x.beginPath(); x.arc(px - 4, py - 2, 2.4, 0, 7); x.arc(px + 4, py - 2, 2.4, 0, 7); x.fill();
+    x.fillStyle = '#111'; x.beginPath(); x.arc(px - 4, py - 2, 1.1, 0, 7); x.arc(px + 4, py - 2, 1.1, 0, 7); x.fill();
+    x.strokeStyle = '#2a1608'; x.lineWidth = 1.6; x.beginPath(); x.arc(px, py + 3, 5, .2, Math.PI - .2); x.stroke();  // sorriso
+    // o cãozinho Kilumba corre atrás dele
+    const dx = px - 34 - Math.sin(T * .6 + .7) * 18, dy = 136 - Math.abs(Math.sin(T * 4.4)) * 6;
+    x.fillStyle = '#8a6a48'; x.fillRect(dx, dy, 16, 8); x.fillRect(dx + 12, dy - 6, 8, 8);
+    x.fillStyle = '#5e4630'; x.fillRect(dx + 2, dy + 8, 3, 6); x.fillRect(dx + 11, dy + 8, 3, 6);
+    x.fillStyle = '#111'; x.fillRect(dx + 18, dy - 4, 2, 2);
+    // balão de fala rotativo
+    const FR = ['Bwé, mano!', 'Vamos brincar à apanhada!', 'A mulemba é sagrada!', 'Respeita os mais velhos!', 'Kamba é para sempre!', 'Quem ri por último ri melhor!'];
+    const fr = FR[(Math.floor(et / 7) + ep) % FR.length];
+    x.fillStyle = 'rgba(255,255,255,.94)'; x.beginPath(); x.arc(px + 2, py - 30, 30, 0, 7); x.fill();
+    x.fillStyle = '#222'; x.font = '700 8.5px system-ui'; x.textAlign = 'center'; x.fillText(fr, px + 2, py - 27);
+    // título de abertura do episódio
+    if (et < 6) { x.fillStyle = 'rgba(20,60,20,.88)'; x.fillRect(0, 0, 320, 180); lvText(x, 'AS AVENTURAS DO', 160, 70, 300, '900 13px system-ui', '#bfe8ff', 'center'); lvText(x, 'PUTO NZOLA', 160, 92, 300, '900 22px system-ui', '#ffd93b', 'center'); lvText(x, `Episódio ${ep % 240 + 1} · Kalemba Kids`, 160, 112, 300, '600 10px system-ui', '#fff', 'center'); }
+    lvBug(x, ch, false);
   } else {
-    const st = lvStation('mix'), g = lvSegAt(st, T), Tr = SND.RADIO.TRACKS;
     let lvl = .3; const an = SND.RADIO.analyser && SND.RADIO.analyser();
     if (an && SND.RADIO.on && lvAudioStation() === st) { const d = new Uint8Array(32); an.getByteFrequencyData(d); lvl = (d[1] + d[2] + d[3]) / 765; } else lvl = .3 + Math.max(0, Math.sin(T * 8.5)) * .4;
     const hue = (T * 20) % 360, gr = x.createRadialGradient(160, 90, 10, 160, 90, 200); gr.addColorStop(0, `hsl(${hue},90%,${40 + lvl * 25}%)`); gr.addColorStop(1, `hsl(${(hue + 120) % 360},80%,12%)`);
@@ -350,6 +385,7 @@ function lvTvInfo(chId) {
       + `<div class="apsec">Próximos jogos · Liga Mwangolé</div>${nx.map((M, i) => `<div class="tvepg"><span>+${lvMMSS(m.left + i * LV_MATCH)}</span><b>${M.A[0]} x ${M.B[0]}</b></div>`).join('')}`;
   } else if (ch.id === 'tj') info = `<div class="apsec">Manchetes</div>${lvHeadlines().slice(0, 6).map(t => `<div class="tvepg"><b>${esc(t)}</b></div>`).join('')}`;
   else if (ch.id === 'nov') { const ep = Math.floor(LIVE.now() / 600); info = `<div class="apsec">Amor na Banda · episódio ${ep % 300 + 1}</div><p class="apnote">Dona Fefa, Zeca, Kiesse e Tio Ngola: amor, kixikila, alambamento e segredos de família no Cazenga. Novo episódio a cada 10 minutos, para todos ao mesmo tempo.</p><div class="tvepg"><span>${lvMMSS(600 - (LIVE.now() - ep * 600))}</span><b>até ao próximo episódio</b></div>`; }
+  else if (ch.id === 'kids') { const ep = Math.floor(LIVE.now() / 600); info = `<div class="apsec">As Aventuras do Puto Nzola · episódio ${ep % 240 + 1}</div><p class="apnote">O Puto Nzola e o cãozinho Kilumba aprendem bwé de vida no bairro: respeito, amizade e muita brincadeira. Episódio novo a cada 10 minutos. Os miúdos adoram (e os graúdos também).</p><div class="tvepg"><span>${lvMMSS(600 - (LIVE.now() - ep * 600))}</span><b>até ao próximo episódio</b></div>`; }
   else { const st = lvStation('mix'), g = lvSegAt(st), T = SND.RADIO.TRACKS; const up = [g.s, g.next, g.next2].filter(s => s.k === 'song').map(s => T[s.i]); info = `<div class="apsec">Clips a passar</div>${up.map((t, i) => `<div class="tvepg"><span>${i ? 'a seguir' : 'agora'}</span><b>${esc(t.t)}</b> · ${esc(t.a)}</div>`).join('')}<p class="apnote">O som vem da rádio Mwangolé Mix ao vivo.</p>`; }
   return info;
 }

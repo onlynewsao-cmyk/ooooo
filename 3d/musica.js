@@ -54,6 +54,17 @@ const MZ = (() => {
     { t: 'Festa no Kilamba', a: 'Os Kalumbas', g: 'kuduro' },
     { t: 'Mulemba Vibe', a: 'DJ Lobito', g: 'afrohouse' },
     { t: 'Amor de Candongueiro', a: 'Djeny Bwé', g: 'semba' },
+    /* --- leva Ondas 2026: novidades nas rádios, na TV e na discoteca --- */
+    { t: 'Casamento na Ilha', a: 'Nelo Kizomba', g: 'kizomba' },
+    { t: 'Zungueira de Ouro', a: 'Dona Rebita', g: 'semba' },
+    { t: 'Bwé na Discoteca', a: 'DJ Kalibre', g: 'kuduro' },
+    { t: 'Pôr do Sol no Mussulo', a: 'DJ Kalunga', g: 'afrohouse' },
+    { t: 'Dança da Chuva', a: 'Os Kalumbas', g: 'kuduro' },
+    { t: 'Carta de Cabinda', a: 'Edu Bem-Vindo', g: 'kizomba' },
+    { t: 'Kazukuta da Baía', a: 'Banda Maravilha do Bairro', g: 'semba' },
+    { t: 'Meia-Noite na Marginal', a: 'Afro Kianda Crew', g: 'afrohouse' },
+    { t: 'Tarraxinha do Zé', a: 'Mano Txova', g: 'kizomba' },
+    { t: 'Festa da Mulemba', a: 'Mestre Kituxi', g: 'semba' },
   ];
 
   /* estilos: andamento, escala, progressões (graus), forma, padrões de bateria */
