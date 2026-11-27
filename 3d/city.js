@@ -292,16 +292,41 @@ function blockHouse(cx, cz, c) { // casa de blocos (bairro)
 let skyMat = null;
 function makeSky() {
   skyMat = new T.ShaderMaterial({ side: T.BackSide, depthWrite: false, fog: false,
-    uniforms: { top: { value: new T.Color('#3d8fd8') }, hor: { value: new T.Color('#bfe3f7') } },
+    uniforms: { top: { value: new T.Color('#3d8fd8') }, hor: { value: new T.Color('#bfe3f7') },
+      sunDir: { value: new T.Vector3(.5, .8, .45) }, night: { value: 0 }, rain: { value: 0 } },
     vertexShader: 'varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }',
-    fragmentShader: 'uniform vec3 top; uniform vec3 hor; varying vec3 vP; void main(){ float h = clamp(vP.y*1.6,0.,1.); gl_FragColor = vec4(mix(hor, top, pow(h,.7)),1.); }' });
+    fragmentShader: `uniform vec3 top; uniform vec3 hor; uniform vec3 sunDir; uniform float night; uniform float rain; varying vec3 vP;
+      void main(){
+        vec3 d = normalize(vP);
+        float h = clamp(d.y*1.6, 0., 1.);
+        vec3 col = mix(hor, top, pow(h, .7));
+        float sd = dot(d, normalize(sunDir));
+        // ☀️ disco do sol + brilho (esconde-se com a chuva e à noite)
+        float sunVis = (1. - night) * (1. - rain * .85);
+        col += vec3(1., .86, .5) * smoothstep(.99935, .99975, sd) * 1.6 * sunVis;
+        col += vec3(1., .72, .35) * pow(max(sd, 0.), 80.) * .35 * sunVis;
+        // 🌙 lua com brilho suave (lado oposto ao sol)
+        vec3 md = normalize(vec3(-sunDir.x, max(.25, .7 - sunDir.y), -sunDir.z));
+        float m = dot(d, md);
+        col += vec3(.92, .94, 1.) * smoothstep(.99955, .99985, m) * night;
+        col += vec3(.6, .66, .85) * pow(max(m, 0.), 240.) * .3 * night;
+        // ⭐ estrelas (cintilam devagar)
+        vec3 sp = floor(d * 160.);
+        float st = fract(sin(dot(sp, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+        float tw = .6 + .4 * sin(st * 40. + night * 3.);
+        col += vec3(1., 1., .95) * step(.9962, st) * night * smoothstep(.02, .18, d.y) * .9 * tw * (1. - rain);
+        gl_FragColor = vec4(col, 1.);
+      }` });
   const s = new T.Mesh(new T.SphereGeometry(800, 24, 12), skyMat); s.renderOrder = -1; worldScene.add(s); return s;
 }
 let skyMesh = null;
-function citySky(col, night) {
+function citySky(col, night, sunD, rainV) {
   if (!skyMat) return;
   skyMat.uniforms.hor.value.copy(col).lerp(new T.Color('#ffffff'), .25 * (1 - night));
   skyMat.uniforms.top.value.copy(col).multiplyScalar(.62 + .1 * night);
+  if (skyMat.uniforms.night) skyMat.uniforms.night.value = night;
+  if (sunD && skyMat.uniforms.sunDir) skyMat.uniforms.sunDir.value.copy(sunD);
+  if (skyMat.uniforms.rain) skyMat.uniforms.rain.value = rainV || 0;
   if (skyMesh) skyMesh.position.copy(camera.position);
 }
 

@@ -1219,7 +1219,7 @@ function mergeStatic(group) {
     geos.forEach(g => { pos.set(g.attributes.position.array, o * 3); nor.set(g.attributes.normal.array, o * 3); if (g.attributes.uv) uv.set(g.attributes.uv.array, o * 2); o += g.attributes.position.count; g.dispose(); });
     const bg = new T.BufferGeometry();
     bg.setAttribute('position', new T.BufferAttribute(pos, 3)); bg.setAttribute('normal', new T.BufferAttribute(nor, 3)); bg.setAttribute('uv', new T.BufferAttribute(uv, 2));
-    const mm = new T.Mesh(bg, m); mm.castShadow = !m.wireframe; mm.receiveShadow = true; out.add(mm);
+    const mm = new T.Mesh(bg, m); mm.castShadow = !m.wireframe && !(m.userData && m.userData.noShadow); mm.receiveShadow = true; out.add(mm);
   });
   keep.forEach(o => { const m = o.matrixWorld.clone(); m.decompose(o.position, o.quaternion, o.scale); out.add(o); });
   return out;
@@ -1385,7 +1385,7 @@ function mkRain() {
 function wthTick(dt) {
   const wxm = (typeof MP !== 'undefined' && MP.wx) || 'auto';   // 👑 o Criador comanda o céu
   if (wxm === 'chuva') { WTH.alvo = 1; if (WTH.proxT < 30) WTH.proxT = 30; }
-  else if (wxm === 'sol') { WTH.alvo = 0; if (WTH.proxT < 30) WTH.proxT = 30; }
+  else if (wxm === 'sol' || wxm === 'dia') { WTH.alvo = 0; if (WTH.proxT < 30) WTH.proxT = 30; }
   WTH.proxT -= dt;
   if (WTH.proxT <= 0) {   // o tempo muda: chuva forte 45–100 s, seca 2,5–6 min
     WTH.alvo = WTH.alvo > 0 ? 0 : .55 + Math.random() * .45;
@@ -1424,7 +1424,8 @@ function updateWorld(dt) {
   const skyDay = new T.Color('#8ec9f0'), skyDusk = new T.Color('#f2925c'), skyNight = new T.Color('#0b1430');
   const sky = elev > .25 ? skyDay : elev > -0.05 ? skyDusk.clone().lerp(skyDay, Math.max(0, (elev + .05) / .3)) : skyNight.clone().lerp(skyDusk, Math.max(0, (elev + .3) / .25));
   if (WTH.rain > .02) sky.lerp(new T.Color('#566270'), WTH.rain * .5);   // céu de aguaceiro
-  worldScene.background.copy(sky); worldScene.fog.color.copy(sky).lerp(new T.Color('#ffffff'), .2 * day); citySky(sky, 1 - day);
+  worldScene.background.copy(sky); worldScene.fog.color.copy(sky).lerp(new T.Color('#ffffff'), .2 * day); citySky(sky, 1 - day, sunDir, WTH.rain);
+  if (typeof ceuTick === 'function') ceuTick(dt, day, 1 - day, sunDir);   // nuvens, pássaros, barcos, arco-íris
   const night = 1 - day;
   nightMats.forEach(n => n.m.emissiveIntensity = n.day + (n.night - n.day) * night);
   const hh = document.getElementById('clock'); if (hh) { const hr = Math.floor(((dayT * 24) + 6) % 24), mi = Math.floor((dayT * 24 * 60) % 60); hh.textContent = `${WTH.rain > .25 ? '🌧️' : night > .5 ? '🌙' : '☀️'} ${String(hr).padStart(2, '0')}:${String(mi).padStart(2, '0')}`; }
